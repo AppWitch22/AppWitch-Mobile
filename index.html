@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>AppWitch — Verifiche Dispositivi Medici</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#ffffff;--bg2:#f5f5f5;--bg3:#eeeeee;
+  --text:#1a1a1a;--text2:#666666;--text3:#999999;
+  --border:#e0e0e0;--border2:#cccccc;
+  --info-bg:#e8f0fe;--info:#1a56db;
+  --ok-bg:#e8f5e9;--ok:#1b5e20;
+  --ko-bg:#fce8e6;--ko:#b71c1c;
+  --warn-bg:#fff3e0;--warn:#e65100;
+  --rad:8px;--rad-lg:12px;
+}
+@media(prefers-color-scheme:dark){:root{
+  --bg:#1e1e1e;--bg2:#2a2a2a;--bg3:#333333;
+  --text:#f0f0f0;--text2:#aaaaaa;--text3:#777777;
+  --border:#444444;--border2:#555555;
+  --info-bg:#1a2a4a;--info:#7baaf7;
+  --ok-bg:#1a2e1a;--ok:#81c784;
+  --ko-bg:#2e1a1a;--ko:#ef9a9a;
+  --warn-bg:#2e2200;--warn:#ffb74d;
+}}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--bg);color:var(--text);font-size:15px;padding:0;min-height:100vh}
+.app{max-width:720px;margin:0 auto;padding:12px 14px 60px}
+h1{font-size:18px;font-weight:600;margin-bottom:4px}
+.subtitle{font-size:13px;color:var(--text2);margin-bottom:16px}
+.db-bar{padding:8px 12px;border-radius:var(--rad);font-size:13px;margin-bottom:14px;border:1px solid var(--border)}
+.db-bar.loading{background:var(--bg2);color:var(--text2)}
+.db-bar.ready{background:var(--ok-bg);color:var(--ok)}
+.db-bar.error{background:var(--ko-bg);color:var(--ko)}
+.card{background:var(--bg);border:1px solid var(--border);border-radius:var(--rad-lg);padding:14px;margin-bottom:14px}
+.card-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--text2);margin-bottom:10px}
+.search-row{display:flex;gap:8px}
+.search-row input{flex:1;font-size:16px;padding:10px 12px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text);outline:none;-webkit-appearance:none}
+.search-row input:focus{border-color:var(--info)}
+.search-row button{padding:10px 16px;font-size:14px;font-weight:600;background:var(--info);color:#fff;border:none;border-radius:var(--rad);cursor:pointer}
+.results{margin-top:10px}
+.result-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--rad);margin-bottom:6px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.result-item:active{background:var(--bg2)}
+.r-cod{font-family:monospace;font-size:13px;color:var(--info);min-width:70px;flex-shrink:0}
+.r-nome{font-size:14px;font-weight:500;flex:1}
+.r-loc{font-size:11px;color:var(--text3);text-align:right}
+.r-stato{font-size:11px;display:flex;gap:4px}
+.r-tag{padding:2px 6px;border-radius:10px;font-weight:600}
+.r-tag.done{background:var(--ok-bg);color:var(--ok)}
+.r-tag.part{background:var(--warn-bg);color:var(--warn)}
+.not-found{padding:9px 12px;background:var(--warn-bg);color:var(--warn);border-radius:var(--rad);font-size:13px}
+.sess-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:8px;flex-wrap:wrap}
+.sess-btns{display:flex;gap:6px}
+.btn-sm{padding:6px 10px;font-size:12px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text2);cursor:pointer}
+.btn-xlsx{padding:6px 12px;font-size:12px;font-weight:600;border:1px solid var(--ok);border-radius:var(--rad);background:var(--ok-bg);color:var(--ok);cursor:pointer}
+.btn-xlsx:disabled{opacity:.4;cursor:not-allowed}
+.chips{display:flex;flex-wrap:wrap;gap:6px;min-height:22px}
+.chip{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;border:1px solid var(--border);font-size:12px;cursor:pointer;background:var(--bg);color:var(--text2)}
+.chip.part{border-color:var(--warn);background:var(--warn-bg);color:var(--warn)}
+.chip.done{border-color:var(--ok);background:var(--ok-bg);color:var(--ok)}
+.chip.active{border-color:var(--info);background:var(--info-bg);color:var(--info)}
+.chip-dot{width:6px;height:6px;border-radius:50%;background:currentColor}
+.sess-empty{font-size:12px;color:var(--text3);font-style:italic}
+.sess-stats{font-size:12px;color:var(--text2);margin-top:8px;padding-top:8px;border-top:1px solid var(--border)}
+.export-preview{display:none;background:var(--ok-bg);border:1px solid var(--ok);border-radius:var(--rad-lg);padding:12px;margin-bottom:14px}
+.export-preview-title{font-size:12px;font-weight:600;color:var(--ok);margin-bottom:8px}
+.ex-row{display:flex;align-items:center;justify-content:space-between;background:var(--bg);border:1px solid var(--border);border-radius:var(--rad);padding:8px 12px;margin-bottom:6px;gap:8px;flex-wrap:wrap}
+.ex-row:last-child{margin-bottom:0}
+.ex-cod{font-family:monospace;font-size:12px;color:var(--info);min-width:70px}
+.ex-nome{font-size:13px;font-weight:500;flex:1}
+.ex-tags{display:flex;gap:4px}
+.badge{font-size:11px;font-weight:600;padding:2px 7px;border-radius:20px}
+.badge.pos{background:var(--ok-bg);color:var(--ok)}
+.badge.neg{background:var(--ko-bg);color:var(--ko)}
+.badge.info{background:var(--info-bg);color:var(--info)}
+
+/* FORM */
+.form-area{display:none}
+.topbar{display:flex;align-items:flex-start;justify-content:space-between;padding:12px 0 12px;border-bottom:1px solid var(--border);margin-bottom:12px;gap:8px}
+.dev-badge{font-size:12px;font-weight:600;padding:3px 10px;border-radius:20px;background:var(--info-bg);color:var(--info)}
+.dev-name{font-size:15px;font-weight:600;margin-top:4px}
+.dev-sub{font-size:12px;color:var(--text2);margin-top:2px}
+.dev-loc-badge{display:inline-block;font-size:11px;padding:2px 8px;background:var(--warn-bg);color:var(--warn);border-radius:4px;margin-top:4px}
+.top-btns{display:flex;gap:6px;flex-shrink:0}
+.top-btns button{padding:8px 14px;font-size:13px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text);cursor:pointer;-webkit-tap-highlight-color:transparent}
+.btn-salva{background:var(--info)!important;color:#fff!important;border-color:var(--info)!important;font-weight:600}
+.prog-bar{height:3px;background:var(--border);border-radius:2px;margin-bottom:12px}
+.prog-fill{height:100%;background:var(--info);border-radius:2px;transition:width .3s}
+
+/* TABS */
+.tabs{display:flex;gap:0;margin-bottom:14px;border:1px solid var(--border);border-radius:var(--rad);overflow:hidden}
+.tab{flex:1;padding:10px;font-size:13px;font-weight:600;text-align:center;cursor:pointer;background:var(--bg2);color:var(--text2);border:none;-webkit-tap-highlight-color:transparent;position:relative}
+.tab.active{background:var(--info-bg);color:var(--info)}
+.tab.saved-tab::after{content:"✓";font-size:10px;margin-left:4px;color:var(--ok)}
+.tab-panel{display:none}
+.tab-panel.active{display:block}
+
+/* SECTIONS */
+.sec{margin-bottom:14px;border:1px solid var(--border);border-radius:var(--rad-lg);overflow:hidden}
+.sec-hdr{background:var(--bg2);padding:10px 14px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--text2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.sec-body{padding:14px;display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+.field{display:flex;flex-direction:column;gap:5px}
+.field.full{grid-column:1/-1}
+.field label{font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.03em}
+.field input{font-size:14px;padding:9px 11px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text);outline:none;-webkit-appearance:none;width:100%}
+.field input:focus{border-color:var(--info)}
+.field input[readonly]{background:var(--bg2);color:var(--text2)}
+.rg{display:flex;gap:6px;flex-wrap:wrap}
+.rb{padding:8px 14px;font-size:13px;border:1px solid var(--border2);border-radius:20px;cursor:pointer;background:var(--bg);color:var(--text2);user-select:none;-webkit-tap-highlight-color:transparent}
+.rb.sel{background:var(--info-bg);color:var(--info);border-color:var(--info)}
+.rb.ok.sel{background:var(--ok-bg);color:var(--ok);border-color:var(--ok)}
+.rb.ko.sel{background:var(--ko-bg);color:var(--ko);border-color:var(--ko)}
+.rb.na.sel{background:var(--bg3);color:var(--text2);border-color:var(--border2)}
+.mblk{padding:0 14px 14px}
+.mrow{display:grid;grid-template-columns:1fr 1fr 60px;gap:8px;align-items:end;margin-bottom:8px}
+.mlim{font-size:14px;padding:9px 11px;background:var(--bg2);border-radius:var(--rad);border:1px solid var(--border);color:var(--text2)}
+.esito{font-size:13px;font-weight:700;text-align:center;padding-top:6px}
+.msub{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--text2);margin:10px 0 8px}
+.ai-info{background:var(--warn-bg);border:1px solid var(--warn);border-radius:var(--rad);padding:9px 12px;font-size:13px;color:var(--warn);margin:0 14px 14px}
+.badge-ai{font-size:11px;padding:2px 8px;border-radius:20px;background:var(--warn-bg);color:var(--warn)}
+.gbar{display:flex;gap:8px;margin-top:6px}
+.gbtn{flex:1;padding:12px;font-size:14px;font-weight:600;border-radius:var(--rad);border:1px solid var(--border2);cursor:pointer;background:var(--bg);color:var(--text2);text-align:center;-webkit-tap-highlight-color:transparent}
+.gbtn.pos.sel{background:var(--ok-bg);color:var(--ok);border-color:var(--ok)}
+.gbtn.neg.sel{background:var(--ko-bg);color:var(--ko);border-color:var(--ko)}
+
+/* MP POINTS */
+.mp-point{border:1px solid var(--border);border-radius:var(--rad);margin-bottom:8px;overflow:hidden}
+.mp-point-hdr{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg2);cursor:pointer;-webkit-tap-highlight-color:transparent}
+.mp-num{width:24px;height:24px;border-radius:50%;background:var(--info-bg);color:var(--info);font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.mp-title{font-size:13px;font-weight:600;flex:1}
+.mp-stato{font-size:12px;font-weight:700;min-width:30px;text-align:right}
+.mp-stato.ok{color:var(--ok)}
+.mp-stato.ko{color:var(--ko)}
+.mp-stato.na{color:var(--text3)}
+.mp-desc{padding:8px 12px 10px 46px;font-size:12px;color:var(--text2);line-height:1.5;border-top:1px solid var(--border)}
+.mp-btns{display:flex;gap:6px;padding:8px 12px 10px 46px}
+.mp-btn{flex:1;padding:9px;font-size:13px;font-weight:600;border-radius:var(--rad);border:1px solid var(--border2);cursor:pointer;background:var(--bg);color:var(--text2);text-align:center;-webkit-tap-highlight-color:transparent}
+.mp-btn.ok.sel{background:var(--ok-bg);color:var(--ok);border-color:var(--ok)}
+.mp-btn.ko.sel{background:var(--ko-bg);color:var(--ko);border-color:var(--ko)}
+.mp-btn.na.sel{background:var(--bg3);color:var(--text2);border-color:var(--border2)}
+.mp-progress{font-size:12px;color:var(--text2);margin-bottom:8px}
+.mp-progress span{font-weight:600;color:var(--info)}
+
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--bg);border:1px solid var(--border2);border-radius:var(--rad-lg);padding:10px 18px;font-size:14px;white-space:nowrap;display:none;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,.15)}
+.toast.show{display:block}
+.toast.ok{border-color:var(--ok);color:var(--ok)}
+.toast.warn{border-color:var(--warn);color:var(--warn)}
+</style>
+</head>
+<body>
+<div class="app">
+  <h1>AppWitch</h1>
+  <div class="subtitle">Verifiche Dispositivi Medici</div>
+  <div class="db-bar loading" id="db-bar">Caricamento database...</div>
+
+  <div class="card">
+    <div class="card-title">Cerca apparecchio</div>
+    <div class="search-row">
+      <input type="text" id="search-input" placeholder="Codice o nome apparecchio"
+        inputmode="numeric" autocomplete="off" autocorrect="off" spellcheck="false"
+        oninput="onSearch()" onkeydown="if(event.key==='Enter')doSearch()">
+      <button onclick="doSearch()">Cerca</button>
+    </div>
+    <div class="results" id="results"></div>
+  </div>
+
+  <div class="card">
+    <div class="sess-hdr">
+      <div class="card-title" style="margin-bottom:0">Sessione</div>
+      <div class="sess-btns">
+        <button class="btn-sm" onclick="exportJSON()">⬇ JSON</button>
+        <button class="btn-xlsx" id="btn-xlsx" onclick="exportXLSX()" disabled>⬇ Excel</button>
+      </div>
+    </div>
+    <div class="chips" id="chips"><span class="sess-empty">Nessun apparecchio compilato</span></div>
+    <div class="sess-stats" id="sess-stats" style="display:none"></div>
+  </div>
+
+  <div class="export-preview" id="export-preview">
+    <div class="export-preview-title">Riepilogo sessione</div>
+    <div id="export-rows"></div>
+  </div>
+
+  <div class="form-area" id="form-area">
+    <div class="topbar">
+      <div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="dev-badge" id="dev-cod"></span>
+          <span class="dev-name" id="dev-nom"></span>
+        </div>
+        <div class="dev-sub" id="dev-inf"></div>
+        <div id="dev-loc" style="display:none" class="dev-loc-badge"></div>
+      </div>
+      <div class="top-btns">
+        <button onclick="resetCur()">↺</button>
+        <button class="btn-salva" onclick="saveAll()">Salva</button>
+      </div>
+    </div>
+    <div class="prog-bar"><div class="prog-fill" id="prog" style="width:0%"></div></div>
+
+    <!-- TABS -->
+    <div class="tabs">
+      <button class="tab active" id="tab-vse" onclick="switchTab('vse')">VSE — Sicurezza Elettrica</button>
+      <button class="tab" id="tab-mp" onclick="switchTab('mp')">MP — Manutenzione Preventiva</button>
+    </div>
+
+    <!-- TAB VSE -->
+    <div class="tab-panel active" id="panel-vse">
+      <div class="sec">
+        <div class="sec-hdr">Dati generali</div>
+        <div class="sec-body">
+          <div class="field"><label>Codice</label><input type="text" id="f-codice" readonly></div>
+          <div class="field"><label>Data verifica</label><input type="date" id="f-data"></div>
+          <div class="field full"><label>Note</label><input type="text" id="f-note"></div>
+        </div>
+      </div>
+      <div class="sec">
+        <div class="sec-hdr">Dati di targa</div>
+        <div class="sec-body">
+          <div class="field"><label>Tensione</label><input type="text" id="f-ten"></div>
+          <div class="field"><label>Tensione D/P</label><div class="rg" id="rg-tdp"><div class="rb" data-v="Dichiarato" onclick="pick(this)">Dichiarato</div><div class="rb" data-v="Presunto" onclick="pick(this)">Presunto</div></div></div>
+          <div class="field"><label>Frequenza</label><input type="text" id="f-frq"></div>
+          <div class="field"><label>Frequenza D/P</label><div class="rg" id="rg-fdp"><div class="rb" data-v="Dichiarato" onclick="pick(this)">Dichiarato</div><div class="rb" data-v="Presunto" onclick="pick(this)">Presunto</div></div></div>
+          <div class="field"><label>Potenza</label><input type="text" id="f-pot"></div>
+          <div class="field"><label>Potenza D/P</label><div class="rg" id="rg-pdp"><div class="rb" data-v="Dichiarato" onclick="pick(this)">Dichiarato</div><div class="rb" data-v="Presunto" onclick="pick(this)">Presunto</div><div class="rb na" data-v="" onclick="pick(this)">N/A</div></div></div>
+          <div class="field"><label>Marchio</label><input type="text" id="f-mar"></div>
+          <div class="field"><label>Fusibili dichiarati</label><input type="text" id="f-fud"></div>
+          <div class="field"><label>Fusibili riscontrati</label><input type="text" id="f-fur"></div>
+          <div class="field"><label>Classe</label><div class="rg" id="rg-cls"><div class="rb" data-v="I" onclick="pick(this);uM()">I</div><div class="rb" data-v="II" onclick="pick(this);uM()">II</div><div class="rb" data-v="AI" onclick="pick(this);uM()">AI</div></div></div>
+          <div class="field"><label>Classe D/P</label><div class="rg" id="rg-cdp"><div class="rb" data-v="Dichiarato" onclick="pick(this)">Dichiarato</div><div class="rb" data-v="Presunto" onclick="pick(this)">Presunto</div></div></div>
+          <div class="field"><label>PA Tipo</label><div class="rg" id="rg-pa"><div class="rb" data-v="B" onclick="pick(this);uM()">B</div><div class="rb" data-v="BF" onclick="pick(this);uM()">BF</div><div class="rb" data-v="CF" onclick="pick(this);uM()">CF</div><div class="rb na" data-v="" onclick="pick(this);uM()">N/A</div></div></div>
+          <div class="field"><label>PA D/P</label><div class="rg" id="rg-padp"><div class="rb" data-v="Dichiarato" onclick="pick(this)">Dichiarato</div><div class="rb" data-v="Presunto" onclick="pick(this)">Presunto</div><div class="rb na" data-v="" onclick="pick(this)">N/A</div></div></div>
+          <div class="field"><label>Funzionamento</label><div class="rg" id="rg-fnz"><div class="rb" data-v="Continuo" onclick="pick(this)">Continuo</div><div class="rb" data-v="Intermittente" onclick="pick(this)">Intermittente</div></div></div>
+          <div class="field"><label>Prot. defibrillatore</label><div class="rg" id="rg-def"><div class="rb ok" data-v="SI" onclick="pick(this)">SI</div><div class="rb ko" data-v="NO" onclick="pick(this)">NO</div><div class="rb na" data-v="" onclick="pick(this)">N/A</div></div></div>
+        </div>
+      </div>
+      <div class="sec">
+        <div class="sec-hdr">Ispezione visiva</div>
+        <div class="sec-body">
+          <div class="field"><label>Tipo spina</label><input type="text" id="f-spi"></div>
+          <div class="field"><label>Smontabile/pressofusa</label><div class="rg" id="rg-smo"><div class="rb" data-v="Pressofusa" onclick="pick(this)">Pressofusa</div><div class="rb" data-v="Smontabile" onclick="pick(this)">Smontabile</div></div></div>
+          <div class="field"><label>Marchio spina</label><input type="text" id="f-msp"></div>
+          <div class="field"><label>Cavo alimentazione</label><div class="rg" id="rg-cav"><div class="rb" data-v="Separabile" onclick="pick(this)">Sep.</div><div class="rb" data-v="Non Separabile" onclick="pick(this)">Non sep.</div></div></div>
+          <div class="field"><label>Integrità cavo</label><div class="rg" id="rg-icv"><div class="rb ok" data-v="Conforme" onclick="pick(this)">Conf.</div><div class="rb ko" data-v="Non conforme" onclick="pick(this)">Non conf.</div></div></div>
+          <div class="field"><label>Integrità spina</label><div class="rg" id="rg-isp"><div class="rb ok" data-v="Conforme" onclick="pick(this)">Conf.</div><div class="rb ko" data-v="Non conforme" onclick="pick(this)">Non conf.</div></div></div>
+          <div class="field"><label>Interruttore rete</label><div class="rg" id="rg-int"><div class="rb ok" data-v="Presente" onclick="pick(this)">Presente</div><div class="rb ko" data-v="Assente" onclick="pick(this)">Assente</div><div class="rb na" data-v="" onclick="pick(this)">N/A</div></div></div>
+          <div class="field"><label>Parte applicata</label><input type="text" id="f-pdc"></div>
+          <div class="field"><label>Integr. connettori</label><div class="rg" id="rg-icn"><div class="rb ok" data-v="Conforme" onclick="pick(this)">Conf.</div><div class="rb ko" data-v="Non conforme" onclick="pick(this)">Non conf.</div></div></div>
+          <div class="field"><label>Prot. conduttori</label><div class="rg" id="rg-prc"><div class="rb ok" data-v="Conforme" onclick="pick(this)">Conf.</div><div class="rb ko" data-v="Non conforme" onclick="pick(this)">Non conf.</div></div></div>
+          <div class="field"><label>Integr. conduttori</label><div class="rg" id="rg-icd"><div class="rb ok" data-v="Conforme" onclick="pick(this)">Conf.</div><div class="rb ko" data-v="Non conforme" onclick="pick(this)">Non conf.</div></div></div>
+          <div class="field"><label>Manuale uso</label><div class="rg" id="rg-mus"><div class="rb ok" data-v="SI" onclick="pick(this)">SI</div><div class="rb ko" data-v="NO" onclick="pick(this)">NO</div></div></div>
+          <div class="field"><label>Manuale servizio</label><div class="rg" id="rg-mse"><div class="rb ok" data-v="SI" onclick="pick(this)">SI</div><div class="rb ko" data-v="NO" onclick="pick(this)">NO</div></div></div>
+          <div class="field full"><label>Note aggiuntive</label><input type="text" id="f-nag"></div>
+        </div>
+      </div>
+      <div class="sec">
+        <div class="sec-hdr"><span>Misurazioni elettriche</span><span class="badge-ai" id="badge-ai" style="display:none">AI con PA</span></div>
+        <div class="sec-body">
+          <div class="field"><label>Classe misura</label><div class="rg" id="rg-clm"><div class="rb" data-v="CL1" onclick="pick(this)">CL1</div><div class="rb" data-v="CL2" onclick="pick(this)">CL2</div><div class="rb" data-v="AI" onclick="pick(this)">AI</div></div></div>
+          <div class="field" id="blk-tms"><label>Tensione mis. (V)</label><input type="number" id="f-tms" inputmode="decimal"></div>
+          <div class="field" id="blk-cor"><label>Corrente assorbita</label><input type="text" id="f-cor"></div>
+        </div>
+        <div class="mblk" id="blk-terra">
+          <div class="msub">Resistenza di terra</div>
+          <div class="mrow"><div class="field"><label>Limite (mΩ)</label><div class="mlim" id="lim-tr">300</div></div><div class="field"><label>Misurata</label><input type="number" id="f-trm" inputmode="decimal" oninput="cv('f-trm','lim-tr','e-tr');aG()"></div><div class="esito" id="e-tr"></div></div>
+          <div class="msub">Dispersione PN / PI</div>
+          <div class="mrow"><div class="field"><label>PN Lim. (µA)</label><div class="mlim" id="lim-pn">3500</div></div><div class="field"><label>PN Mis.</label><input type="number" id="f-pnm" inputmode="decimal" oninput="cv('f-pnm','lim-pn','e-pn');aG()"></div><div class="esito" id="e-pn"></div></div>
+          <div class="mrow"><div class="field"><label>PI Lim. (µA)</label><div class="mlim" id="lim-pi">3500</div></div><div class="field"><label>PI Mis.</label><input type="number" id="f-pim" inputmode="decimal" oninput="cv('f-pim','lim-pi','e-pi');aG()"></div><div class="esito" id="e-pi"></div></div>
+        </div>
+        <div id="blk-ai-info" style="display:none" class="ai-info">Classe AI — terra e dispersione non applicabili. Con PA BF/CF compilare solo la sezione PA.</div>
+        <div class="mblk" id="blk-pa" style="display:none">
+          <div class="msub">Dispersione PA (BF/CF)</div>
+          <div class="mrow"><div class="field"><label>PN BF Lim.</label><div class="mlim" id="lim-pnbf">100</div></div><div class="field"><label>PN BF Mis.</label><input type="number" id="f-pbm" inputmode="decimal" oninput="cv('f-pbm','lim-pnbf','e-pnbf')"></div><div class="esito" id="e-pnbf"></div></div>
+          <div class="mrow"><div class="field"><label>PI BF Lim.</label><div class="mlim" id="lim-pibf">5000</div></div><div class="field"><label>PI BF Mis.</label><input type="number" id="f-ibm" inputmode="decimal" oninput="cv('f-ibm','lim-pibf','e-pibf')"></div><div class="esito" id="e-pibf"></div></div>
+          <div class="mrow"><div class="field"><label>PN CF Lim.</label><div class="mlim" id="lim-pncf">50</div></div><div class="field"><label>PN CF Mis.</label><input type="number" id="f-pcm" inputmode="decimal" oninput="cv('f-pcm','lim-pncf','e-pncf')"></div><div class="esito" id="e-pncf"></div></div>
+          <div class="mrow"><div class="field"><label>PI CF Lim.</label><div class="mlim" id="lim-picf">50</div></div><div class="field"><label>PI CF Mis.</label><input type="number" id="f-icm" inputmode="decimal" oninput="cv('f-icm','lim-picf','e-picf')"></div><div class="esito" id="e-picf"></div></div>
+        </div>
+      </div>
+      <div class="sec">
+        <div class="sec-hdr">Esito e strumento</div>
+        <div class="sec-body">
+          <div class="field full"><label>Giudizio finale</label><div class="gbar"><div class="gbtn pos" id="gp" onclick="sG('POSITIVO')">POSITIVO</div><div class="gbtn neg" id="gn" onclick="sG('NEGATIVO')">NEGATIVO</div></div></div>
+          <div class="field"><label>Valori terra</label><div class="rg" id="rg-vt"><div class="rb ok" data-v="Rientrano" onclick="pick(this)">Rientrano</div><div class="rb ko" data-v="Non rientrano" onclick="pick(this)">Non rientrano</div><div class="rb na" data-v="N/A" onclick="pick(this)">N/A</div></div></div>
+          <div class="field"><label>Valori dispersione</label><div class="rg" id="rg-vd"><div class="rb ok" data-v="Rientrano" onclick="pick(this)">Rientrano</div><div class="rb ko" data-v="Non rientrano" onclick="pick(this)">Non rientrano</div><div class="rb na" data-v="N/A" onclick="pick(this)">N/A</div></div></div>
+          <div class="field full"><label>Motivi non conformità</label><input type="text" id="f-mot"></div>
+          <div class="field"><label>Strumento</label><input type="text" id="f-str"></div>
+          <div class="field"><label>N° serie strumento</label><input type="text" id="f-nrs"></div>
+          <div class="field"><label>Verificatore</label><input type="text" id="f-ver"></div>
+          <div class="field"><label>Data verifica str.</label><input type="date" id="f-dat2"></div>
+          <div class="field"><label>VERIFICATO</label><input type="text" id="f-vrc"></div>
+          <div class="field"><label>Scadenza taratura</label><input type="date" id="f-sct"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB MP -->
+    <div class="tab-panel" id="panel-mp">
+      <div class="sec">
+        <div class="sec-hdr">Dati generali</div>
+        <div class="sec-body">
+          <div class="field"><label>Codice</label><input type="text" id="mp-codice" readonly></div>
+          <div class="field"><label>Data verifica</label><input type="date" id="mp-data"></div>
+          <div class="field full"><label>Note</label><input type="text" id="mp-note"></div>
+        </div>
+      </div>
+      <div class="sec">
+        <div class="sec-hdr">Punti di manutenzione</div>
+        <div style="padding:12px 14px 4px">
+          <div class="mp-progress">Completati: <span id="mp-count">0</span> / 19</div>
+          <div id="mp-points"></div>
+        </div>
+      </div>
+      <div class="sec">
+        <div class="sec-body">
+          <div class="field"><label>Tecnico esecutore</label><input type="text" id="mp-tecnico"></div>
+          <div class="field"><label>Data</label><input type="date" id="mp-data2"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const MP_POINTS=[
+  {n:1,t:"Integrità dell'involucro",d:"Esaminare l'esterno dell'apparecchiatura, verificare che non ci siano segni di versamento di liquidi e che non vi sia nessun tipo di danneggiamento grave. Assicurarsi che viti, dadi e bloccaggi siano ben saldi."},
+  {n:2,t:"Supporti",d:"Accertare che i supporti sui quali l'apparecchiatura poggia siano sicuri e ben saldi."},
+  {n:3,t:"Ruote e sistemi frenanti",d:"Accertare che le ruote siano libere di ruotare e piroettare ed il corretto funzionamento dei meccanismi di blocco ruote."},
+  {n:4,t:"Circuito di alimentazione",d:"Accertare l'integrità dei cavi elettrici, dei passacavi, delle spine e di eventuali prese a bordo macchina. Negli apparecchi con alimentazione separata, verificare l'integrità del cavo di collegamento e il funzionamento del carica batterie."},
+  {n:5,t:"Connettori e collegamento elettrico",d:"Verificare i connettori prestando particolare attenzione ai loro pin e al loro corretto ancoraggio all'involucro, rimuovere eventuali tracce di ossido."},
+  {n:6,t:"Cavi di collegamento",d:"Controllare che tutti i cavi e connettori utilizzati per i collegamenti apparecchio-accessori siano in buone condizioni e correttamente cablati. Verificare l'assenza di rotture e/o schiacciamenti."},
+  {n:7,t:"Tubi e raccordi di alimentazione",d:"Verificare accuratamente l'integrità dei tubi, dei raccordi e dei connettori, che non siano tagliati, attorcigliati, ostruiti o crepati. Accertare l'assenza di perdite."},
+  {n:8,t:"Filtri",d:"Controllare lo stato e il corretto posizionamento dei filtri e se necessario sostituirli."},
+  {n:9,t:"Sistema di ventilazione/raffreddamento",d:"Verificare il funzionamento delle ventole di raffreddamento, pulire i filtri (dove presenti), se necessario eseguire una pulizia accurata interna."},
+  {n:10,t:"Sistema di riscaldamento",d:"Verificare lo stato e il funzionamento del sistema di riscaldamento."},
+  {n:11,t:"Comandi, interruttori, indicatori luminosi e sonori",d:"Accertare che ogni comando manuale ed elettronico del pannello di controllo espleti correttamente la propria funzione. Controllare il funzionamento di tutti gli indicatori luminosi e sonori."},
+  {n:12,t:"Allarmi",d:"Controllare il buon funzionamento di tutti gli allarmi."},
+  {n:13,t:"Livello liquidi",d:"Controllare il livello dei liquidi e rabboccare se necessario."},
+  {n:14,t:"Meccanica di trascinamento",d:"Verificare lo stato e la regolare tensione delle cinghie di trascinamento, se necessario pulire e registrare. Pulire e/o lubrificare gli ingranaggi meccanici."},
+  {n:15,t:"Indicazioni corretto utilizzo",d:"Verificare che serigrafie e simboli riportati su tasti, comandi ed involucro siano intatti e ben leggibili."},
+  {n:16,t:"Verifica finale",d:"Verifica finale del funzionamento generale dello strumento. Reimpostare l'apparecchiatura come ad avvio di manutenzione."},
+  {n:17,t:"Manutenzione specifica",d:"Consultare il Manuale di Servizio per eventuali manutenzioni specifiche."},
+  {n:18,t:"Valutazione finale",d:"Valutare la necessità di aprire un intervento di manutenzione correttiva."},
+  {n:19,t:"Attendibilità/ripetibilità misurazioni",d:"Accertarsi che le varie misurazioni / risultati effettuati sulla funzionalità dell'apparecchiatura siano attendibili e ripetibili."}
+];
+
+let mpState={};  // punto -> 'OK'|'KO'|'NA'
+
+function buildMPPoints(){
+  const container=document.getElementById('mp-points');
+  container.innerHTML=MP_POINTS.map(p=>`
+    <div class="mp-point" id="mp-p-${p.n}">
+      <div class="mp-point-hdr" onclick="toggleMPDesc(${p.n})">
+        <div class="mp-num">${p.n}</div>
+        <div class="mp-title">${p.t}</div>
+        <div class="mp-stato" id="mp-stato-${p.n}">—</div>
+      </div>
+      <div class="mp-desc" id="mp-desc-${p.n}" style="display:none">${p.d}</div>
+      <div class="mp-btns" id="mp-btns-${p.n}" style="display:none">
+        <button class="mp-btn ok" onclick="setMP(${p.n},'OK')">OK</button>
+        <button class="mp-btn ko" onclick="setMP(${p.n},'KO')">KO</button>
+        <button class="mp-btn na" onclick="setMP(${p.n},'NA')">NA</button>
+      </div>
+    </div>`).join('');
+}
+
+function toggleMPDesc(n){
+  const desc=document.getElementById('mp-desc-'+n);
+  const btns=document.getElementById('mp-btns-'+n);
+  const open=desc.style.display!=='none';
+  desc.style.display=open?'none':'block';
+  btns.style.display=open?'none':'flex';
+}
+
+function setMP(n,val){
+  mpState[n]=val;
+  const stato=document.getElementById('mp-stato-'+n);
+  stato.textContent=val;
+  stato.className='mp-stato '+val.toLowerCase();
+  // Color the point header
+  const hdr=document.querySelector('#mp-p-'+n+' .mp-point-hdr');
+  hdr.style.background=val==='OK'?'var(--ok-bg)':val==='KO'?'var(--ko-bg)':'var(--bg2)';
+  // Update buttons
+  document.querySelectorAll('#mp-btns-'+n+' .mp-btn').forEach(b=>{
+    b.classList.toggle('sel',b.textContent===val);
+  });
+  // Close after selection
+  document.getElementById('mp-desc-'+n).style.display='none';
+  document.getElementById('mp-btns-'+n).style.display='none';
+  updateMPCount();
+  uP();
+}
+
+function updateMPCount(){
+  const done=Object.keys(mpState).length;
+  document.getElementById('mp-count').textContent=done;
+}
+
+function resetMPPoints(){
+  mpState={};
+  MP_POINTS.forEach(p=>{
+    const stato=document.getElementById('mp-stato-'+p.n);
+    if(stato){stato.textContent='—';stato.className='mp-stato';}
+    const hdr=document.querySelector('#mp-p-'+p.n+' .mp-point-hdr');
+    if(hdr)hdr.style.background='';
+    document.querySelectorAll('#mp-btns-'+p.n+' .mp-btn').forEach(b=>b.classList.remove('sel'));
+    const desc=document.getElementById('mp-desc-'+p.n);
+    const btns=document.getElementById('mp-btns-'+p.n);
+    if(desc)desc.style.display='none';
+    if(btns)btns.style.display='none';
+  });
+  document.getElementById('mp-count').textContent='0';
+}
+
+function loadMPSaved(rec){
+  if(!rec)return;
+  MP_POINTS.forEach(p=>{
+    const val=rec['mp'+p.n];
+    if(val)setMP(p.n,val);
+  });
+  const e=document.getElementById('mp-tecnico');if(e)e.value=rec.mp_tecnico||'';
+  const d=document.getElementById('mp-data');if(d)d.value=rec.mp_data||'';
+  const d2=document.getElementById('mp-data2');if(d2)d2.value=rec.mp_data2||'';
+  const n=document.getElementById('mp-note');if(n)n.value=rec.mp_note||'-';
+  const c=document.getElementById('mp-codice');if(c)c.value=rec.codice||'';
+}
+
+function collectMP(){
+  const t=new Date().toISOString().split('T')[0];
+  const rec={codice:gv('mp-codice'),mp_data:gv('mp-data')||t,mp_note:gv('mp-note'),mp_tecnico:gv('mp-tecnico'),mp_data2:gv('mp-data2')||t};
+  MP_POINTS.forEach(p=>{rec['mp'+p.n]=mpState[p.n]||'';});
+  return rec;
+}
+
+// TAB SWITCHING
+function switchTab(tab){
+  document.getElementById('tab-vse').classList.toggle('active',tab==='vse');
+  document.getElementById('tab-mp').classList.toggle('active',tab==='mp');
+  document.getElementById('panel-vse').classList.toggle('active',tab==='vse');
+  document.getElementById('panel-mp').classList.toggle('active',tab==='mp');
+}
+
+// MAIN APP
+let DB={};let cur=null;let dirty=false;const saved={};
+
+async function initDB(){
+  const bar=document.getElementById('db-bar');
+  try{
+    const r=await fetch('db.json');
+    if(!r.ok)throw new Error();
+    const data=await r.json();
+    if(Array.isArray(data))data.forEach(d=>DB[d.c]=d);else DB=data;
+    bar.textContent='Database pronto — '+Object.keys(DB).length.toLocaleString()+' dispositivi';
+    bar.className='db-bar ready';
+  }catch(e){
+    bar.textContent='Errore caricamento database.';bar.className='db-bar error';
+  }
+}
+
+function onSearch(){const q=document.getElementById('search-input').value.trim();if(q.length>=2)doSearch();else document.getElementById('results').innerHTML='';}
+
+function doSearch(){
+  const q=document.getElementById('search-input').value.trim().toLowerCase();
+  if(!q||!Object.keys(DB).length)return;
+  const res=[];
+  const pad=q.replace(/\D/g,'').padStart(7,'0');
+  if(DB[pad])res.push(DB[pad]);
+  for(const d of Object.values(DB)){
+    if(res.length>=7)break;
+    if(d===res[0])continue;
+    if(d.c.includes(q)||d.n.toLowerCase().includes(q)||d.b.toLowerCase().includes(q))res.push(d);
+  }
+  const box=document.getElementById('results');
+  if(!res.length){box.innerHTML='<div class="not-found">Nessun apparecchio trovato</div>';return;}
+  box.innerHTML=res.map(d=>{
+    const s=saved[d.c];
+    const tags=s?`<span class="r-tag done">${s.vse_saved&&s.mp_saved?'VSE+MP':s.vse_saved?'VSE':s.mp_saved?'MP':''}</span>`:'';
+    return`<div class="result-item" onclick="sel('${d.c}')">
+      <span class="r-cod">${d.c}</span>
+      <span class="r-nome">${d.n.toLowerCase()}</span>
+      <span class="r-stato">${tags}</span>
+      <span class="r-loc">${(d.pre||'').split(' ')[0]}</span>
+    </div>`;
+  }).join('');
+}
+
+function sel(cod){
+  const d=DB[cod];if(!d)return;
+  cur=d;dirty=false;
+  document.getElementById('results').innerHTML='';
+  document.getElementById('search-input').value='';
+  document.getElementById('form-area').style.display='block';
+  fillVSE(d);
+  fillMPHeader(d);
+  resetMPPoints();
+  // Restore saved if exists
+  if(saved[cod]){
+    if(saved[cod].vse_saved)restoreVSE(saved[cod]);
+    if(saved[cod].mp_saved)loadMPSaved(saved[cod]);
+    // Update tab indicators
+    updateTabIndicators();
+  }
+  switchTab('vse');
+  document.getElementById('form-area').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function fillMPHeader(d){
+  const t=new Date().toISOString().split('T')[0];
+  document.getElementById('mp-codice').value=d.c;
+  document.getElementById('mp-data').value=t;
+  document.getElementById('mp-note').value='-';
+  document.getElementById('mp-data2').value=t;
+  document.getElementById('mp-tecnico').value=d.ver||'';
+}
+
+const sv=(id,v)=>{const e=document.getElementById(id);if(e&&v!=null)e.value=v;};
+const sr=(g,v)=>{document.querySelectorAll('#'+g+' .rb').forEach(b=>b.classList.toggle('sel',b.dataset.v===v));};
+const gr=(g)=>{const s=document.querySelector('#'+g+' .rb.sel');return s?s.dataset.v:'';};
+const gv=(id)=>{const e=document.getElementById(id);return e?e.value:'';};
+const lv=(id)=>document.getElementById(id).textContent;
+const sl=(id,v)=>{if(v)document.getElementById(id).textContent=v;};
+
+function fillVSE(d){
+  const t=new Date().toISOString().split('T')[0];
+  sv('f-codice',d.c);sv('f-data',t);sv('f-note','-');
+  sv('f-ten',d.ten);sr('rg-tdp',d.tdp);sv('f-frq',d.frq);sr('rg-fdp',d.fdp);
+  sv('f-pot',d.pot);sr('rg-pdp',d.pdp);sv('f-mar',d.mar);sv('f-fud',d.fud);sv('f-fur',d.fur);
+  sr('rg-cls',d.cls);sr('rg-cdp',d.cdp);sr('rg-pa',d.pat);sr('rg-padp',d.pad);
+  sr('rg-fnz',d.fnz);sr('rg-def',d.def);
+  sv('f-spi',d.spi);sr('rg-smo',d.smo);sv('f-msp',d.msp);sr('rg-cav',d.cav);
+  sr('rg-icv',d.icv);sr('rg-isp',d.isp);sr('rg-int',d.int);sv('f-pdc',d.pdc);
+  sr('rg-icn',d.icn);sr('rg-prc',d.prc);sr('rg-icd',d.icd);
+  sr('rg-mus',d.mus);sr('rg-mse',d.mse);sv('f-nag',d.nag);
+  sr('rg-clm',d.clm);sv('f-tms',d.tms);sv('f-cor',d.cor);
+  sl('lim-tr',d.trl);sv('f-trm',d.trm);
+  sl('lim-pn',d.pnl);sv('f-pnm',d.pnm);
+  sl('lim-pi',d.pil);sv('f-pim',d.pim);
+  sl('lim-pnbf',d.pbl);sv('f-pbm',d.pbm);
+  sl('lim-pibf',d.ibl);sv('f-ibm',d.ibm);
+  sl('lim-pncf',d.pcl);sv('f-pcm',d.pcm);
+  sl('lim-picf',d.icl);sv('f-icm',d.icm);
+  sG(d.giu||'POSITIVO');sr('rg-vt',d.vt);sr('rg-vd',d.vd);sv('f-mot',d.mot);
+  sv('f-str',d.str);sv('f-nrs',d.nrs);sv('f-ver',d.ver);
+  sv('f-dat2',t);sv('f-vrc',d.vrc);sv('f-sct',d.sct);
+  document.getElementById('dev-cod').textContent=d.c;
+  document.getElementById('dev-nom').textContent=d.n.toLowerCase();
+  document.getElementById('dev-inf').textContent=d.b+' · '+d.m;
+  const loc=document.getElementById('dev-loc');
+  if(d.pre){loc.textContent='📍 '+d.pre+(d.sed?' — '+d.sed:'');loc.style.display='inline-block';}
+  else loc.style.display='none';
+  uM();
+  ['f-trm','f-pnm','f-pim'].forEach((id,i)=>cv(id,['lim-tr','lim-pn','lim-pi'][i],['e-tr','e-pn','e-pi'][i]));
+  uP();
+}
+
+function restoreVSE(rec){
+  sv('f-data',rec.data);sv('f-note',rec.note);
+  sv('f-ten',rec.ten);sr('rg-tdp',rec.tdp);sv('f-frq',rec.frq);sr('rg-fdp',rec.fdp);
+  sv('f-pot',rec.pot);sr('rg-pdp',rec.pdp);sv('f-mar',rec.mar);sv('f-fud',rec.fud);sv('f-fur',rec.fur);
+  sr('rg-cls',rec.cls);sr('rg-cdp',rec.cdp);sr('rg-pa',rec.pat);sr('rg-padp',rec.pad);
+  sr('rg-fnz',rec.fnz);sr('rg-def',rec.def);
+  sv('f-spi',rec.spi);sr('rg-smo',rec.smo);sv('f-msp',rec.msp);sr('rg-cav',rec.cav);
+  sr('rg-icv',rec.icv);sr('rg-isp',rec.isp);sr('rg-int',rec.int);sv('f-pdc',rec.pdc);
+  sr('rg-icn',rec.icn);sr('rg-prc',rec.prc);sr('rg-icd',rec.icd);
+  sr('rg-mus',rec.mus);sr('rg-mse',rec.mse);sv('f-nag',rec.nag);
+  sr('rg-clm',rec.clm);sv('f-tms',rec.tms);sv('f-cor',rec.cor);
+  sv('f-trm',rec.trm);sv('f-pnm',rec.pnm);sv('f-pim',rec.pim);
+  sv('f-pbm',rec.pbm);sv('f-ibm',rec.ibm);sv('f-pcm',rec.pcm);sv('f-icm',rec.icm);
+  sG(rec.giu||'POSITIVO');sr('rg-vt',rec.vt);sr('rg-vd',rec.vd);sv('f-mot',rec.mot);
+  sv('f-str',rec.str);sv('f-nrs',rec.nrs);sv('f-ver',rec.ver);sv('f-vrc',rec.vrc);sv('f-sct',rec.sct);
+  uM();
+}
+
+function pick(el){el.closest('.rg').querySelectorAll('.rb').forEach(b=>b.classList.remove('sel'));el.classList.add('sel');dirty=true;uP();}
+
+function uM(){
+  const ai=gr('rg-cls')==='AI';const pa=gr('rg-pa');const hp=pa==='BF'||pa==='CF';
+  document.getElementById('blk-terra').style.display=ai?'none':'block';
+  document.getElementById('blk-tms').style.display=ai?'none':'flex';
+  document.getElementById('blk-cor').style.display=ai?'none':'flex';
+  document.getElementById('blk-ai-info').style.display=ai?'block':'none';
+  document.getElementById('badge-ai').style.display=(ai&&hp)?'inline-block':'none';
+  document.getElementById('blk-pa').style.display=hp?'block':'none';
+}
+
+function sG(v){
+  document.getElementById('gp').classList.toggle('sel',v==='POSITIVO');
+  document.getElementById('gn').classList.toggle('sel',v==='NEGATIVO');
+  document.getElementById('f-vrc').value=v==='POSITIVO'?'SI è Positivo':'NON CONFORME';
+}
+
+function cv(fid,lid,eid){
+  const v=parseFloat(document.getElementById(fid).value);
+  const l=parseFloat(document.getElementById(lid).textContent);
+  const e=document.getElementById(eid);
+  if(isNaN(v)){e.textContent='';return;}
+  e.textContent=v<=l?'✓ OK':'✗ KO';e.style.color=v<=l?'var(--ok)':'var(--ko)';
+}
+
+function aG(){
+  let neg=false;
+  [['f-trm','lim-tr'],['f-pnm','lim-pn'],['f-pim','lim-pi']].forEach(([f,l])=>{
+    const v=parseFloat(document.getElementById(f).value);
+    const lv=parseFloat(document.getElementById(l).textContent);
+    if(!isNaN(v)&&v>lv)neg=true;
+  });
+  sG(neg?'NEGATIVO':'POSITIVO');
+}
+
+function resetCur(){if(cur){fillVSE(cur);resetMPPoints();fillMPHeader(cur);}dirty=false;}
+
+function uP(){
+  const fs=['f-codice','f-ten','f-mar','f-str','f-ver'];
+  const n=fs.filter(id=>{const e=document.getElementById(id);return e&&e.value.trim()!==''}).length;
+  const mpDone=Object.keys(mpState).length;
+  const total=fs.length+19;
+  document.getElementById('prog').style.width=Math.round((n+mpDone)/total*100)+'%';
+}
+
+function collectVSE(){
+  return{codice:gv('f-codice'),data:gv('f-data'),note:gv('f-note'),
+    ten:gv('f-ten'),tdp:gr('rg-tdp'),frq:gv('f-frq'),fdp:gr('rg-fdp'),
+    pot:gv('f-pot'),pdp:gr('rg-pdp'),mar:gv('f-mar'),fud:gv('f-fud'),fur:gv('f-fur'),
+    cls:gr('rg-cls'),cdp:gr('rg-cdp'),pat:gr('rg-pa'),pad:gr('rg-padp'),
+    fnz:gr('rg-fnz'),def:gr('rg-def'),
+    spi:gv('f-spi'),smo:gr('rg-smo'),msp:gv('f-msp'),cav:gr('rg-cav'),
+    icv:gr('rg-icv'),isp:gr('rg-isp'),int:gr('rg-int'),pdc:gv('f-pdc'),
+    icn:gr('rg-icn'),prc:gr('rg-prc'),icd:gr('rg-icd'),
+    mus:gr('rg-mus'),mse:gr('rg-mse'),nag:gv('f-nag'),
+    clm:gr('rg-clm'),tms:gv('f-tms'),cor:gv('f-cor'),
+    trl:lv('lim-tr'),trm:gv('f-trm'),pnl:lv('lim-pn'),pnm:gv('f-pnm'),
+    pil:lv('lim-pi'),pim:gv('f-pim'),
+    pbl:lv('lim-pnbf'),pbm:gv('f-pbm'),ibl:lv('lim-pibf'),ibm:gv('f-ibm'),
+    pcl:lv('lim-pncf'),pcm:gv('f-pcm'),icl:lv('lim-picf'),icm:gv('f-icm'),
+    giu:document.getElementById('gp').classList.contains('sel')?'POSITIVO':'NEGATIVO',
+    vt:gr('rg-vt'),vd:gr('rg-vd'),mot:gv('f-mot'),
+    str:gv('f-str'),nrs:gv('f-nrs'),ver:gv('f-ver'),vrc:gv('f-vrc'),sct:gv('f-sct')};
+}
+
+function saveAll(){
+  if(!cur){toast('Seleziona un dispositivo','warn');return;}
+  const cod=cur.c;
+  const existing=saved[cod]||{codice:cod};
+  const vseRec=collectVSE();
+  const mpRec=collectMP();
+  saved[cod]={...existing,...vseRec,...mpRec,vse_saved:true,mp_saved:true};
+  dirty=false;
+  updateTabIndicators();
+  renderSession();
+  toast('Salvato: '+cod+' (VSE + MP)','ok');
+  setTimeout(()=>{
+    document.querySelector('.card').scrollIntoView({behavior:'smooth'});
+    document.getElementById('search-input').focus();
+  },700);
+}
+
+function updateTabIndicators(){
+  if(!cur)return;
+  const s=saved[cur.c];
+  document.getElementById('tab-vse').classList.toggle('saved-tab',!!(s&&s.vse_saved));
+  document.getElementById('tab-mp').classList.toggle('saved-tab',!!(s&&s.mp_saved));
+}
+
+function renderSession(){
+  const keys=Object.keys(saved);
+  document.getElementById('btn-xlsx').disabled=keys.length===0;
+  const chips=document.getElementById('chips');
+  const stats=document.getElementById('sess-stats');
+  if(!keys.length){chips.innerHTML='<span class="sess-empty">Nessun apparecchio compilato</span>';stats.style.display='none';document.getElementById('export-preview').style.display='none';return;}
+  chips.innerHTML=keys.map(k=>{
+    const s=saved[k];const act=cur&&cur.c===k;
+    const both=s.vse_saved&&s.mp_saved;
+    return`<div class="chip ${both?'done':'part'}${act?' active':''}" onclick="sel('${k}')">
+      <div class="chip-dot"></div>${k}
+    </div>`;
+  }).join('');
+  const total=keys.length;
+  const both=keys.filter(k=>saved[k].vse_saved&&saved[k].mp_saved).length;
+  stats.textContent=total+' dispositivi · '+both+' completi (VSE+MP)';
+  stats.style.display='block';
+  document.getElementById('export-preview').style.display='block';
+  document.getElementById('export-rows').innerHTML=keys.map(k=>{
+    const s=saved[k];const d=DB[k]||{};
+    return`<div class="ex-row">
+      <span class="ex-cod">${k}</span>
+      <span class="ex-nome">${(d.n||'').toLowerCase()}</span>
+      <span class="ex-tags">
+        ${s.vse_saved?`<span class="badge ${s.giu==='POSITIVO'?'pos':'neg'}">VSE ${s.giu==='POSITIVO'?'✓':'✗'}</span>`:''}
+        ${s.mp_saved?`<span class="badge info">MP ✓</span>`:''}
+      </span>
+    </div>`;
+  }).join('');
+}
+
+function exportJSON(){
+  const keys=Object.keys(saved);if(!keys.length){toast('Nessun dato','warn');return;}
+  const b=new Blob([JSON.stringify(keys.map(k=>saved[k]),null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(b);
+  a.download='appwitch_'+new Date().toISOString().split('T')[0]+'.json';a.click();
+  toast('JSON scaricato','ok');
+}
+
+function exportXLSX(){
+  const keys=Object.keys(saved);if(!keys.length){toast('Nessun dato','warn');return;}
+  if(typeof XLSX==='undefined'){
+    toast('Caricamento libreria Excel...','warn');
+    const s=document.createElement('script');
+    s.src='https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+    s.onload=()=>exportXLSX();document.head.appendChild(s);return;
+  }
+  const wb=XLSX.utils.book_new();
+  const date=new Date().toISOString().split('T')[0];
+
+  // Sheet VSE
+  const HVSE=['CODICE','DATA','NOTE','Tensione','Tensione D/P','Frequenza','Frequenza D/P','Potenza','Potenza D/P','Marchio Conformita','Fusibili Dichiarati','Fusibili Riscontrati','Classe','Classe D/P','PA Tipo','Tipo D/P','Funzionamento','Protezione Defibrillatore','Tipo Spina','Smontabile/pressofusa','Marchio Spina','Cavo Alimentazione','IntegritaCavo','Integrita Spina','InterruttoreRete','ParteApplicata','IntegritaConnettori','ProtezioneConduttori','IntegritaConduttori','Manuale Uso','Manuale Servizio','Note Aggiuntive','ClasseMisura','Tensione2','CorrenteAssorbitaMA','TerraProtezioneLimite','TerraProtezioneMisurata','PN Limite','PN Misurata','PI Limite','PI Misurata','PN BF Limite','PN BF Misurata','PI BF Limite','PI BF Misurata','PN CF Limite','PN CF Misurata','PI CF Limite','PI CF Misurata','Giudizio','ValoriMessaTerra','ValoriDispersione','MotiviNonConformita','Strumento','NrSerie','Verificatore','Data2','VERIFICATO','Scadenza Taratura'];
+  const FVSE=['codice','data','note','ten','tdp','frq','fdp','pot','pdp','mar','fud','fur','cls','cdp','pat','pad','fnz','def','spi','smo','msp','cav','icv','isp','int','pdc','icn','prc','icd','mus','mse','nag','clm','tms','cor','trl','trm','pnl','pnm','pil','pim','pbl','pbm','ibl','ibm','pcl','pcm','icl','icm','giu','vt','vd','mot','str','nrs','ver','data','vrc','sct'];
+  const NUMERIC_VSE=new Set([33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49]);
+  const vseKeys=keys.filter(k=>saved[k].vse_saved);
+  if(vseKeys.length){
+    const rows=vseKeys.map(k=>{const r=saved[k];return FVSE.map((f,i)=>{const v=r[f]||'';if(NUMERIC_VSE.has(i)&&v!==''){const n=parseFloat(v);return isNaN(n)?v:n;}return v;});});
+    const ws=XLSX.utils.aoa_to_sheet([HVSE,...rows]);
+    ws['!cols']=HVSE.map(()=>({wch:16}));
+    XLSX.utils.book_append_sheet(wb,ws,'Inserimento_VSE');
+  }
+
+  // Sheet MP — struttura identica a Inserimento_MP originale
+  // Riga 1: CODICE, DATA, NOTE, 1, null, null, 2, null, null, ... 19, null, null, Tecnico Esecutore
+  // Riga 2: null, null, null, OK, KO, NA, OK, KO, NA, ...
+  // Dati:   valore, data, note, X/null, X/null, X/null, ...
+  const mpKeys=keys.filter(k=>saved[k].mp_saved);
+  if(mpKeys.length){
+    const R1=['CODICE','DATA','NOTE'];
+    for(let i=1;i<=19;i++){R1.push(i,null,null);}
+    R1.push('Tecnico Esecutore');
+    const R2=[null,null,null];
+    for(let i=1;i<=19;i++){R2.push('OK','KO','NA');}
+    R2.push(null);
+    const rows=mpKeys.map(k=>{
+      const r=saved[k];
+      const row=[r.codice||'',r.mp_data||'',r.mp_note||''];
+      for(let i=1;i<=19;i++){
+        const v=r['mp'+i]||'';
+        row.push(v==='OK'?'X':null,v==='KO'?'X':null,v==='NA'?'X':null);
+      }
+      row.push(r.mp_tecnico||'');
+      return row;
+    });
+    const ws=XLSX.utils.aoa_to_sheet([R1,R2,...rows]);
+    // Colonne: A=10, B=12, C=20, poi 3 col per ogni punto (5 ciascuna), ultima=20
+    const cols=[{wch:10},{wch:12},{wch:20}];
+    for(let i=0;i<19;i++)cols.push({wch:5},{wch:5},{wch:5});
+    cols.push({wch:20});
+    ws['!cols']=cols;
+    XLSX.utils.book_append_sheet(wb,ws,'Inserimento_MP');
+  }
+
+  XLSX.writeFile(wb,'AppWitch_'+date+'.xlsx');
+  toast('Excel scaricato (VSE+MP)','ok');
+}
+
+function toast(msg,type){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.className='toast show'+(type==='ok'?' ok':type==='warn'?' warn':'');
+  setTimeout(()=>t.classList.remove('show'),3000);
+}
+
+document.querySelectorAll('input').forEach(e=>e.addEventListener('input',()=>{dirty=true;uP();}));
+buildMPPoints();
+initDB();
+</script>
+</body>
+</html>
