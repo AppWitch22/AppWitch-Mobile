@@ -144,6 +144,30 @@ h1{font-size:18px;font-weight:600;margin-bottom:4px}
 .mp-progress{font-size:12px;color:var(--text2);margin-bottom:8px}
 .mp-progress span{font-weight:600;color:var(--info)}
 
+
+/* VSP */
+.vsp-sec{margin-bottom:14px;border:1px solid var(--border);border-radius:var(--rad-lg);overflow:hidden}
+.vsp-sec-hdr{background:var(--bg2);padding:9px 14px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--text2);border-bottom:1px solid var(--border)}
+.vsp-point{display:flex;align-items:flex-start;gap:10px;padding:9px 12px;border-bottom:1px solid var(--border)}
+.vsp-point:last-child{border-bottom:none}
+.vsp-point-id{width:22px;height:22px;border-radius:50%;background:var(--info-bg);color:var(--info);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px}
+.vsp-point-desc{flex:1;font-size:13px;line-height:1.4;padding-top:2px}
+.vsp-btns{display:flex;gap:5px;flex-shrink:0}
+.vsp-btn{padding:5px 10px;font-size:12px;font-weight:600;border-radius:20px;border:1px solid var(--border2);cursor:pointer;background:var(--bg);color:var(--text2);-webkit-tap-highlight-color:transparent}
+.vsp-btn.ok.sel{background:var(--ok-bg);color:var(--ok);border-color:var(--ok)}
+.vsp-btn.ko.sel{background:var(--ko-bg);color:var(--ko);border-color:var(--ko)}
+.vsp-btn.na.sel{background:var(--bg3);color:var(--text2);border-color:var(--border2)}
+.vsp-btn.pa.sel{background:var(--info-bg);color:var(--info);border-color:var(--info)}
+.vsp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px;padding:12px 14px}
+.vsp-field{display:flex;flex-direction:column;gap:4px}
+.vsp-field label{font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.03em}
+.vsp-field input{font-size:13px;padding:7px 10px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text);outline:none;width:100%;-webkit-appearance:none}
+.vsp-field input:focus{border-color:var(--info)}
+.vsp-table{width:100%;border-collapse:collapse;font-size:12px;margin:8px 14px 12px}
+.vsp-table th{background:var(--bg2);padding:6px 8px;text-align:center;border:1px solid var(--border);font-weight:600;font-size:11px;color:var(--text2)}
+.vsp-table td{padding:6px 8px;border:1px solid var(--border);text-align:center}
+.vsp-table td:first-child{text-align:left;font-weight:500}
+
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--bg);border:1px solid var(--border2);border-radius:var(--rad-lg);padding:10px 18px;font-size:14px;white-space:nowrap;display:none;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,.15)}
 .toast.show{display:block}
 .toast.ok{border-color:var(--ok);color:var(--ok)}
@@ -296,6 +320,30 @@ h1{font-size:18px;font-weight:600;margin-bottom:4px}
       </div>
     </div>
 
+
+    <!-- TAB VSP_CEN -->
+    <div class="tab-panel" id="panel-vsp">
+      <div class="sec">
+        <div class="sec-hdr">Dati generali</div>
+        <div class="sec-body">
+          <div class="field"><label>Codice</label><input type="text" id="vsp-codice" readonly></div>
+          <div class="field"><label>Data verifica</label><input type="date" id="vsp-data"></div>
+          <div class="field full"><label>Note</label><input type="text" id="vsp-note"></div>
+        </div>
+      </div>
+      <div id="vsp-body"></div>
+      <div class="sec">
+        <div class="sec-body">
+          <div class="field"><label>Tecnico esecutore</label><input type="text" id="vsp-tecnico"></div>
+          <div class="field"><label>Strumento</label><input type="text" id="vsp-strum" style="display:none"></div>
+          <div class="field"><label>Modello</label><input type="text" id="vsp-strum-mod" style="display:none"></div>
+          <div class="field"><label>N° serie</label><input type="text" id="vsp-strum-serie" style="display:none"></div>
+          <div class="field"><label>Certificato N.</label><input type="text" id="vsp-strum-cert" style="display:none"></div>
+          <div class="field"><label>Scadenza taratura</label><input type="date" id="vsp-strum-scad" style="display:none"></div>
+        </div>
+      </div>
+    </div>
+
     <!-- TAB MP -->
     <div class="tab-panel" id="panel-mp">
       <div class="sec">
@@ -318,6 +366,36 @@ h1{font-size:18px;font-weight:600;margin-bottom:4px}
           <div class="field"><label>Tecnico esecutore</label><input type="text" id="mp-tecnico"></div>
           <div class="field"><label>Data</label><input type="date" id="mp-data2"></div>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB VSP_CEN -->
+  <div class="tab-panel" id="panel-vsp">
+    <div class="sec">
+      <div class="sec-hdr">Dati generali</div>
+      <div class="sec-body">
+        <div class="field"><label>Codice</label><input type="text" id="vsp-codice" readonly></div>
+        <div class="field"><label>Data verifica</label><input type="date" id="vsp-data"></div>
+        <div class="field full"><label>Note</label><input type="text" id="vsp-note"></div>
+      </div>
+    </div>
+    <div class="sec" id="vsp-content">
+      <div class="sec-hdr" id="vsp-sec-title">Controllo visivo</div>
+      <div style="padding:12px 14px 4px">
+        <div class="mp-progress">Completati: <span id="vsp-count">0</span> / <span id="vsp-total">0</span></div>
+        <div id="vsp-points"></div>
+      </div>
+    </div>
+    <!-- Sezioni aggiuntive per DEF e ELB -->
+    <div class="sec" id="vsp-extra" style="display:none">
+      <div class="sec-hdr" id="vsp-extra-title">Misurazioni</div>
+      <div class="sec-body" id="vsp-extra-body" style="grid-template-columns:repeat(auto-fill,minmax(180px,1fr))"></div>
+    </div>
+    <div class="sec">
+      <div class="sec-body">
+        <div class="field"><label>Tecnico esecutore</label><input type="text" id="vsp-tecnico"></div>
+        <div class="field"><label>Data</label><input type="date" id="vsp-data2"></div>
       </div>
     </div>
   </div>
@@ -436,22 +514,21 @@ function collectMP(){
 }
 
 function switchTab(tab){
-  // Update active tab button
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   const btn=document.getElementById('tab-'+tab);
   if(btn)btn.classList.add('active');
-  // Show/hide panels
   document.getElementById('panel-vse').classList.toggle('active',tab==='vse');
   document.getElementById('panel-mp').classList.toggle('active',tab==='mp');
-  // VSP/CQ panels - placeholder for now
+  document.getElementById('panel-vsp').classList.toggle('active',tab==='vsp');
+  // CQ placeholder
   let ph=document.getElementById('panel-placeholder');
   if(!ph){ph=document.createElement('div');ph.id='panel-placeholder';ph.className='tab-panel';document.getElementById('form-area').appendChild(ph);}
-  if(tab==='vsp'||tab==='cq'){
-    const foglio=tab==='vsp'?(curVerif&&curVerif.vsp||'VSP'):(curVerif&&curVerif.cq||'CQ');
+  if(tab==='cq'){
+    const foglio=curVerif&&curVerif.cq?curVerif.cq:'CQ';
     ph.innerHTML=`<div style="border:1px solid var(--border);border-radius:var(--rad-lg);padding:20px 16px;text-align:center;color:var(--text2)">
       <div style="font-size:32px;margin-bottom:12px">🚧</div>
       <div style="font-size:15px;font-weight:600;margin-bottom:6px">Foglio ${foglio}</div>
-      <div style="font-size:13px">Questo foglio è previsto per questo apparecchio.<br>La form di compilazione sarà disponibile nella prossima versione.</div>
+      <div style="font-size:13px">Form di compilazione in arrivo nella prossima versione.</div>
     </div>`;
     ph.classList.add('active');
   } else {
@@ -520,11 +597,16 @@ function sel(cod){
   fillVSE(d);
   fillMPHeader(d);
   resetMPPoints();
+  resetVSP();
+  // Build VSP if needed
+  if(curVerif&&curVerif.vsp) buildVSPPoints(curVerif.vsp);
+  fillVSPHeader(d);
   updateTabs();
   // Restore saved if exists
   if(saved[cod]){
     if(saved[cod].vse_saved)restoreVSE(saved[cod]);
     if(saved[cod].mp_saved)loadMPSaved(saved[cod]);
+    if(saved[cod].vsp_saved)loadVSPSaved(saved[cod]);
     updateTabIndicators();
   }
   switchTab('vse');
@@ -685,11 +767,15 @@ function saveAll(){
   const existing=saved[cod]||{codice:cod};
   const vseRec=collectVSE();
   const mpRec=collectMP();
-  saved[cod]={...existing,...vseRec,...mpRec,vse_saved:true,mp_saved:true};
+  const vspRec=curVerif&&curVerif.vsp?collectVSP():null;
+  saved[cod]={...existing,...vseRec,...mpRec,
+    ...(vspRec?{...vspRec,vsp_saved:true}:{}),
+    vse_saved:true,mp_saved:true};
   dirty=false;
   updateTabIndicators();
   renderSession();
-  toast('Salvato: '+cod+' (VSE + MP)','ok');
+  const label=vspRec?'VSE + MP + '+curVerif.vsp:'VSE + MP';
+  toast('Salvato: '+cod+' ('+label+')','ok');
   setTimeout(()=>{
     document.querySelector('.card').scrollIntoView({behavior:'smooth'});
     document.getElementById('search-input').focus();
@@ -701,8 +787,10 @@ function updateTabIndicators(){
   const s=saved[cur.c];
   const tVse=document.getElementById('tab-vse');
   const tMp=document.getElementById('tab-mp');
+  const tVsp=document.getElementById('tab-vsp');
   if(tVse)tVse.classList.toggle('saved-tab',!!(s&&s.vse_saved));
   if(tMp)tMp.classList.toggle('saved-tab',!!(s&&s.mp_saved));
+  if(tVsp)tVsp.classList.toggle('saved-tab',!!(s&&s.vsp_saved));
 }
 
 function renderSession(){
@@ -798,8 +886,56 @@ function exportXLSX(){
     XLSX.utils.book_append_sheet(wb,ws,'Inserimento_MP');
   }
 
+  // Sheets VSP — one per VSP type found in session
+  const vspTypes = [...new Set(keys.filter(k=>saved[k].vsp_saved).map(k=>saved[k].vsp_type).filter(Boolean))];
+  vspTypes.forEach(vtype=>{
+    const def=VSP_DEFS[vtype];if(!def)return;
+    const vspKeys=keys.filter(k=>saved[k].vsp_saved&&saved[k].vsp_type===vtype);
+    if(!vspKeys.length)return;
+    // Build header rows matching Inserimento sheet structure
+    // Row1: CODICE, DATA, NOTE, section_title, null..., TECNICO ESECUTORE
+    // Row2: null,null,null, A,null,(null), B,...
+    // Row3: null,null,null, OK,KO,NA, OK,KO,NA,...
+    const R1=['CODICE','DATA','NOTE'];
+    const R2=[null,null,null];
+    const R3=[null,null,null];
+    const FIELDS=['codice','data','note']; // maps to collectVSP keys
+    if(vtype==='VSP_CEN'){
+      R1.push('CONTROLLO VISIVO',...Array(14).fill(null),'TECNICO ESECUTORE');
+      ['A','B','C','D','E'].forEach(l=>{R2.push(l,null,null);R3.push('OK','KO','NA');FIELDS.push('vsp_'+l+'_ok','vsp_'+l+'_ko','vsp_'+l+'_na');});
+      R2.push(null);R3.push(null);
+    } else if(vtype==='VSP_ECG'){
+      R1.push('CONTROLLO VISIVO',...Array(13).fill(null),'TECNICO ESECUTORE');
+      ['A','B','C'].forEach(l=>{R2.push(l,null,null);R3.push('OK','KO','NA');FIELDS.push('vsp_'+l+'_ok','vsp_'+l+'_ko','vsp_'+l+'_na');});
+      R2.push('D',null,null,null);R3.push('B','BF','CF','NA');
+      FIELDS.push('vsp_D_b','vsp_D_bf','vsp_D_cf','vsp_D_na');
+      R2.push(null);R3.push(null);
+    } else {
+      // DEF and ELB: simplified single-value per point
+      R1.push('CONTROLLO VISIVO',...Array(def.points.length*2-1).fill(null),'TECNICO ESECUTORE');
+      def.points.forEach(p=>{R2.push(p.l,null);R3.push('OK','KO');FIELDS.push('vsp_'+p.l+'_ok','vsp_'+p.l+'_ko');});
+      R2.push(null);R3.push(null);
+    }
+    // Build data rows
+    const rows=vspKeys.map(k=>{
+      const r=saved[k];
+      const row=[r.vsp_codice||'',r.vsp_data||'',r.vsp_note||''];
+      // For each point write X in the right column
+      def.points.forEach(p=>{
+        const val=r['vsp_'+p.l]||'';
+        const opts=p.opts||['OK','KO','NA'];
+        opts.forEach(o=>row.push(val===o?'X':null));
+      });
+      row.push(r.vsp_tecnico||'');
+      return row;
+    });
+    const wsVsp=XLSX.utils.aoa_to_sheet([R1,R2,R3,...rows]);
+    const sheetName=vtype.replace('VSP_','Inserimento_VSP_');
+    XLSX.utils.book_append_sheet(wb,wsVsp,sheetName);
+  });
+
   XLSX.writeFile(wb,'AppWitch_'+date+'.xlsx');
-  toast('Excel scaricato (VSE+MP)','ok');
+  toast('Excel scaricato (VSE+MP'+(keys.filter(k=>saved[k].vsp_saved).length>0?'+VSP':'')+')','ok');
 }
 
 function toast(msg,type){
@@ -808,7 +944,598 @@ function toast(msg,type){
   setTimeout(()=>t.classList.remove('show'),3000);
 }
 
+
+// ── VSP STATE & DEFINITIONS ─────────────────────────────────────────────────
+let vspState = {};   // key -> value (OK/KO/NA/B/BF/CF or numeric string)
+let curVspType = null;
+
+const VSP_CONFIGS = {
+  'VSP_CEN': {
+    label: 'Centrifuga — Verifica Sicurezza Particolare',
+    sections: [{
+      title: 'Accesso al rotore',
+      points: [
+        {id:'A', desc:'Il coperchio resta chiuso a centrifuga avviata'},
+        {id:'B', desc:'Il coperchio rimane bloccato finché il rotore non è fermo'},
+        {id:'C', desc:'A coperchio aperto la centrifuga si avvia'},
+        {id:'D', desc:'A coperchio aperto la centrifuga non si avvia'},
+        {id:'E', desc:'Esiste la protezione meccanica sulle parti in movimento, se accessibili'},
+      ]
+    }],
+    hasStrum: false
+  },
+  'VSP_ECG': {
+    label: 'Elettrocardiografo — Verifica Sicurezza Particolare',
+    sections: [{
+      title: 'Dati di targa e dispositivi di protezione',
+      points: [
+        {id:'A', desc:'Indicazione della protezione da defibrillatore', type:'okna'},
+        {id:'B', desc:'Impossibilità di contatto con piano conduttore per il connettore lato apparecchio del cavo ECG', type:'okna'},
+        {id:'C', desc:'Segnalazione sorgente elettrica interna scarica', type:'okna'},
+        {id:'D', desc:'SOLO PER I MONITOR — Tipo PA (barrare la scelta)', type:'pa_tipo'},
+      ]
+    }],
+    hasStrum: false
+  },
+  'VSP_DEF': {
+    label: 'Defibrillatore — Verifica Sicurezza Particolare',
+    sections: [
+      { title: '2 — Controlli visivi alle norme particolari', points: [
+        {id:'A', desc:'Verifica prescrizioni istruzioni per la defibrillazione e/o monitoraggio ECG', type:'okko'},
+        {id:'B', desc:'Verifica raccomandazioni elettrodi e cavi paziente', type:'okko'},
+        {id:'C', desc:'Verifica raccomandazioni sorgente elettrica interna', type:'okna'},
+        {id:'D', desc:'Verifica prescrizioni indicatore di stato sorgente elettrica interna', type:'okna'},
+        {id:'E', desc:'Verifica prescrizioni preselettore di energia', type:'okna'},
+        {id:'F', desc:'Verifica prescrizioni preselettore tarato in Joule', type:'okna'},
+        {id:'G', desc:'Verifica prescrizioni indicatore vocale e/o sonoro di fine carica', type:'okko'},
+        {id:'H', desc:'Verifica raccomandazioni dispositivo di ricarica automatica', type:'okna'},
+        {id:'I', desc:'Verifica prescrizioni dispositivo di auto scarica interno', type:'okko'},
+        {id:'J', desc:'Verifica prescrizioni dispositivo di scarica', type:'okko'},
+        {id:'K', desc:'Verifica prescrizioni energia massima ≤ 360 J (elettrodi esterni)', type:'okna'},
+        {id:'L', desc:'Verifica prescrizioni energia massima ≤ 50 J (elettrodi interni)', type:'okna'},
+        {id:'M', desc:'Verifica prescrizioni indicazione luminosa/sonora sincronizzazione', type:'okna'},
+        {id:'N', desc:'Verifica prescrizioni dispositivo di sincronizzazione non attivo all\'accensione', type:'okna'},
+        {id:'O', desc:'Verifica prescrizioni indicatore vocale/sonoro rilevamento ritmo DAE', type:'okna'},
+        {id:'P', desc:'Verifica prescrizioni visualizzazione segnale ECG', type:'okna'},
+        {id:'Q', desc:'Verifica prescrizioni impossibilità attivazione contemporanea elettrodi interni ed esterni', type:'okko'},
+        {id:'R', desc:'Verifica prescrizioni protezione da versamento liquidi', type:'okko'},
+      ]},
+      { title: '3 — Precisione energia erogata (MANUALE)', type:'def_energia' },
+      { title: '4 — Tempi di carica alla massima energia', type:'def_tempi_carica' },
+      { title: '5 — Tempi di ritardo e ripristino', type:'def_tempi_ritardo' },
+    ],
+    hasStrum: true
+  },
+  'VSP_ELB': {
+    label: 'Elettrobisturi — Verifica Sicurezza Particolare',
+    sections: [
+      { title: '2 — Identificazione, dati di targa', type:'elb_targa' },
+      { title: '3 — Controlli visivi alle norme particolari', points: [
+        {id:'A', desc:'Verifica colorazione lampade spia (giallo: taglio, blu: coagulo, rosso: guasto piastra)', type:'okna'},
+        {id:'B', desc:'Verifica protezione all\'immersione del pedale di comando (Solo Sala Operatoria)', type:'okko'},
+        {id:'C', desc:'Verifica assenza alimentazione simultanea degli elettrodi attivi', type:'okko'},
+        {id:'D', desc:'Verifica non intercambiabilità fra elettrodo neutro e attivo', type:'okko'},
+        {id:'E', desc:'Verifica allarme interruzione cavo elettrodo neutro per Pnom > 50W', type:'okna'},
+        {id:'F', desc:'Verifica segnalazione sonora di uscita attivata', type:'okko'},
+      ]},
+      { title: '4 — Corrente di dispersione nel paziente in HF', type:'elb_hf' },
+      { title: '5 — Tolleranza di uscita', type:'elb_tolleranza' },
+      { title: '6 — Verifica erogazione', points: [
+        {id:'A', desc:'Verifica erogazione A', type:'okko'},
+        {id:'B', desc:'Verifica erogazione B', type:'okko'},
+        {id:'C', desc:'Verifica erogazione C', type:'okko'},
+      ]},
+    ],
+    hasStrum: true
+  }
+};
+
+// Column mappings VSP → Excel col index (1-based)
+const VSP_COL_MAP = {
+  'VSP_CEN': {codice:1,data:2,note:3,A_OK:4,A_KO:5,A_NA:6,B_OK:7,B_KO:8,B_NA:9,C_OK:10,C_KO:11,C_NA:12,D_OK:13,D_KO:14,D_NA:15,E_OK:16,E_KO:17,E_NA:18,tecnico:19},
+  'VSP_ECG': {codice:1,data:2,note:3,A_OK:4,A_KO:5,A_NA:6,B_OK:7,B_KO:8,B_NA:9,C_OK:10,C_KO:11,C_NA:12,D_B:13,D_BF:14,D_CF:15,D_NA:16,tecnico:17},
+  'VSP_DEF': {codice:1,data:2,note:3,A_OK:4,A_KO:5,B_OK:6,B_KO:7,C_NA:8,C_OK:9,C_KO:10,D_NA:11,D_OK:12,D_KO:13,E_NA:14,E_OK:15,E_KO:16,F_NA:17,F_OK:18,F_KO:19,G_OK:20,G_KO:21,H_NA:22,H_OK:23,H_KO:24,I_OK:25,I_KO:26,J_OK:27,J_KO:28,K_NA:29,K_OK:30,K_KO:31,L_NA:32,L_OK:33,L_KO:34,M_NA:35,M_OK:36,M_KO:37,N_NA:38,N_OK:39,N_KO:40,O_NA:41,O_OK:42,O_KO:43,P_NA:44,P_OK:45,P_KO:46,Q_OK:47,Q_KO:48,R_OK:49,R_KO:50,E1_imp:51,E1_mis:52,E2_imp:53,E2_mis:54,E3_imp:55,E3_mis:56,E4_imp:57,E4_mis:58,E5_imp:59,E5_mis:60,DAE_mis:61,DAE_NA:62,DAE_OK:63,DAE_KO:64,TC_A_rete:65,TC_A_bat:66,TC_A_max:67,TC_B_rete:68,TC_B_bat:69,TC_B_max:70,TC_C_rete:71,TC_C_bat:72,TC_C_max:73,TC_D_rete:74,TC_D_bat:75,TC_D_max:76,TC_esito_AB:77,TC_esito_BC:78,TC_esito_ok:79,TR_A_ril:80,TR_A_max:81,TR_A_NA:82,TR_A_OK:83,TR_B_ril:84,TR_B_max:85,TR_B_NA:86,TR_B_OK:87,TR_C_ril:88,TR_C_max:89,TR_C_NA:90,TR_C_OK:91,str_strum:92,str_mod:93,str_serie:94,str_cert:95,str_scad:96,tecnico:97},
+  'VSP_ELB': {codice:1,data:2,note:3,bip_potenza:4,bip_carico:5,bip_freq:6,bip_khz:7,bip_mhz:8,mono_potenza:9,mono_carico:10,mono_freq:11,mono_khz:12,mono_mhz:13,pa_hf:15,pa_hf_f:16,indic_freq_ok:17,indic_freq_ko:18,A_OK:19,B_OK:20,B_KO:21,B_NA:22,C_OK:23,C_KO:24,D_OK:25,D_KO:26,E_OK:27,E_KO:28,E_NA:29,F_OK:30,F_KO:31,hf_el_taglio:32,hf_el_mix:33,hf_el_coag:34,hf_att_taglio:35,hf_att_mix:36,hf_att_coag:37,hf_neu_taglio:38,hf_neu_mix:39,hf_neu_coag:40,hf_att2_taglio:42,hf_att2_mix:43,hf_att2_coag:44,hf_limiti_ok:45,hf_limiti_ko:46,hf_limiti_na:47,hf_iso1_el1:48,hf_iso1_el2:49,hf_iso2_el1:50,hf_iso2_el2:51,hf_iso_ok:52,hf_iso_ko:53,hf_iso_na:54,tol_tag_0_i:55,tol_tag_0_m:56,tol_tag_25_i:57,tol_tag_25_m:58,tol_tag_50_i:59,tol_tag_50_m:60,tol_tag_75_i:61,tol_tag_75_m:62,tol_tag_100_i:63,tol_tag_100_m:64,tol_mix_0_i:65,tol_mix_0_m:66,tol_mix_25_i:67,tol_mix_25_m:68,tol_mix_50_i:69,tol_mix_50_m:70,tol_mix_75_i:71,tol_mix_75_m:72,tol_mix_100_i:73,tol_mix_100_m:74,tol_coag_0_i:75,tol_coag_0_m:76,tol_coag_25_i:77,tol_coag_25_m:78,tol_coag_50_i:79,tol_coag_50_m:80,tol_coag_75_i:81,tol_coag_75_m:82,tol_coag_100_i:83,tol_coag_100_m:84,tol_bip_0_i:85,tol_bip_0_m:86,tol_bip_25_i:87,tol_bip_25_m:88,tol_bip_50_i:89,tol_bip_50_m:90,tol_bip_75_i:91,tol_bip_75_m:92,tol_bip_100_i:93,tol_bip_100_m:94,er_A_ok:95,er_A_ko:96,er_B_ok:97,er_B_ko:98,er_C_ok:99,er_C_ko:100,str_strum:101,str_mod:102,str_serie:103,str_cert:104,str_scad:105,tecnico:106}
+};
+
+function buildVSP(type) {
+  curVspType = type;
+  vspState = {};
+  const cfg = VSP_CONFIGS[type];
+  if (!cfg) return;
+  const body = document.getElementById('vsp-body');
+  let html = '';
+  cfg.sections.forEach(sec => {
+    html += `<div class="vsp-sec"><div class="vsp-sec-hdr">${sec.title}</div>`;
+    if (sec.points) {
+      sec.points.forEach(p => {
+        const t = p.type || 'okna';
+        let btns = '';
+        if (t === 'okko') {
+          btns = `<button class="vsp-btn ok" onclick="setVSP('${p.id}','OK',this)">OK</button><button class="vsp-btn ko" onclick="setVSP('${p.id}','KO',this)">KO</button>`;
+        } else if (t === 'pa_tipo') {
+          btns = `<button class="vsp-btn pa" onclick="setVSP('${p.id}','B',this)">B</button><button class="vsp-btn pa" onclick="setVSP('${p.id}','BF',this)">BF</button><button class="vsp-btn pa" onclick="setVSP('${p.id}','CF',this)">CF</button><button class="vsp-btn na" onclick="setVSP('${p.id}','NA',this)">NA</button>`;
+        } else {
+          btns = `<button class="vsp-btn ok" onclick="setVSP('${p.id}','OK',this)">OK</button><button class="vsp-btn ko" onclick="setVSP('${p.id}','KO',this)">KO</button><button class="vsp-btn na" onclick="setVSP('${p.id}','NA',this)">NA</button>`;
+        }
+        html += `<div class="vsp-point"><div class="vsp-point-id">${p.id}</div><div class="vsp-point-desc">${p.desc}</div><div class="vsp-btns" id="vsp-btns-${p.id}">${btns}</div></div>`;
+      });
+    } else if (sec.type === 'def_energia') {
+      html += `<div class="vsp-grid" style="grid-template-columns:auto 1fr 1fr">
+        <div style="font-size:11px;font-weight:600;color:var(--text2);padding-top:8px">Impostato / Misurato</div>
+        <div class="vsp-field"><label>Impostato</label></div>
+        <div class="vsp-field"><label>Misurato</label></div>`;
+      ['E1','E2','E3','E4','E5'].forEach((e,i) => {
+        html += `<div style="font-size:12px;font-weight:500;padding-top:10px">Energia ${i+1}</div>
+          <input type="number" id="vsp-${e}-imp" class="vsp-field" style="padding:7px 10px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text);font-size:13px" oninput="vspState['${e}_imp']=this.value">
+          <input type="number" id="vsp-${e}-mis" class="vsp-field" style="padding:7px 10px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text);font-size:13px" oninput="vspState['${e}_mis']=this.value">`;
+      });
+      html += `<div style="font-size:12px;font-weight:500;padding-top:10px">DAE</div>
+        <div></div>
+        <input type="number" id="vsp-DAE-mis" style="padding:7px 10px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text);font-size:13px" oninput="vspState['DAE_mis']=this.value">
+        <div></div>
+        <div style="display:flex;gap:6px;grid-column:2/-1;padding-top:4px">
+          <button class="vsp-btn na" onclick="setVSPDirect('DAE_NA','X',this)">NA</button>
+          <button class="vsp-btn ok" onclick="setVSPDirect('DAE_OK','X',this)">OK</button>
+          <button class="vsp-btn ko" onclick="setVSPDirect('DAE_KO','X',this)">KO</button>
+        </div>`;
+      html += `</div>`;
+    } else if (sec.type === 'def_tempi_carica') {
+      html += `<table class="vsp-table"><thead><tr><th>Livello</th><th>T. Rete (s)</th><th>T. Batteria (s)</th><th>T. Massimo (s)</th></tr></thead><tbody>`;
+      ['A','B','C','D'].forEach(r => {
+        html += `<tr><td>${r}</td>
+          <td><input type="number" style="width:80px;padding:4px 6px;border:1px solid var(--border2);border-radius:var(--rad);font-size:12px;background:var(--bg);color:var(--text)" oninput="vspState['TC_${r}_rete']=this.value"></td>
+          <td><input type="number" style="width:80px;padding:4px 6px;border:1px solid var(--border2);border-radius:var(--rad);font-size:12px;background:var(--bg);color:var(--text)" oninput="vspState['TC_${r}_bat']=this.value"></td>
+          <td><input type="number" style="width:80px;padding:4px 6px;border:1px solid var(--border2);border-radius:var(--rad);font-size:12px;background:var(--bg);color:var(--text)" oninput="vspState['TC_${r}_max']=this.value"></td></tr>`;
+      });
+      html += `</tbody></table>
+        <div style="padding:0 14px 12px;display:flex;gap:8px;align-items:center;font-size:12px;color:var(--text2)">
+          Esito: <button class="vsp-btn na" onclick="setVSPDirect('TC_esito_AB','A B [NA]',this)">A-B NA</button>
+          <button class="vsp-btn na" onclick="setVSPDirect('TC_esito_BC','B C [NA]',this)">B-C NA</button>
+          <button class="vsp-btn ok" onclick="setVSPDirect('TC_esito_ok','X',this)">OK</button>
+        </div>`;
+    } else if (sec.type === 'def_tempi_ritardo') {
+      html += `<table class="vsp-table"><thead><tr><th>Prova</th><th>T. Rilevato (s)</th><th>T. Massimo (s)</th><th>NA</th><th>OK</th></tr></thead><tbody>`;
+      ['A','B','C'].forEach(r => {
+        html += `<tr><td>${r}</td>
+          <td><input type="number" style="width:80px;padding:4px 6px;border:1px solid var(--border2);border-radius:var(--rad);font-size:12px;background:var(--bg);color:var(--text)" oninput="vspState['TR_${r}_ril']=this.value"></td>
+          <td><input type="number" style="width:80px;padding:4px 6px;border:1px solid var(--border2);border-radius:var(--rad);font-size:12px;background:var(--bg);color:var(--text)" oninput="vspState['TR_${r}_max']=this.value"></td>
+          <td><button class="vsp-btn na" onclick="setVSPDirect('TR_${r}_NA','X',this)">NA</button></td>
+          <td><button class="vsp-btn ok" onclick="setVSPDirect('TR_${r}_OK','X',this)">OK</button></td></tr>`;
+      });
+      html += `</tbody></table>`;
+    } else if (sec.type === 'elb_targa') {
+      html += `<div class="vsp-grid">
+        <div class="vsp-field"><label>Potenza bipolare (W)</label><input type="number" id="vsp-bip-pot" oninput="vspState['bip_potenza']=this.value"></div>
+        <div class="vsp-field"><label>Carico bipolare (Ω)</label><input type="number" id="vsp-bip-car" oninput="vspState['bip_carico']=this.value"></div>
+        <div class="vsp-field"><label>Frequenza (KHz)</label><input type="text" id="vsp-bip-khz" oninput="vspState['bip_khz']=this.value"></div>
+        <div class="vsp-field"><label>Frequenza (MHz)</label><input type="text" id="vsp-bip-mhz" oninput="vspState['bip_mhz']=this.value"></div>
+        <div class="vsp-field"><label>Potenza monopolare (W)</label><input type="number" id="vsp-mono-pot" oninput="vspState['mono_potenza']=this.value"></div>
+        <div class="vsp-field"><label>Carico monopolare (Ω)</label><input type="number" id="vsp-mono-car" oninput="vspState['mono_carico']=this.value"></div>
+        <div class="vsp-field"><label>Freq. mono (KHz)</label><input type="text" id="vsp-mono-khz" oninput="vspState['mono_khz']=this.value"></div>
+        <div class="vsp-field"><label>Freq. mono (MHz)</label><input type="text" id="vsp-mono-mhz" oninput="vspState['mono_mhz']=this.value"></div>
+        <div class="vsp-field"><label>Tipo PA in HF</label>
+          <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:2px">
+            <button class="vsp-btn pa" onclick="setVSPDirect('pa_hf','F',this)">[F]</button>
+          </div>
+        </div>
+        <div class="vsp-field"><label>Indicazioni freq/potenza</label>
+          <div style="display:flex;gap:5px;margin-top:2px">
+            <button class="vsp-btn ok" onclick="setVSPDirect('indic_freq_ok','X',this)">OK</button>
+            <button class="vsp-btn ko" onclick="setVSPDirect('indic_freq_ko','X',this)">KO</button>
+          </div>
+        </div>
+      </div>`;
+    } else if (sec.type === 'elb_hf') {
+      const rows=[
+        {id:'hf_el',label:'Carico tra elettrodi (uscita a terra)'},
+        {id:'hf_att',label:'Carico tra attivo e terra'},
+        {id:'hf_neu',label:'Elettrodo neutro (uscita isolata)'},
+        {id:'hf_att2',label:'Elettrodo attivo (uscita isolata)'},
+      ];
+      html += `<table class="vsp-table" style="margin:8px"><thead><tr><th style="text-align:left">Misura</th><th>Taglio</th><th>Mix</th><th>Coagulo</th></tr></thead><tbody>`;
+      rows.forEach(r => {
+        html += `<tr><td>${r.label}</td>
+          <td><input type="number" style="width:70px;padding:3px 5px;border:1px solid var(--border2);border-radius:var(--rad);font-size:12px;background:var(--bg);color:var(--text)" oninput="vspState['${r.id}_taglio']=this.value"></td>
+          <td><input type="number" style="width:70px;padding:3px 5px;border:1px solid var(--border2);border-radius:var(--rad);font-size:12px;background:var(--bg);color:var(--text)" oninput="vspState['${r.id}_mix']=this.value"></td>
+          <td><input type="number" style="width:70px;padding:3px 5px;border:1px solid var(--border2);border-radius:var(--rad);font-size:12px;background:var(--bg);color:var(--text)" oninput="vspState['${r.id}_coag']=this.value"></td></tr>`;
+      });
+      html += `</tbody></table>
+        <div style="padding:4px 8px 8px;display:flex;gap:6px;align-items:center;font-size:12px">
+          Limiti HF rientranti: 
+          <button class="vsp-btn ok" onclick="setVSPDirect('hf_limiti_ok','X',this)">OK</button>
+          <button class="vsp-btn ko" onclick="setVSPDirect('hf_limiti_ko','X',this)">KO</button>
+          <button class="vsp-btn na" onclick="setVSPDirect('hf_limiti_na','X',this)">NA</button>
+        </div>
+        <div class="vsp-grid" style="grid-template-columns:1fr 1fr 1fr 1fr">
+          <div style="font-size:11px;font-weight:600;color:var(--text2)">Uscita isolata CN 150mA</div>
+          <div class="vsp-field"><label>Elettrodo 1</label><input type="number" oninput="vspState['hf_iso1_el1']=this.value"></div>
+          <div class="vsp-field"><label>Elettrodo 2</label><input type="number" oninput="vspState['hf_iso1_el2']=this.value"></div>
+          <div></div>
+          <div style="font-size:11px;font-weight:600;color:var(--text2)">Uscita isolata MT 100mA</div>
+          <div class="vsp-field"><label>Elettrodo 1</label><input type="number" oninput="vspState['hf_iso2_el1']=this.value"></div>
+          <div class="vsp-field"><label>Elettrodo 2</label><input type="number" oninput="vspState['hf_iso2_el2']=this.value"></div>
+          <div style="display:flex;gap:5px;align-items:flex-end;padding-bottom:2px">
+            <button class="vsp-btn ok" onclick="setVSPDirect('hf_iso_ok','X',this)">OK</button>
+            <button class="vsp-btn ko" onclick="setVSPDirect('hf_iso_ko','X',this)">KO</button>
+            <button class="vsp-btn na" onclick="setVSPDirect('hf_iso_na','X',this)">NA</button>
+          </div>
+        </div>`;
+    } else if (sec.type === 'elb_tolleranza') {
+      const modes = [
+        {id:'tol_tag',label:'Taglio'},
+        {id:'tol_mix',label:'Mix'},
+        {id:'tol_coag',label:'Coagulo'},
+        {id:'tol_bip',label:'Bipolare'},
+      ];
+      const levels = [
+        {key:'0',label:'Nominale nulla'},
+        {key:'25',label:'¼ nominale max'},
+        {key:'50',label:'½ nominale max'},
+        {key:'75',label:'¾ nominale max'},
+        {key:'100',label:'Nominale max'},
+      ];
+      modes.forEach(m => {
+        html += `<div style="font-size:11px;font-weight:600;color:var(--text2);padding:8px 14px 4px">${m.label}</div>
+          <table class="vsp-table" style="margin:0 8px 4px"><thead><tr><th style="text-align:left">Rc</th><th>Indicata</th><th>Misurata</th></tr></thead><tbody>`;
+        levels.forEach(l => {
+          html += `<tr><td style="font-size:11px">${l.label}</td>
+            <td><input type="number" style="width:70px;padding:3px 5px;border:1px solid var(--border2);border-radius:var(--rad);font-size:12px;background:var(--bg);color:var(--text)" oninput="vspState['${m.id}_${l.key}_i']=this.value"></td>
+            <td><input type="number" style="width:70px;padding:3px 5px;border:1px solid var(--border2);border-radius:var(--rad);font-size:12px;background:var(--bg);color:var(--text)" oninput="vspState['${m.id}_${l.key}_m']=this.value"></td></tr>`;
+        });
+        html += `</tbody></table>`;
+      });
+    }
+    html += `</div>`;
+  });
+  body.innerHTML = html;
+
+  // Show/hide strumento fields
+  const hasStrum = cfg.hasStrum;
+  ['vsp-strum','vsp-strum-mod','vsp-strum-serie','vsp-strum-cert','vsp-strum-scad'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = hasStrum ? '' : 'none';
+    const lbl = el ? el.previousElementSibling : null;
+    if (lbl && lbl.tagName === 'LABEL') lbl.style.display = hasStrum ? '' : 'none';
+  });
+}
+
+function setVSP(id, val, btn) {
+  vspState[id] = val;
+  const container = document.getElementById('vsp-btns-' + id);
+  if (container) container.querySelectorAll('.vsp-btn').forEach(b => b.classList.remove('sel'));
+  if (btn) btn.classList.add('sel');
+}
+
+function setVSPDirect(key, val, btn) {
+  vspState[key] = val;
+  // Toggle: if already selected, deselect
+  if (btn.classList.contains('sel')) {
+    btn.classList.remove('sel');
+    delete vspState[key];
+  } else {
+    btn.classList.add('sel');
+  }
+}
+
+function collectVSP() {
+  return {
+    codice: gv('vsp-codice'),
+    data: gv('vsp-data'),
+    note: gv('vsp-note'),
+    tecnico: gv('vsp-tecnico'),
+    strum: gv('vsp-strum'),
+    strum_mod: gv('vsp-strum-mod'),
+    strum_serie: gv('vsp-strum-serie'),
+    strum_cert: gv('vsp-strum-cert'),
+    strum_scad: gv('vsp-strum-scad'),
+    ...vspState
+  };
+}
+
+function loadVSPSaved(rec) {
+  if (!rec) return;
+  sv('vsp-codice', rec.codice);
+  sv('vsp-data', rec.vsp_data || rec.data);
+  sv('vsp-note', rec.vsp_note || '-');
+  sv('vsp-tecnico', rec.vsp_tecnico || '');
+  sv('vsp-strum', rec.vsp_strum || '');
+  sv('vsp-strum-mod', rec.vsp_strum_mod || '');
+  sv('vsp-strum-serie', rec.vsp_strum_serie || '');
+  sv('vsp-strum-cert', rec.vsp_strum_cert || '');
+  sv('vsp-strum-scad', rec.vsp_strum_scad || '');
+  // Restore point values
+  const col_map = curVspType ? VSP_COL_MAP[curVspType] : {};
+  Object.keys(col_map).forEach(key => {
+    if (rec['vsp_' + key] !== undefined) {
+      vspState[key] = rec['vsp_' + key];
+      // Try to re-select buttons
+      const btn = document.querySelector(`[onclick*="setVSP('${key.split('_')[0]}','${rec['vsp_'+key]}'"]`);
+      if (btn) btn.classList.add('sel');
+    }
+  });
+}
+
+// ── VSP EXPORT SHEET ─────────────────────────────────────────────────────────
+function buildVSPSheet(XLSX, keys) {
+  const vspKeys = keys.filter(k => saved[k].vsp_saved);
+  if (!vspKeys.length) return null;
+
+  // Group by VSP type
+  const byType = {};
+  vspKeys.forEach(k => {
+    const t = saved[k].vsp_type;
+    if (!byType[t]) byType[t] = [];
+    byType[t].push(k);
+  });
+
+  const sheets = {};
+  Object.entries(byType).forEach(([type, ks]) => {
+    const cm = VSP_COL_MAP[type];
+    if (!cm) return;
+    const maxCol = Math.max(...Object.values(cm));
+
+    // Build header rows matching original structure
+    const R1 = Array(maxCol).fill(null);
+    const R2 = Array(maxCol).fill(null);
+    const R3 = Array(maxCol).fill(null);
+    R1[0]='CODICE'; R1[1]='DATA'; R1[2]='NOTE';
+    R1[maxCol-1]='TECNICO ESECUTORE';
+
+    // Mark point columns in R2/R3
+    Object.entries(cm).forEach(([key, col]) => {
+      const c = col - 1;
+      if (key.endsWith('_OK')) { R2[c] = key.replace('_OK',''); R3[c] = 'OK'; }
+      else if (key.endsWith('_KO')) R3[c] = 'KO';
+      else if (key.endsWith('_NA')) R3[c] = 'NA';
+    });
+
+    const rows = ks.map(k => {
+      const rec = saved[k];
+      const row = Array(maxCol).fill(null);
+      Object.entries(cm).forEach(([key, col]) => {
+        const c = col - 1;
+        const v = rec['vsp_' + key] || rec[key] || '';
+        if (v) row[c] = v === 'X' || v === 'OK' || v === 'KO' || v === 'NA' ? 'X' : v;
+      });
+      row[0] = rec.codice;
+      row[1] = rec.vsp_data || rec.data;
+      row[2] = rec.vsp_note || '-';
+      row[maxCol-1] = rec.vsp_tecnico || '';
+      return row;
+    });
+
+    const ws = XLSX.utils.aoa_to_sheet([R1, R2, R3, ...rows]);
+    sheets['Inserimento_' + type] = ws;
+  });
+  return sheets;
+}
+
 document.querySelectorAll('input').forEach(e=>e.addEventListener('input',()=>{dirty=true;uP();}));
+
+// ===================== VSP =====================
+const VSP_DEFS = {
+  'VSP_CEN': {
+    title: 'Controllo visivo — Centrifuga',
+    tipo: 'okna', // OK/KO/NA per tutti
+    points: [
+      {l:'A', t:'Il coperchio resta chiuso a centrifuga avviata'},
+      {l:'B', t:'Il coperchio rimane bloccato finché il rotore non è fermo'},
+      {l:'C', t:'A coperchio aperto la centrifuga si avvia'},
+      {l:'D', t:'A coperchio aperto la centrifuga non si avvia'},
+      {l:'E', t:'Esiste la protezione meccanica sulle parti in movimento, se accessibili'},
+    ],
+    extra: null,
+  },
+  'VSP_ECG': {
+    title: 'Controllo visivo — Elettrocardiografo',
+    tipo: 'misto',
+    points: [
+      {l:'A', t:'Indicazione della protezione da defibrillatore', opts:['OK','KO','NA']},
+      {l:'B', t:'Impossibilità di contatto con un piano conduttore per il connettore lato apparecchio del cavo ECG', opts:['OK','KO','NA']},
+      {l:'C', t:'Segnalazione sorgente elettrica interna scarica', opts:['OK','KO','NA']},
+      {l:'D', t:'SOLO PER I MONITOR: Indicazione del tipo PA', opts:['B','BF','CF','NA']},
+    ],
+    extra: null,
+  },
+  'VSP_DEF': {
+    title: 'Controllo visivo — Defibrillatore',
+    tipo: 'misto',
+    points: [
+      {l:'A', t:'Verifica prescrizioni istruzioni per la defibrillazione e/o monitoraggio ECG', opts:['OK','KO']},
+      {l:'B', t:'Verifica raccomandazioni elettrodi e cavi paziente', opts:['OK','KO']},
+      {l:'C', t:'Verifica raccomandazioni sorgente elettrica interna', opts:['NA','OK','KO']},
+      {l:'D', t:'Verifica prescrizioni indicatore di stato sorgente elettrica interna', opts:['NA','OK','KO']},
+      {l:'E', t:'Verifica prescrizioni preselettore di energia', opts:['NA','OK','KO']},
+      {l:'F', t:'Verifica prescrizioni preselettore tarato in Joule', opts:['NA','OK','KO']},
+      {l:'G', t:'Verifica prescrizioni indicatore vocale e/o sonoro di fine carica', opts:['OK','KO']},
+      {l:'H', t:'Verifica raccomandazioni dispositivo di ricarica automatica', opts:['NA','OK','KO']},
+      {l:'I', t:'Verifica prescrizioni dispositivo di auto scarica interno', opts:['OK','KO']},
+      {l:'J', t:'Verifica prescrizioni dispositivo di scarica', opts:['OK','KO']},
+      {l:'K', t:'Verifica prescrizioni energia massima selezionabile per elettrodi esterni ≤ 360 J', opts:['NA','OK','KO']},
+      {l:'L', t:'Verifica prescrizioni energia massima selezionabile per elettrodi interni ≤ 50 J', opts:['NA','OK','KO']},
+      {l:'M', t:'Verifica prescrizioni indicazione luminosa e/o sonora del dispositivo di sincronizzazione', opts:['NA','OK','KO']},
+      {l:'N', t:'Verifica prescrizioni dispositivo di sincronizzazione non attivo all\'accensione', opts:['NA','OK','KO']},
+      {l:'O', t:'Verifica prescrizioni indicatore vocale e/o sonoro rilevamento ritmo (DAE)', opts:['NA','OK','KO']},
+      {l:'P', t:'Verifica prescrizioni visualizzazione segnale ECG', opts:['NA','OK','KO']},
+      {l:'Q', t:'Verifica prescrizioni impossibilità attivazione contemporanea elettrodi interni ed esterni', opts:['OK','KO']},
+      {l:'R', t:'Verifica prescrizioni protezione da versamento liquidi', opts:['OK','KO']},
+    ],
+    extra: {
+      title: 'Precisione energia erogata + Tempi',
+      fields: [
+        // Sezione 3: energia erogata MANUALE (coppie impostato/misurato x5) + DAE (misurato+NA+OK+KO)
+        {id:'def_e1i', label:'Energia 1 — Impostato (J)'}, {id:'def_e1m', label:'Energia 1 — Misurato (J)'},
+        {id:'def_e2i', label:'Energia 2 — Impostato (J)'}, {id:'def_e2m', label:'Energia 2 — Misurato (J)'},
+        {id:'def_e3i', label:'Energia 3 — Impostato (J)'}, {id:'def_e3m', label:'Energia 3 — Misurato (J)'},
+        {id:'def_e4i', label:'Energia 4 — Impostato (J)'}, {id:'def_e4m', label:'Energia 4 — Misurato (J)'},
+        {id:'def_e5i', label:'Energia 5 — Impostato (J)'}, {id:'def_e5m', label:'Energia 5 — Misurato (J)'},
+        {id:'def_dae', label:'DAE — Misurato (J)'},
+        // Sezione 4: tempi carica (rete+batteria+massimo x4 configurazioni)
+        {id:'def_tc1r', label:'Tempo carica A — Rete (s)'}, {id:'def_tc1b', label:'Tempo carica A — Batteria (s)'}, {id:'def_tc1m', label:'Tempo carica A — Massimo (s)'},
+        {id:'def_tc2r', label:'Tempo carica B — Rete (s)'}, {id:'def_tc2b', label:'Tempo carica B — Batteria (s)'}, {id:'def_tc2m', label:'Tempo carica B — Massimo (s)'},
+        {id:'def_tc3r', label:'Tempo carica C — Rete (s)'}, {id:'def_tc3b', label:'Tempo carica C — Batteria (s)'}, {id:'def_tc3m', label:'Tempo carica C — Massimo (s)'},
+        {id:'def_tc4r', label:'Tempo carica D — Rete (s)'}, {id:'def_tc4b', label:'Tempo carica D — Batteria (s)'}, {id:'def_tc4m', label:'Tempo carica D — Massimo (s)'},
+        // Sezione 5: tempi ritardo (rilevato+massimo x3)
+        {id:'def_tr1', label:'Ritardo A — Rilevato (s)'}, {id:'def_tr1m', label:'Ritardo A — Massimo (s)'},
+        {id:'def_tr2', label:'Ritardo B — Rilevato (s)'}, {id:'def_tr2m', label:'Ritardo B — Massimo (s)'},
+        {id:'def_tr3', label:'Ritardo C — Rilevato (s)'}, {id:'def_tr3m', label:'Ritardo C — Massimo (s)'},
+        // Sezione 8: strumentazione
+        {id:'def_strum', label:'Strumento'}, {id:'def_modello', label:'Modello'},
+        {id:'def_serie', label:'N° Serie'}, {id:'def_cert', label:'Certificato N.'},
+        {id:'def_scad', label:'Scadenza taratura', type:'date'},
+      ]
+    }
+  },
+  'VSP_ELB': {
+    title: 'Controllo visivo — Elettrobisturi',
+    tipo: 'okna',
+    points: [
+      {l:'A', t:'Verifica prescrizioni colorazione delle lampade spia (giallo: taglio, blu: coagulo, rosso: guasto piastra)'},
+      {l:'B', t:'Verifica prescrizioni protezione immersione pedale (Solo per apparecchiature in Sala Operatoria)'},
+      {l:'C', t:'Verifica prescrizioni assenza alimentazione simultanea degli elettrodi attivi'},
+      {l:'D', t:'Verifica prescrizioni non intercambiabilità fra elettrodo neutro e attivo'},
+      {l:'E', t:'Verifica prescrizioni allarme interruzione cavo elettrodo neutro per Pnom>50W'},
+      {l:'F', t:'Verifica prescrizioni segnalazione sonora di uscita attivata'},
+    ],
+    extra: {
+      title: 'Identificazione dati targa + Correnti HF',
+      fields: [
+        {id:'elb_pbip', label:'Potenza bipolare (W)'}, {id:'elb_cbip', label:'Carico bip. (Ω)'}, {id:'elb_fkhz', label:'Freq. [KHz]'}, {id:'elb_fmhz', label:'Freq. [MHz]'},
+        {id:'elb_pmono', label:'Potenza monopolare (W)'}, {id:'elb_cmono', label:'Carico mono. (Ω)'}, {id:'elb_fkhz2', label:'Freq. mono. [KHz]'}, {id:'elb_fmhz2', label:'Freq. mono. [MHz]'},
+        {id:'elb_pa', label:'Tipo PA in HF ([F])'},
+        // correnti HF: 4 misure x 3 modalità (taglio/mix/coagulo)
+        {id:'elb_ct', label:'Carico tra elettrodi — Taglio (mA)'}, {id:'elb_cm', label:'Carico tra elettrodi — Mix (mA)'}, {id:'elb_cc', label:'Carico tra elettrodi — Coagulo (mA)'},
+        {id:'elb_at', label:'Attivo/terra — Taglio (mA)'}, {id:'elb_am', label:'Attivo/terra — Mix (mA)'}, {id:'elb_ac', label:'Attivo/terra — Coagulo (mA)'},
+        {id:'elb_nt', label:'Elettrodo neutro — Taglio (mA)'}, {id:'elb_nm', label:'Elettrodo neutro — Mix (mA)'}, {id:'elb_nc', label:'Elettrodo neutro — Coagulo (mA)'},
+        {id:'elb_att', label:'Elettrodo attivo — Taglio (mA)'}, {id:'elb_atm', label:'Elettrodo attivo — Mix (mA)'}, {id:'elb_atc', label:'Elettrodo attivo — Coagulo (mA)'},
+        // strumentazione
+        {id:'elb_strum', label:'Strumento'}, {id:'elb_modello', label:'Modello'},
+        {id:'elb_serie', label:'N° Serie'}, {id:'elb_cert', label:'Certificato N.'},
+        {id:'elb_scad', label:'Scadenza taratura', type:'date'},
+      ]
+    }
+  }
+};
+
+let vspState = {};   // lettera -> valore ('OK'/'KO'/'NA'/'B'/'BF'/'CF')
+let vspType  = null; // e.g. 'VSP_CEN'
+
+function buildVSPPoints(type){
+  vspType = type;
+  vspState = {};
+  const def = VSP_DEFS[type];
+  if(!def) return;
+
+  document.getElementById('vsp-sec-title').textContent = def.title;
+  document.getElementById('vsp-total').textContent = def.points.length;
+  document.getElementById('vsp-count').textContent = '0';
+
+  const container = document.getElementById('vsp-points');
+  container.innerHTML = def.points.map(p => {
+    const opts = p.opts || ['OK','KO','NA'];
+    const btns = opts.map(o => {
+      const cls = o==='OK'?'mp-btn ok':o==='KO'?'mp-btn ko':'mp-btn na';
+      return `<button class="${cls}" onclick="setVSP('${p.l}','${o}')">${o}</button>`;
+    }).join('');
+    return `<div class="mp-point" id="vsp-p-${p.l}">
+      <div class="mp-point-hdr" onclick="toggleVSPDesc('${p.l}')">
+        <div class="mp-num">${p.l}</div>
+        <div class="mp-title">${p.t}</div>
+        <div class="mp-stato" id="vsp-stato-${p.l}">—</div>
+      </div>
+      <div class="mp-btns" id="vsp-btns-${p.l}" style="display:none">${btns}</div>
+    </div>`;
+  }).join('');
+
+  // Extra fields
+  const extraDiv = document.getElementById('vsp-extra');
+  if(def.extra){
+    document.getElementById('vsp-extra-title').textContent = def.extra.title;
+    document.getElementById('vsp-extra-body').innerHTML = def.extra.fields.map(f => {
+      const inp = f.type==='date'
+        ? `<input type="date" id="${f.id}">`
+        : `<input type="text" id="${f.id}" inputmode="decimal">`;
+      return `<div class="field"><label>${f.label}</label>${inp}</div>`;
+    }).join('');
+    extraDiv.style.display = 'block';
+  } else {
+    extraDiv.style.display = 'none';
+  }
+}
+
+function toggleVSPDesc(l){
+  const btns = document.getElementById('vsp-btns-'+l);
+  btns.style.display = btns.style.display==='none' ? 'flex' : 'none';
+}
+
+function setVSP(l, val){
+  vspState[l] = val;
+  const stato = document.getElementById('vsp-stato-'+l);
+  stato.textContent = val;
+  stato.className = 'mp-stato '+(val==='OK'?'ok':val==='KO'?'ko':'na');
+  const hdr = document.querySelector('#vsp-p-'+l+' .mp-point-hdr');
+  hdr.style.background = val==='OK'?'var(--ok-bg)':val==='KO'?'var(--ko-bg)':'var(--bg2)';
+  document.querySelectorAll('#vsp-btns-'+l+' .mp-btn').forEach(b=>b.classList.toggle('sel',b.textContent===val));
+  document.getElementById('vsp-btns-'+l).style.display = 'none';
+  document.getElementById('vsp-count').textContent = Object.keys(vspState).length;
+  uP();
+}
+
+function fillVSPHeader(d){
+  const t = new Date().toISOString().split('T')[0];
+  const e = document.getElementById('vsp-codice'); if(e) e.value = d.c;
+  const e2 = document.getElementById('vsp-data'); if(e2) e2.value = t;
+  const e3 = document.getElementById('vsp-note'); if(e3) e3.value = '-';
+  const e4 = document.getElementById('vsp-data2'); if(e4) e4.value = t;
+  const e5 = document.getElementById('vsp-tecnico'); if(e5) e5.value = d.ver||'';
+}
+
+function resetVSP(){
+  vspState = {};
+  if(document.getElementById('vsp-count')) document.getElementById('vsp-count').textContent='0';
+  document.querySelectorAll('[id^="vsp-p-"]').forEach(el=>{
+    const l = el.id.replace('vsp-p-','');
+    const stato = document.getElementById('vsp-stato-'+l);
+    if(stato){stato.textContent='—';stato.className='mp-stato';}
+    const hdr = el.querySelector('.mp-point-hdr');
+    if(hdr) hdr.style.background='';
+    const btns = document.getElementById('vsp-btns-'+l);
+    if(btns){btns.style.display='none';btns.querySelectorAll('.mp-btn').forEach(b=>b.classList.remove('sel'));}
+  });
+}
+
+function collectVSP(){
+  if(!vspType) return null;
+  const def = VSP_DEFS[vspType];
+  const t = new Date().toISOString().split('T')[0];
+  const rec = {
+    vsp_type: vspType,
+    vsp_codice: gv('vsp-codice'),
+    vsp_data: gv('vsp-data')||t,
+    vsp_note: gv('vsp-note'),
+    vsp_tecnico: gv('vsp-tecnico'),
+    vsp_data2: gv('vsp-data2')||t,
+  };
+  def.points.forEach(p => { rec['vsp_'+p.l] = vspState[p.l]||''; });
+  if(def.extra){
+    def.extra.fields.forEach(f => { rec[f.id] = gv(f.id)||''; });
+  }
+  return rec;
+}
+
+function loadVSPSaved(rec){
+  if(!rec||!rec.vsp_type) return;
+  buildVSPPoints(rec.vsp_type);
+  const e = document.getElementById('vsp-data'); if(e) e.value = rec.vsp_data||'';
+  const e2 = document.getElementById('vsp-note'); if(e2) e2.value = rec.vsp_note||'-';
+  const e3 = document.getElementById('vsp-tecnico'); if(e3) e3.value = rec.vsp_tecnico||'';
+  const e4 = document.getElementById('vsp-data2'); if(e4) e4.value = rec.vsp_data2||'';
+  const def = VSP_DEFS[rec.vsp_type];
+  def.points.forEach(p => { if(rec['vsp_'+p.l]) setVSP(p.l, rec['vsp_'+p.l]); });
+  if(def.extra) def.extra.fields.forEach(f => { const el=document.getElementById(f.id); if(el&&rec[f.id]) el.value=rec[f.id]; });
+}
+
 buildMPPoints();
 initDB();
 </script>
