@@ -357,6 +357,21 @@ h1{font-size:18px;font-weight:600;margin-bottom:4px}
         <div class="field full"><label>Note</label><input type="text" id="vsp-note"></div>
       </div>
     </div>
+    <div class="sec">
+      <div class="sec-hdr" id="vsp-sec-title">Controllo visivo</div>
+      <div style="padding:12px 14px 4px">
+        <div class="mp-progress">Completati: <span id="vsp-count">0</span> / <span id="vsp-total">0</span></div>
+        <div id="vsp-points"></div>
+      </div>
+    </div>
+    <div id="vsp-extra" style="display:none"></div>
+    <div class="sec">
+      <div class="sec-body">
+        <div class="field"><label>Tecnico esecutore</label><input type="text" id="vsp-tecnico"></div>
+        <div class="field"><label>Data</label><input type="date" id="vsp-data2"></div>
+      </div>
+    </div>
+  </div>
 
   <!-- TAB CQ -->
   <div class="tab-panel" id="panel-cq">
@@ -393,26 +408,8 @@ h1{font-size:18px;font-weight:600;margin-bottom:4px}
       </div>
     </div>
   </div>
-    <div class="sec" id="vsp-content">
-      <div class="sec-hdr" id="vsp-sec-title">Controllo visivo</div>
-      <div style="padding:12px 14px 4px">
-        <div class="mp-progress">Completati: <span id="vsp-count">0</span> / <span id="vsp-total">0</span></div>
-        <div id="vsp-points"></div>
-      </div>
-    </div>
-    <!-- Sezioni aggiuntive per DEF e ELB -->
-    <div class="sec" id="vsp-extra" style="display:none">
-      <div class="sec-hdr" id="vsp-extra-title">Misurazioni</div>
-      <div class="sec-body" id="vsp-extra-body" style="grid-template-columns:repeat(auto-fill,minmax(180px,1fr))"></div>
-    </div>
-    <div class="sec">
-      <div class="sec-body">
-        <div class="field"><label>Tecnico esecutore</label><input type="text" id="vsp-tecnico"></div>
-        <div class="field"><label>Data</label><input type="date" id="vsp-data2"></div>
-      </div>
-    </div>
-  </div>
 </div>
+
 <div class="toast" id="toast"></div>
 
 <script>
