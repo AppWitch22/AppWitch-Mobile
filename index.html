@@ -963,133 +963,125 @@ function toast(msg,type){
 
 
 
+
 // ===================== VSP =====================
-const VSP_DEFS = {
-  'VSP_CEN': {
-    title: 'Controllo visivo — Centrifuga',
-    tipo: 'okna', // OK/KO/NA per tutti
-    points: [
-      {l:'A', t:'Il coperchio resta chiuso a centrifuga avviata'},
-      {l:'B', t:'Il coperchio rimane bloccato finché il rotore non è fermo'},
-      {l:'C', t:'A coperchio aperto la centrifuga si avvia'},
-      {l:'D', t:'A coperchio aperto la centrifuga non si avvia'},
-      {l:'E', t:'Esiste la protezione meccanica sulle parti in movimento, se accessibili'},
-    ],
-    extra: null,
-  },
-  'VSP_ECG': {
-    title: 'Controllo visivo — Elettrocardiografo',
-    tipo: 'misto',
-    points: [
-      {l:'A', t:'Indicazione della protezione da defibrillatore', opts:['OK','KO','NA']},
-      {l:'B', t:'Impossibilità di contatto con un piano conduttore per il connettore lato apparecchio del cavo ECG', opts:['OK','KO','NA']},
-      {l:'C', t:'Segnalazione sorgente elettrica interna scarica', opts:['OK','KO','NA']},
-      {l:'D', t:'SOLO PER I MONITOR: Indicazione del tipo PA', opts:['B','BF','CF','NA']},
-    ],
-    extra: null,
-  },
-  'VSP_DEF': {
-    title: 'Controllo visivo — Defibrillatore',
-    tipo: 'misto',
-    points: [
-      {l:'A', t:'Verifica prescrizioni istruzioni per la defibrillazione e/o monitoraggio ECG', opts:['OK','KO']},
-      {l:'B', t:'Verifica raccomandazioni elettrodi e cavi paziente', opts:['OK','KO']},
-      {l:'C', t:'Verifica raccomandazioni sorgente elettrica interna', opts:['NA','OK','KO']},
-      {l:'D', t:'Verifica prescrizioni indicatore di stato sorgente elettrica interna', opts:['NA','OK','KO']},
-      {l:'E', t:'Verifica prescrizioni preselettore di energia', opts:['NA','OK','KO']},
-      {l:'F', t:'Verifica prescrizioni preselettore tarato in Joule', opts:['NA','OK','KO']},
-      {l:'G', t:'Verifica prescrizioni indicatore vocale e/o sonoro di fine carica', opts:['OK','KO']},
-      {l:'H', t:'Verifica raccomandazioni dispositivo di ricarica automatica', opts:['NA','OK','KO']},
-      {l:'I', t:'Verifica prescrizioni dispositivo di auto scarica interno', opts:['OK','KO']},
-      {l:'J', t:'Verifica prescrizioni dispositivo di scarica', opts:['OK','KO']},
-      {l:'K', t:'Verifica prescrizioni energia massima selezionabile per elettrodi esterni ≤ 360 J', opts:['NA','OK','KO']},
-      {l:'L', t:'Verifica prescrizioni energia massima selezionabile per elettrodi interni ≤ 50 J', opts:['NA','OK','KO']},
-      {l:'M', t:'Verifica prescrizioni indicazione luminosa e/o sonora del dispositivo di sincronizzazione', opts:['NA','OK','KO']},
-      {l:'N', t:'Verifica prescrizioni dispositivo di sincronizzazione non attivo all\'accensione', opts:['NA','OK','KO']},
-      {l:'O', t:'Verifica prescrizioni indicatore vocale e/o sonoro rilevamento ritmo (DAE)', opts:['NA','OK','KO']},
-      {l:'P', t:'Verifica prescrizioni visualizzazione segnale ECG', opts:['NA','OK','KO']},
-      {l:'Q', t:'Verifica prescrizioni impossibilità attivazione contemporanea elettrodi interni ed esterni', opts:['OK','KO']},
-      {l:'R', t:'Verifica prescrizioni protezione da versamento liquidi', opts:['OK','KO']},
-    ],
-    extra: {
-      title: 'Precisione energia erogata + Tempi',
-      fields: [
-        // Sezione 3: energia erogata MANUALE (coppie impostato/misurato x5) + DAE (misurato+NA+OK+KO)
-        {id:'def_e1i', label:'Energia 1 — Impostato (J)'}, {id:'def_e1m', label:'Energia 1 — Misurato (J)'},
-        {id:'def_e2i', label:'Energia 2 — Impostato (J)'}, {id:'def_e2m', label:'Energia 2 — Misurato (J)'},
-        {id:'def_e3i', label:'Energia 3 — Impostato (J)'}, {id:'def_e3m', label:'Energia 3 — Misurato (J)'},
-        {id:'def_e4i', label:'Energia 4 — Impostato (J)'}, {id:'def_e4m', label:'Energia 4 — Misurato (J)'},
-        {id:'def_e5i', label:'Energia 5 — Impostato (J)'}, {id:'def_e5m', label:'Energia 5 — Misurato (J)'},
-        {id:'def_dae', label:'DAE — Misurato (J)'},
-        // Sezione 4: tempi carica (rete+batteria+massimo x4 configurazioni)
-        {id:'def_tc1r', label:'Tempo carica A — Rete (s)'}, {id:'def_tc1b', label:'Tempo carica A — Batteria (s)'}, {id:'def_tc1m', label:'Tempo carica A — Massimo (s)'},
-        {id:'def_tc2r', label:'Tempo carica B — Rete (s)'}, {id:'def_tc2b', label:'Tempo carica B — Batteria (s)'}, {id:'def_tc2m', label:'Tempo carica B — Massimo (s)'},
-        {id:'def_tc3r', label:'Tempo carica C — Rete (s)'}, {id:'def_tc3b', label:'Tempo carica C — Batteria (s)'}, {id:'def_tc3m', label:'Tempo carica C — Massimo (s)'},
-        {id:'def_tc4r', label:'Tempo carica D — Rete (s)'}, {id:'def_tc4b', label:'Tempo carica D — Batteria (s)'}, {id:'def_tc4m', label:'Tempo carica D — Massimo (s)'},
-        // Sezione 5: tempi ritardo (rilevato+massimo x3)
-        {id:'def_tr1', label:'Ritardo A — Rilevato (s)'}, {id:'def_tr1m', label:'Ritardo A — Massimo (s)'},
-        {id:'def_tr2', label:'Ritardo B — Rilevato (s)'}, {id:'def_tr2m', label:'Ritardo B — Massimo (s)'},
-        {id:'def_tr3', label:'Ritardo C — Rilevato (s)'}, {id:'def_tr3m', label:'Ritardo C — Massimo (s)'},
-        // Sezione 8: strumentazione
-        {id:'def_strum', label:'Strumento'}, {id:'def_modello', label:'Modello'},
-        {id:'def_serie', label:'N° Serie'}, {id:'def_cert', label:'Certificato N.'},
-        {id:'def_scad', label:'Scadenza taratura', type:'date'},
-      ]
-    }
-  },
-  'VSP_ELB': {
-    title: 'Controllo visivo — Elettrobisturi',
-    tipo: 'okna',
-    points: [
-      {l:'A', t:'Verifica prescrizioni colorazione delle lampade spia (giallo: taglio, blu: coagulo, rosso: guasto piastra)'},
-      {l:'B', t:'Verifica prescrizioni protezione immersione pedale (Solo per apparecchiature in Sala Operatoria)'},
-      {l:'C', t:'Verifica prescrizioni assenza alimentazione simultanea degli elettrodi attivi'},
-      {l:'D', t:'Verifica prescrizioni non intercambiabilità fra elettrodo neutro e attivo'},
-      {l:'E', t:'Verifica prescrizioni allarme interruzione cavo elettrodo neutro per Pnom>50W'},
-      {l:'F', t:'Verifica prescrizioni segnalazione sonora di uscita attivata'},
-    ],
-    extra: {
-      title: 'Identificazione dati targa + Correnti HF',
-      fields: [
-        {id:'elb_pbip', label:'Potenza bipolare (W)'}, {id:'elb_cbip', label:'Carico bip. (Ω)'}, {id:'elb_fkhz', label:'Freq. [KHz]'}, {id:'elb_fmhz', label:'Freq. [MHz]'},
-        {id:'elb_pmono', label:'Potenza monopolare (W)'}, {id:'elb_cmono', label:'Carico mono. (Ω)'}, {id:'elb_fkhz2', label:'Freq. mono. [KHz]'}, {id:'elb_fmhz2', label:'Freq. mono. [MHz]'},
-        {id:'elb_pa', label:'Tipo PA in HF ([F])'},
-        // correnti HF: 4 misure x 3 modalità (taglio/mix/coagulo)
-        {id:'elb_ct', label:'Carico tra elettrodi — Taglio (mA)'}, {id:'elb_cm', label:'Carico tra elettrodi — Mix (mA)'}, {id:'elb_cc', label:'Carico tra elettrodi — Coagulo (mA)'},
-        {id:'elb_at', label:'Attivo/terra — Taglio (mA)'}, {id:'elb_am', label:'Attivo/terra — Mix (mA)'}, {id:'elb_ac', label:'Attivo/terra — Coagulo (mA)'},
-        {id:'elb_nt', label:'Elettrodo neutro — Taglio (mA)'}, {id:'elb_nm', label:'Elettrodo neutro — Mix (mA)'}, {id:'elb_nc', label:'Elettrodo neutro — Coagulo (mA)'},
-        {id:'elb_att', label:'Elettrodo attivo — Taglio (mA)'}, {id:'elb_atm', label:'Elettrodo attivo — Mix (mA)'}, {id:'elb_atc', label:'Elettrodo attivo — Coagulo (mA)'},
-        // strumentazione
-        {id:'elb_strum', label:'Strumento'}, {id:'elb_modello', label:'Modello'},
-        {id:'elb_serie', label:'N° Serie'}, {id:'elb_cert', label:'Certificato N.'},
-        {id:'elb_scad', label:'Scadenza taratura', type:'date'},
-      ]
-    }
-  }
+let vspState = {};
+let vspType  = null;
+
+const VSP_POINTS = {
+  'VSP_CEN': [
+    {l:'A', t:'Il coperchio resta chiuso a centrifuga avviata', opts:['OK','KO','NA']},
+    {l:'B', t:'Il coperchio rimane bloccato finché il rotore non è fermo', opts:['OK','KO','NA']},
+    {l:'C', t:'A coperchio aperto la centrifuga si avvia', opts:['OK','KO','NA']},
+    {l:'D', t:'A coperchio aperto la centrifuga non si avvia', opts:['OK','KO','NA']},
+    {l:'E', t:'Esiste la protezione meccanica sulle parti in movimento, se accessibili', opts:['OK','KO','NA']},
+  ],
+  'VSP_ECG': [
+    {l:'A', t:'Indicazione della protezione da defibrillatore', opts:['OK','KO','NA']},
+    {l:'B', t:'Impossibilità di contatto con un piano conduttore per il connettore lato apparecchio del cavo ECG', opts:['OK','KO','NA']},
+    {l:'C', t:'Segnalazione sorgente elettrica interna scarica', opts:['OK','KO','NA']},
+    {l:'D', t:'SOLO PER I MONITOR: Indicazione del tipo PA (barrare la scelta)', opts:['B','BF','CF','NA']},
+  ],
+  'VSP_DEF': [
+    {l:'A', t:'Verifica prescrizioni istruzioni per la defibrillazione e/o monitoraggio ECG', opts:['OK','KO']},
+    {l:'B', t:'Verifica raccomandazioni elettrodi e cavi paziente', opts:['OK','KO']},
+    {l:'C', t:'Verifica raccomandazioni sorgente elettrica interna', opts:['NA','OK','KO']},
+    {l:'D', t:'Verifica prescrizioni indicatore di stato sorgente elettrica interna', opts:['NA','OK','KO']},
+    {l:'E', t:'Verifica prescrizioni preselettore di energia', opts:['NA','OK','KO']},
+    {l:'F', t:'Verifica prescrizioni preselettore tarato in Joule', opts:['NA','OK','KO']},
+    {l:'G', t:'Verifica prescrizioni indicatore vocale e/o sonoro di fine carica', opts:['OK','KO']},
+    {l:'H', t:'Verifica raccomandazioni dispositivo di ricarica automatica', opts:['NA','OK','KO']},
+    {l:'I', t:'Verifica prescrizioni dispositivo di auto scarica interno', opts:['OK','KO']},
+    {l:'J', t:'Verifica prescrizioni dispositivo di scarica', opts:['OK','KO']},
+    {l:'K', t:'Verifica prescrizioni energia massima selezionabile per elettrodi esterni ≤ 360 J', opts:['NA','OK','KO']},
+    {l:'L', t:'Verifica prescrizioni energia massima selezionabile per elettrodi interni ≤ 50 J', opts:['NA','OK','KO']},
+    {l:'M', t:'Verifica prescrizioni indicazione luminosa e/o sonora del dispositivo di sincronizzazione', opts:['NA','OK','KO']},
+    {l:'N', t:'Verifica prescrizioni dispositivo di sincronizzazione non attivo all\'accensione', opts:['NA','OK','KO']},
+    {l:'O', t:'Verifica prescrizioni indicatore vocale e/o sonoro rilevamento ritmo (DAE)', opts:['NA','OK','KO']},
+    {l:'P', t:'Verifica prescrizioni visualizzazione segnale ECG', opts:['NA','OK','KO']},
+    {l:'Q', t:'Verifica prescrizioni impossibilità attivazione contemporanea elettrodi interni ed esterni', opts:['OK','KO']},
+    {l:'R', t:'Verifica prescrizioni protezione da versamento liquidi', opts:['OK','KO']},
+  ],
+  'VSP_ELB': [
+    {l:'A', t:'Verifica prescrizioni colorazione delle lampade spia (giallo: taglio, blu: coagulo, rosso: guasto piastra)', opts:['OK','KO','NA']},
+    {l:'B', t:'Verifica prescrizioni protezione immersione pedale (Solo per apparecchiature in Sala Operatoria)', opts:['OK','KO','NA']},
+    {l:'C', t:'Verifica prescrizioni assenza alimentazione simultanea degli elettrodi attivi', opts:['OK','KO','NA']},
+    {l:'D', t:'Verifica prescrizioni non intercambiabilità fra elettrodo neutro e attivo', opts:['OK','KO','NA']},
+    {l:'E', t:'Verifica prescrizioni allarme interruzione cavo elettrodo neutro per Pnom>50W', opts:['OK','KO','NA']},
+    {l:'F', t:'Verifica prescrizioni segnalazione sonora di uscita attivata', opts:['OK','KO','NA']},
+  ],
 };
 
-let vspState = {};   // lettera -> valore ('OK'/'KO'/'NA'/'B'/'BF'/'CF')
-let vspType  = null; // e.g. 'VSP_CEN'
+// Extra numeric fields for DEF and ELB
+const VSP_EXTRA = {
+  'VSP_DEF': [
+    {sec:'Precisione energia erogata — Manuale', fields:[
+      {id:'def_e1i',l:'Energia 1 Impostato (J)'},{id:'def_e1m',l:'Energia 1 Misurato (J)'},
+      {id:'def_e2i',l:'Energia 2 Impostato (J)'},{id:'def_e2m',l:'Energia 2 Misurato (J)'},
+      {id:'def_e3i',l:'Energia 3 Impostato (J)'},{id:'def_e3m',l:'Energia 3 Misurato (J)'},
+      {id:'def_e4i',l:'Energia 4 Impostato (J)'},{id:'def_e4m',l:'Energia 4 Misurato (J)'},
+      {id:'def_e5i',l:'Energia 5 Impostato (J)'},{id:'def_e5m',l:'Energia 5 Misurato (J)'},
+    ]},
+    {sec:'Precisione energia erogata — DAE', fields:[
+      {id:'def_dae_mis',l:'DAE Misurato (J)'},
+    ]},
+    {sec:'Tempi di carica alla massima energia', fields:[
+      {id:'def_tc_ar',l:'Config A — Rete (s)'},{id:'def_tc_ab',l:'Config A — Batteria (s)'},{id:'def_tc_am',l:'Config A — Max (s)'},
+      {id:'def_tc_br',l:'Config B — Rete (s)'},{id:'def_tc_bb',l:'Config B — Batteria (s)'},{id:'def_tc_bm',l:'Config B — Max (s)'},
+      {id:'def_tc_cr',l:'Config C — Rete (s)'},{id:'def_tc_cb',l:'Config C — Batteria (s)'},{id:'def_tc_cm',l:'Config C — Max (s)'},
+      {id:'def_tc_dr',l:'Config D — Rete (s)'},{id:'def_tc_db',l:'Config D — Batteria (s)'},{id:'def_tc_dm',l:'Config D — Max (s)'},
+    ]},
+    {sec:'Tempi di ritardo e ripristino', fields:[
+      {id:'def_tr_ar',l:'Config A — Rilevato (s)'},{id:'def_tr_am',l:'Config A — Massimo (s)'},
+      {id:'def_tr_br',l:'Config B — Rilevato (s)'},{id:'def_tr_bm',l:'Config B — Massimo (s)'},
+      {id:'def_tr_cr',l:'Config C — Rilevato (s)'},{id:'def_tr_cm',l:'Config C — Massimo (s)'},
+    ]},
+    {sec:'Strumentazione utilizzata', fields:[
+      {id:'def_strum',l:'Strumento'},{id:'def_mod',l:'Modello'},
+      {id:'def_ser',l:'N° Serie'},{id:'def_cert',l:'Certificato N.'},
+      {id:'def_scad',l:'Scadenza taratura',type:'date'},
+    ]},
+  ],
+  'VSP_ELB': [
+    {sec:'Identificazione — Dati di targa', fields:[
+      {id:'elb_pbip',l:'Potenza bipolare (W)'},{id:'elb_cbip',l:'Carico bip. (Ω)'},
+      {id:'elb_fkhz',l:'Freq. bip. [KHz]'},{id:'elb_fmhz',l:'Freq. bip. [MHz]'},
+      {id:'elb_pmono',l:'Potenza monopolare (W)'},{id:'elb_cmono',l:'Carico mono. (Ω)'},
+      {id:'elb_fkhz2',l:'Freq. mono. [KHz]'},{id:'elb_fmhz2',l:'Freq. mono. [MHz]'},
+      {id:'elb_pa',l:'Tipo PA in HF ([F])'},
+    ]},
+    {sec:'Corrente di dispersione nel paziente in HF', fields:[
+      {id:'elb_ct_t',l:'Carico elettrodi — Taglio (mA)'},{id:'elb_ct_m',l:'Carico elettrodi — Mix (mA)'},{id:'elb_ct_c',l:'Carico elettrodi — Coagulo (mA)'},
+      {id:'elb_at_t',l:'Attivo/terra — Taglio (mA)'},{id:'elb_at_m',l:'Attivo/terra — Mix (mA)'},{id:'elb_at_c',l:'Attivo/terra — Coagulo (mA)'},
+      {id:'elb_en_t',l:'El. neutro — Taglio (mA)'},{id:'elb_en_m',l:'El. neutro — Mix (mA)'},{id:'elb_en_c',l:'El. neutro — Coagulo (mA)'},
+      {id:'elb_ea_t',l:'El. attivo — Taglio (mA)'},{id:'elb_ea_m',l:'El. attivo — Mix (mA)'},{id:'elb_ea_c',l:'El. attivo — Coagulo (mA)'},
+      {id:'elb_iso1n',l:'Uscita isolata CN — El.1 (mA)'},{id:'elb_iso1t',l:'Uscita isolata CN — El.2 (mA)'},
+      {id:'elb_iso2n',l:'Uscita isolata MT — El.1 (mA)'},{id:'elb_iso2t',l:'Uscita isolata MT — El.2 (mA)'},
+    ]},
+    {sec:'Strumentazione utilizzata', fields:[
+      {id:'elb_strum',l:'Strumento'},{id:'elb_mod',l:'Modello'},
+      {id:'elb_ser',l:'N° Serie'},{id:'elb_cert',l:'Certificato N.'},
+      {id:'elb_scad',l:'Scadenza taratura',type:'date'},
+    ]},
+  ],
+};
 
 function buildVSPPoints(type){
-  vspType = type;
-  vspState = {};
-  const def = VSP_DEFS[type];
-  if(!def) return;
-
-  document.getElementById('vsp-sec-title').textContent = def.title;
-  document.getElementById('vsp-total').textContent = def.points.length;
-  document.getElementById('vsp-count').textContent = '0';
-
-  const container = document.getElementById('vsp-points');
-  container.innerHTML = def.points.map(p => {
-    const opts = p.opts || ['OK','KO','NA'];
-    const btns = opts.map(o => {
-      const cls = o==='OK'?'mp-btn ok':o==='KO'?'mp-btn ko':'mp-btn na';
+  vspType=type;
+  vspState={};
+  const points=VSP_POINTS[type]||[];
+  document.getElementById('vsp-sec-title').textContent='Controllo visivo — '+type.replace('VSP_','');
+  document.getElementById('vsp-total').textContent=points.length;
+  document.getElementById('vsp-count').textContent='0';
+  // Build points — same style as MP
+  const container=document.getElementById('vsp-points');
+  container.innerHTML=points.map(p=>{
+    const btns=p.opts.map(o=>{
+      const cls=o==='OK'?'mp-btn ok':o==='KO'?'mp-btn ko':'mp-btn na';
       return `<button class="${cls}" onclick="setVSP('${p.l}','${o}')">${o}</button>`;
     }).join('');
     return `<div class="mp-point" id="vsp-p-${p.l}">
-      <div class="mp-point-hdr" onclick="toggleVSPDesc('${p.l}')">
+      <div class="mp-point-hdr" onclick="toggleVSP('${p.l}')">
         <div class="mp-num">${p.l}</div>
         <div class="mp-title">${p.t}</div>
         <div class="mp-stato" id="vsp-stato-${p.l}">—</div>
@@ -1097,94 +1089,84 @@ function buildVSPPoints(type){
       <div class="mp-btns" id="vsp-btns-${p.l}" style="display:none">${btns}</div>
     </div>`;
   }).join('');
-
-  // Extra fields
-  const extraDiv = document.getElementById('vsp-extra');
-  if(def.extra){
-    document.getElementById('vsp-extra-title').textContent = def.extra.title;
-    document.getElementById('vsp-extra-body').innerHTML = def.extra.fields.map(f => {
-      const inp = f.type==='date'
-        ? `<input type="date" id="${f.id}">`
-        : `<input type="text" id="${f.id}" inputmode="decimal">`;
-      return `<div class="field"><label>${f.label}</label>${inp}</div>`;
-    }).join('');
-    extraDiv.style.display = 'block';
+  // Build extra fields
+  const extraDiv=document.getElementById('vsp-extra');
+  const extra=VSP_EXTRA[type];
+  if(extra){
+    let html='';
+    extra.forEach(sec=>{
+      html+=`<div class="sec" style="margin-bottom:10px"><div class="sec-hdr">${sec.sec}</div><div class="sec-body" style="grid-template-columns:repeat(auto-fill,minmax(180px,1fr))">`;
+      sec.fields.forEach(f=>{
+        const inp=f.type==='date'?`<input type="date" id="${f.id}">`:`<input type="text" id="${f.id}" inputmode="decimal">`;
+        html+=`<div class="field"><label>${f.l}</label>${inp}</div>`;
+      });
+      html+='</div></div>';
+    });
+    extraDiv.innerHTML=html;
+    extraDiv.style.display='block';
   } else {
-    extraDiv.style.display = 'none';
+    extraDiv.innerHTML='';
+    extraDiv.style.display='none';
   }
 }
 
-function toggleVSPDesc(l){
-  const btns = document.getElementById('vsp-btns-'+l);
-  btns.style.display = btns.style.display==='none' ? 'flex' : 'none';
+function toggleVSP(l){
+  const btns=document.getElementById('vsp-btns-'+l);
+  if(btns) btns.style.display=btns.style.display==='none'?'flex':'none';
 }
 
-function setVSP(l, val){
-  vspState[l] = val;
-  const stato = document.getElementById('vsp-stato-'+l);
-  stato.textContent = val;
-  stato.className = 'mp-stato '+(val==='OK'?'ok':val==='KO'?'ko':'na');
-  const hdr = document.querySelector('#vsp-p-'+l+' .mp-point-hdr');
-  hdr.style.background = val==='OK'?'var(--ok-bg)':val==='KO'?'var(--ko-bg)':'var(--bg2)';
+function setVSP(l,val){
+  vspState[l]=val;
+  const stato=document.getElementById('vsp-stato-'+l);
+  stato.textContent=val;
+  stato.className='mp-stato '+(val==='OK'?'ok':val==='KO'?'ko':'na');
+  const hdr=document.querySelector('#vsp-p-'+l+' .mp-point-hdr');
+  if(hdr) hdr.style.background=val==='OK'?'var(--ok-bg)':val==='KO'?'var(--ko-bg)':'var(--bg2)';
   document.querySelectorAll('#vsp-btns-'+l+' .mp-btn').forEach(b=>b.classList.toggle('sel',b.textContent===val));
-  document.getElementById('vsp-btns-'+l).style.display = 'none';
-  document.getElementById('vsp-count').textContent = Object.keys(vspState).length;
+  document.getElementById('vsp-btns-'+l).style.display='none';
+  document.getElementById('vsp-count').textContent=Object.keys(vspState).length;
   uP();
 }
 
 function fillVSPHeader(d){
-  const t = new Date().toISOString().split('T')[0];
-  const e = document.getElementById('vsp-codice'); if(e) e.value = d.c;
-  const e2 = document.getElementById('vsp-data'); if(e2) e2.value = t;
-  const e3 = document.getElementById('vsp-note'); if(e3) e3.value = '-';
-  const e4 = document.getElementById('vsp-data2'); if(e4) e4.value = t;
-  const e5 = document.getElementById('vsp-tecnico'); if(e5) e5.value = d.ver||'';
+  const t=new Date().toISOString().split('T')[0];
+  sv('vsp-codice',d.c); sv('vsp-data',t); sv('vsp-note','-');
+  sv('vsp-data2',t); sv('vsp-tecnico',d.ver||'');
 }
 
 function resetVSP(){
-  vspState = {};
-  if(document.getElementById('vsp-count')) document.getElementById('vsp-count').textContent='0';
+  vspState={}; vspType=null;
+  const c=document.getElementById('vsp-count'); if(c) c.textContent='0';
   document.querySelectorAll('[id^="vsp-p-"]').forEach(el=>{
-    const l = el.id.replace('vsp-p-','');
-    const stato = document.getElementById('vsp-stato-'+l);
-    if(stato){stato.textContent='—';stato.className='mp-stato';}
-    const hdr = el.querySelector('.mp-point-hdr');
-    if(hdr) hdr.style.background='';
-    const btns = document.getElementById('vsp-btns-'+l);
-    if(btns){btns.style.display='none';btns.querySelectorAll('.mp-btn').forEach(b=>b.classList.remove('sel'));}
+    const l=el.id.replace('vsp-p-','');
+    const s=document.getElementById('vsp-stato-'+l); if(s){s.textContent='—';s.className='mp-stato';}
+    const h=el.querySelector('.mp-point-hdr'); if(h) h.style.background='';
+    const b=document.getElementById('vsp-btns-'+l); if(b){b.style.display='none';b.querySelectorAll('.mp-btn').forEach(x=>x.classList.remove('sel'));}
   });
+  const ex=document.getElementById('vsp-extra'); if(ex){ex.innerHTML='';ex.style.display='none';}
 }
 
 function collectVSP(){
   if(!vspType) return null;
-  const def = VSP_DEFS[vspType];
-  const t = new Date().toISOString().split('T')[0];
-  const rec = {
-    vsp_type: vspType,
-    vsp_codice: gv('vsp-codice'),
-    vsp_data: gv('vsp-data')||t,
-    vsp_note: gv('vsp-note'),
-    vsp_tecnico: gv('vsp-tecnico'),
-    vsp_data2: gv('vsp-data2')||t,
-  };
-  def.points.forEach(p => { rec['vsp_'+p.l] = vspState[p.l]||''; });
-  if(def.extra){
-    def.extra.fields.forEach(f => { rec[f.id] = gv(f.id)||''; });
-  }
+  const t=new Date().toISOString().split('T')[0];
+  const rec={vsp_type:vspType,vsp_codice:gv('vsp-codice'),vsp_data:gv('vsp-data')||t,
+    vsp_note:gv('vsp-note'),vsp_tecnico:gv('vsp-tecnico'),vsp_data2:gv('vsp-data2')||t};
+  (VSP_POINTS[vspType]||[]).forEach(p=>{rec['vsp_'+p.l]=vspState[p.l]||'';});
+  const extra=VSP_EXTRA[vspType];
+  if(extra) extra.forEach(sec=>sec.fields.forEach(f=>{rec[f.id]=gv(f.id)||'';}));
   return rec;
 }
 
 function loadVSPSaved(rec){
   if(!rec||!rec.vsp_type) return;
   buildVSPPoints(rec.vsp_type);
-  const e = document.getElementById('vsp-data'); if(e) e.value = rec.vsp_data||'';
-  const e2 = document.getElementById('vsp-note'); if(e2) e2.value = rec.vsp_note||'-';
-  const e3 = document.getElementById('vsp-tecnico'); if(e3) e3.value = rec.vsp_tecnico||'';
-  const e4 = document.getElementById('vsp-data2'); if(e4) e4.value = rec.vsp_data2||'';
-  const def = VSP_DEFS[rec.vsp_type];
-  def.points.forEach(p => { if(rec['vsp_'+p.l]) setVSP(p.l, rec['vsp_'+p.l]); });
-  if(def.extra) def.extra.fields.forEach(f => { const el=document.getElementById(f.id); if(el&&rec[f.id]) el.value=rec[f.id]; });
+  sv('vsp-data',rec.vsp_data||''); sv('vsp-note',rec.vsp_note||'-');
+  sv('vsp-tecnico',rec.vsp_tecnico||''); sv('vsp-data2',rec.vsp_data2||'');
+  (VSP_POINTS[rec.vsp_type]||[]).forEach(p=>{if(rec['vsp_'+p.l]) setVSP(p.l,rec['vsp_'+p.l]);});
+  const extra=VSP_EXTRA[rec.vsp_type];
+  if(extra) extra.forEach(sec=>sec.fields.forEach(f=>{const el=document.getElementById(f.id);if(el&&rec[f.id])el.value=rec[f.id];}));
 }
+
 
 buildMPPoints();
 initDB();
