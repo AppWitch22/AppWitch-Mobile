@@ -836,9 +836,7 @@ function saveAll(){
     ...(vspRec?{...vspRec,vsp_saved:true,vsp_type:vspType}:{}),
     ...(cqRec?{...cqRec,cq_saved:true,cq_type:cqType}:{}),
     vse_saved:true,mp_saved:true};
-    ...(vspRec?{...vspRec,vsp_saved:true}:{}),
-    ...(cqRec?{...cqRec,cq_saved:true}:{}),
-    vse_saved:true,mp_saved:true};
+   
   dirty=false;
   updateTabIndicators();
   renderSession();
