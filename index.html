@@ -1553,6 +1553,7 @@ document.body.insertAdjacentHTML('afterbegin', `
 document.querySelector('.app').insertAdjacentHTML('afterbegin', `
 <div id="user-bar">
   <div><span class="u-name" id="u-name"></span><span class="u-role" id="u-role"></span></div>
+ <button onclick="openAdmin()" id="btn-admin" style="display:none">Admin</button>
   <button onclick="doLogout()">Esci</button>
 </div>
 `);
@@ -1593,6 +1594,7 @@ function showApp() {
   document.getElementById('u-name').textContent = p.full_name;
   document.getElementById('u-role').textContent = ' · ' + p.role;
   document.getElementById('user-bar').style.display = 'flex';
+  if (p.role === 'admin') document.getElementById('btn-admin').style.display = '';
   document.getElementById('login-screen').style.display = 'none';
 }
 
@@ -1624,6 +1626,124 @@ async function checkSession() {
 checkSession();
 // ── FINE AUTH ──────────────────────────────────────────────
 buildMPPoints();
+// ── PANNELLO ADMIN ──────────────────────────────────────────
+async function openAdmin() {
+  if (!currentUser || currentUser.profile.role !== 'admin') return;
+  let modal = document.getElementById('admin-modal');
+  if (!modal) {
+    document.body.insertAdjacentHTML('beforeend', `
+    <div id="admin-modal" style="position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:10000;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto">
+      <div style="background:var(--bg);border-radius:var(--rad-lg);width:100%;max-width:600px;padding:20px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+          <div style="font-size:16px;font-weight:600">Gestione Utenti</div>
+          <button onclick="document.getElementById('admin-modal').remove()" style="padding:4px 10px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text);cursor:pointer">✕</button>
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+          <input id="adm-email" type="email" placeholder="Email" style="flex:1;min-width:160px;padding:8px 10px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text);font-size:14px">
+          <input id="adm-name" type="text" placeholder="Nome completo" style="flex:1;min-width:160px;padding:8px 10px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text);font-size:14px">
+          <input id="adm-pass" type="password" placeholder="Password" style="flex:1;min-width:140px;padding:8px 10px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text);font-size:14px">
+          <select id="adm-role" style="padding:8px 10px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text);font-size:14px">
+            <option value="verificatore">Verificatore</option>
+            <option value="responsabile">Responsabile</option>
+            <option value="admin">Admin</option>
+          </select>
+          <button onclick="adminCreate()" style="padding:8px 14px;font-size:13px;font-weight:600;background:var(--info);color:#fff;border:none;border-radius:var(--rad);cursor:pointer">+ Crea</button>
+        </div>
+        <div id="adm-msg" style="display:none;padding:8px 12px;border-radius:var(--rad);font-size:13px;margin-bottom:12px"></div>
+        <div id="adm-list" style="font-size:13px;color:var(--text2)">Caricamento...</div>
+      </div>
+    </div>`);
+  } else {
+    modal.style.display = 'flex';
+  }
+  adminLoadUsers();
+}
+
+async function adminCall(payload) {
+  const { data: { session } } = await supa.auth.getSession();
+  const res = await fetch('https://ttgvuoiznybjdyhlshpt.supabase.co/functions/v1/manage-users', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + session.access_token
+    },
+    body: JSON.stringify(payload)
+  });
+  return res.json();
+}
+
+async function adminLoadUsers() {
+  const list = document.getElementById('adm-list');
+  if (!list) return;
+  list.innerHTML = 'Caricamento...';
+  const users = await adminCall({ action: 'list' });
+  if (!Array.isArray(users)) { list.innerHTML = 'Errore caricamento utenti.'; return; }
+  if (users.length === 0) { list.innerHTML = 'Nessun utente.'; return; }
+  list.innerHTML = users.map(u => `
+    <div style="display:flex;align-items:center;gap:8px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--rad);margin-bottom:6px;flex-wrap:wrap">
+      <div style="flex:1;min-width:160px">
+        <div style="font-weight:500;color:var(--text)">${u.profile?.full_name || '—'}</div>
+        <div style="font-size:11px;color:var(--text3)">${u.email}</div>
+      </div>
+      <select onchange="adminUpdateRole('${u.id}', this.value)" style="padding:4px 8px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text);font-size:12px">
+        <option value="verificatore" ${u.profile?.role==='verificatore'?'selected':''}>Verificatore</option>
+        <option value="responsabile" ${u.profile?.role==='responsabile'?'selected':''}>Responsabile</option>
+        <option value="admin" ${u.profile?.role==='admin'?'selected':''}>Admin</option>
+      </select>
+      <button onclick="adminBan('${u.id}', ${u.banned})" style="padding:4px 10px;font-size:12px;border:1px solid ${u.banned ? 'var(--ok)' : 'var(--warn)'};border-radius:var(--rad);background:var(--bg);color:${u.banned ? 'var(--ok)' : 'var(--warn)'};cursor:pointer">
+        ${u.banned ? 'Riabilita' : 'Disabilita'}
+      </button>
+      <button onclick="adminDelete('${u.id}', '${u.email}')" style="padding:4px 10px;font-size:12px;border:1px solid var(--ko);border-radius:var(--rad);background:var(--bg);color:var(--ko);cursor:pointer">Elimina</button>
+    </div>
+  `).join('');
+}
+
+async function adminCreate() {
+  const email = document.getElementById('adm-email').value.trim();
+  const fullName = document.getElementById('adm-name').value.trim();
+  const password = document.getElementById('adm-pass').value;
+  const role = document.getElementById('adm-role').value;
+  const msg = document.getElementById('adm-msg');
+  if (!email || !fullName || !password) {
+    adminMsg('Compila tutti i campi.', false); return;
+  }
+  const res = await adminCall({ action: 'create', email, fullName, password, role });
+  if (res.error) { adminMsg('Errore: ' + res.error, false); return; }
+  adminMsg('Utente creato con successo!', true);
+  document.getElementById('adm-email').value = '';
+  document.getElementById('adm-name').value = '';
+  document.getElementById('adm-pass').value = '';
+  adminLoadUsers();
+}
+
+async function adminUpdateRole(userId, role) {
+  await adminCall({ action: 'update_role', userId, role });
+  adminMsg('Ruolo aggiornato.', true);
+}
+
+async function adminBan(userId, isBanned) {
+  await adminCall({ action: isBanned ? 'unban' : 'ban', userId });
+  adminMsg(isBanned ? 'Utente riabilitato.' : 'Utente disabilitato.', true);
+  adminLoadUsers();
+}
+
+async function adminDelete(userId, email) {
+  if (!confirm('Eliminare definitivamente ' + email + '?')) return;
+  await adminCall({ action: 'delete', userId });
+  adminMsg('Utente eliminato.', true);
+  adminLoadUsers();
+}
+
+function adminMsg(text, ok) {
+  const msg = document.getElementById('adm-msg');
+  if (!msg) return;
+  msg.textContent = text;
+  msg.style.display = 'block';
+  msg.style.background = ok ? 'var(--ok-bg)' : 'var(--ko-bg)';
+  msg.style.color = ok ? 'var(--ok)' : 'var(--ko)';
+  setTimeout(() => { msg.style.display = 'none'; }, 3000);
+}
+// ── FINE PANNELLO ADMIN ──────────────────────────────────────
 initDB();
 </script>
 </body>
