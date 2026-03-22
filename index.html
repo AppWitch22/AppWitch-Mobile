@@ -875,7 +875,12 @@ function renderSession(){
   }).join('');
   const total=keys.length;
   const both=keys.filter(k=>saved[k].vse_saved&&saved[k].mp_saved).length;
-  stats.textContent=total+' dispositivi · '+both+' completi (VSE+MP)';
+  const vspCount=keys.filter(k=>saved[k].vsp_saved).length;
+const cqCount=keys.filter(k=>saved[k].cq_saved).length;
+let statsText=total+' dispositivi';
+if(vspCount)statsText+=' · '+vspCount+' VSP';
+if(cqCount)statsText+=' · '+cqCount+' CQ';
+stats.textContent=statsText;
   stats.style.display='block';
   document.getElementById('export-preview').style.display='block';
   document.getElementById('export-rows').innerHTML=keys.map(k=>{
@@ -889,10 +894,16 @@ function renderSession(){
         ${s.vsp_saved?`<span class="badge info">${s.vsp_type} ✓</span>`:''}
         ${s.cq_saved?`<span class="badge info">${s.cq_type} ✓</span>`:''}
       </span>
+      <button onclick="removeFromSession('${k}')" style="padding:2px 8px;font-size:11px;border:1px solid var(--ko);border-radius:var(--rad);background:transparent;color:var(--ko);cursor:pointer;flex-shrink:0">✕</button>
     </div>`;
-  }).join('');
-}
 
+ function removeFromSession(cod){
+  if(!confirm('Rimuovere '+cod+' dalla sessione?'))return;
+  delete saved[cod];
+  if(cur&&cur.c===cod){cur=null;curVerif=null;document.getElementById('form-area').style.display='none';}
+  renderSession();
+  toast('Rimosso: '+cod,'warn');
+}   
 function exportJSON(){
   const keys=Object.keys(saved);if(!keys.length){toast('Nessun dato','warn');return;}
   const b=new Blob([JSON.stringify(keys.map(k=>saved[k]),null,2)],{type:'application/json'});
