@@ -9,7 +9,8 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <script src="presets.js"></script>
-<title>AppWitch — Verifiche Dispositivi Medici</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <title>AppWitch — Verifiche Dispositivi Medici</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -80,7 +81,23 @@ h1{font-size:18px;font-weight:600;margin-bottom:4px}
 .badge.pos{background:var(--ok-bg);color:var(--ok)}
 .badge.neg{background:var(--ko-bg);color:var(--ko)}
 .badge.info{background:var(--info-bg);color:var(--info)}
-
+/* LOGIN */
+#login-screen{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center;padding:24px}
+.login-box{width:100%;max-width:360px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--rad-lg);padding:28px 24px}
+.login-logo{font-size:22px;font-weight:700;margin-bottom:4px;color:var(--text)}
+.login-sub{font-size:13px;color:var(--text2);margin-bottom:24px}
+.login-field{margin-bottom:14px}
+.login-field label{display:block;font-size:12px;font-weight:600;color:var(--text2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em}
+.login-field input{width:100%;font-size:16px;padding:10px 12px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text);outline:none;-webkit-appearance:none}
+.login-field input:focus{border-color:var(--info)}
+.login-btn{width:100%;padding:12px;font-size:15px;font-weight:600;background:var(--info);color:#fff;border:none;border-radius:var(--rad);cursor:pointer;margin-top:4px}
+.login-btn:disabled{opacity:.5;cursor:not-allowed}
+.login-err{margin-top:12px;padding:9px 12px;background:var(--ko-bg);color:var(--ko);border-radius:var(--rad);font-size:13px;display:none}
+/* HEADER UTENTE */
+#user-bar{display:none;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--info-bg);border:1px solid var(--info);border-radius:var(--rad);margin-bottom:14px;font-size:13px}
+#user-bar .u-name{font-weight:600;color:var(--info)}
+#user-bar .u-role{color:var(--text2);margin-left:6px}
+#user-bar button{padding:4px 10px;font-size:12px;border:1px solid var(--info);border-radius:var(--rad);background:transparent;color:var(--info);cursor:pointer}
 /* FORM */
 .form-area{display:none}
 .topbar{display:flex;align-items:flex-start;justify-content:space-between;padding:12px 0 12px;border-bottom:1px solid var(--border);margin-bottom:12px;gap:8px}
@@ -1507,8 +1524,105 @@ function fillVSEPreset(cod){
   // Special: giudizio
   if(p['giu']) sG(p['giu']);
 }
+// ── SUPABASE AUTH ──────────────────────────────────────────
+const SUPA_URL = 'https://ttgvuoiznybjdyhlshpt.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR0Z3Z1b2l6bnliamR5aGxzaHB0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxNDc2OTIsImV4cCI6MjA4OTcyMzY5Mn0.Igk1hjHa_yY70FfDay6oCQRYo5EhIoCh-8H2u9NAXxo';
+const supa = supabase.createClient(SUPA_URL, SUPA_KEY);
 
+let currentUser = null;
 
+document.body.insertAdjacentHTML('afterbegin', `
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">AppWitch</div>
+    <div class="login-sub">Verifiche Dispositivi Medici</div>
+    <div class="login-field">
+      <label>Email</label>
+      <input type="email" id="l-email" placeholder="nome@asl.it" autocomplete="email">
+    </div>
+    <div class="login-field">
+      <label>Password</label>
+      <input type="password" id="l-pass" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <button class="login-btn" id="l-btn" onclick="doLogin()">Accedi</button>
+    <div class="login-err" id="l-err"></div>
+  </div>
+</div>
+`);
+
+document.querySelector('.app').insertAdjacentHTML('afterbegin', `
+<div id="user-bar">
+  <div><span class="u-name" id="u-name"></span><span class="u-role" id="u-role"></span></div>
+  <button onclick="doLogout()">Esci</button>
+</div>
+`);
+
+document.getElementById('l-pass').addEventListener('keydown', e => {
+  if (e.key === 'Enter') doLogin();
+});
+
+async function doLogin() {
+  const email = document.getElementById('l-email').value.trim();
+  const pass = document.getElementById('l-pass').value;
+  const btn = document.getElementById('l-btn');
+  const err = document.getElementById('l-err');
+  err.style.display = 'none';
+  btn.disabled = true;
+  btn.textContent = 'Accesso...';
+  try {
+    const { data, error } = await supa.auth.signInWithPassword({ email, password: pass });
+    if (error) throw error;
+    await onLogin(data.user);
+  } catch(e) {
+    err.textContent = 'Email o password errati.';
+    err.style.display = 'block';
+    btn.disabled = false;
+    btn.textContent = 'Accedi';
+  }
+}
+
+async function onLogin(user) {
+  const { data: profile } = await supa.from('profiles').select('*').eq('id', user.id).single();
+  currentUser = { ...user, profile };
+  localStorage.setItem('aw_session', JSON.stringify({ user, profile }));
+  showApp();
+}
+
+function showApp() {
+  const p = currentUser.profile;
+  document.getElementById('u-name').textContent = p.full_name;
+  document.getElementById('u-role').textContent = ' · ' + p.role;
+  document.getElementById('user-bar').style.display = 'flex';
+  document.getElementById('login-screen').style.display = 'none';
+}
+
+async function doLogout() {
+  await supa.auth.signOut();
+  localStorage.removeItem('aw_session');
+  currentUser = null;
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('user-bar').style.display = 'none';
+}
+
+async function checkSession() {
+  const { data: { session } } = await supa.auth.getSession();
+  if (session) {
+    await onLogin(session.user);
+    return;
+  }
+  const saved = localStorage.getItem('aw_session');
+  if (saved) {
+    try {
+      const { user, profile } = JSON.parse(saved);
+      currentUser = { ...user, profile };
+      showApp();
+      return;
+    } catch(e) {}
+  }
+}
+
+checkSession();
+// ── FINE AUTH ──────────────────────────────────────────────
 buildMPPoints();
 initDB();
 </script>
