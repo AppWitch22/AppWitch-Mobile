@@ -886,6 +886,8 @@ function renderSession(){
       <span class="ex-tags">
         ${s.vse_saved?`<span class="badge ${s.giu==='POSITIVO'?'pos':'neg'}">VSE ${s.giu==='POSITIVO'?'✓':'✗'}</span>`:''}
         ${s.mp_saved?`<span class="badge info">MP ✓</span>`:''}
+        ${s.vsp_saved?`<span class="badge info">${s.vsp_type} ✓</span>`:''}
+        ${s.cq_saved?`<span class="badge info">${s.cq_type} ✓</span>`:''}
       </span>
     </div>`;
   }).join('');
