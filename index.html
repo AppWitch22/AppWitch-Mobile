@@ -1032,7 +1032,7 @@ function exportXLSX(){
     });
     const wsCq=XLSX.utils.aoa_to_sheet([R1,R2,...rows]);
     wsCq['!cols']=[{wch:10},{wch:12},{wch:20},{wch:20},...visPoints.map(()=>({wch:5})),...visPoints.map(()=>({wch:5})),...visPoints.map(()=>({wch:5})),...provaFields.map(()=>({wch:16}))];
-    const sheetName='Inserimento_'+(ctype==='CQ_VPO'?'CQ_ANS':ctype);
+    const sheetName='Inserimento_'+ctype;
     XLSX.utils.book_append_sheet(wb,wsCq,sheetName);
   });
   XLSX.writeFile(wb,'AppWitch_'+date+'.xlsx');
