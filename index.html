@@ -979,8 +979,8 @@ function exportXLSX(){
       R2.push(null);R3.push(null);
     } else {
       // DEF and ELB: simplified single-value per point
-      R1.push('CONTROLLO VISIVO',...Array(def.points.length*2-1).fill(null),'TECNICO ESECUTORE');
-      def.points.forEach(p=>{R2.push(p.l,null);R3.push('OK','KO');FIELDS.push('vsp_'+p.l+'_ok','vsp_'+p.l+'_ko');});
+      R1.push('CONTROLLO VISIVO',...Array(def.length*2-1).fill(null),'TECNICO ESECUTORE');
+      def.forEach(p=>{R2.push(p.l,null);R3.push('OK','KO');FIELDS.push('vsp_'+p.l+'_ok','vsp_'+p.l+'_ko');});
       R2.push(null);R3.push(null);
     }
     // Build data rows
@@ -988,7 +988,7 @@ function exportXLSX(){
       const r=saved[k];
       const row=[r.vsp_codice||'',r.vsp_data||'',r.vsp_note||''];
       // For each point write X in the right column
-      def.points.forEach(p=>{
+      def.forEach(p=>{
         const val=r['vsp_'+p.l]||'';
         const opts=p.opts||['OK','KO','NA'];
         opts.forEach(o=>row.push(val===o?'X':null));
