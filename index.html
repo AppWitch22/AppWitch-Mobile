@@ -896,7 +896,8 @@ stats.textContent=statsText;
       </span>
       <button onclick="removeFromSession('${k}')" style="padding:2px 8px;font-size:11px;border:1px solid var(--ko);border-radius:var(--rad);background:transparent;color:var(--ko);cursor:pointer;flex-shrink:0">✕</button>
     </div>`;
-
+ }).join('');
+}
  function removeFromSession(cod){
   if(!confirm('Rimuovere '+cod+' dalla sessione?'))return;
   delete saved[cod];
