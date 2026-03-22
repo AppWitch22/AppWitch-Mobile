@@ -956,7 +956,7 @@ function exportXLSX(){
   // Sheets VSP — one per VSP type found in session
   const vspTypes = [...new Set(keys.filter(k=>saved[k].vsp_saved).map(k=>saved[k].vsp_type).filter(Boolean))];
   vspTypes.forEach(vtype=>{
-    const def=VSP_DEFS[vtype];if(!def)return;
+    const def=VSP_POINTS[vtype];if(!def)return;
     const vspKeys=keys.filter(k=>saved[k].vsp_saved&&saved[k].vsp_type===vtype);
     if(!vspKeys.length)return;
     // Build header rows matching Inserimento sheet structure
