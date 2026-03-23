@@ -262,6 +262,12 @@ h1{font-size:18px;font-weight:600;margin-bottom:4px}
         </div>
       </div>
       <div class="sec">
+  <div class="sec-hdr">Norma di riferimento</div>
+  <div class="sec-body">
+    <div class="field full"><label>Norma</label><div class="rg" id="rg-norma"><div class="rb ok" data-v="62353" onclick="pick(this);uM()">CEI EN 62353</div><div class="rb" data-v="60601" onclick="pick(this);uM()">CEI EN 60601-1</div><div class="rb" data-v="61010" onclick="pick(this);uM()">IEC 61010</div></div></div>
+  </div>
+</div>
+      <div class="sec">
         <div class="sec-hdr">Dati di targa</div>
         <div class="sec-body">
           <div class="field"><label>Tensione</label><input type="text" id="f-ten"></div>
@@ -271,7 +277,7 @@ h1{font-size:18px;font-weight:600;margin-bottom:4px}
           <div class="field"><label>Potenza</label><input type="text" id="f-pot"></div>
           <div class="field"><label>Potenza D/P</label><div class="rg" id="rg-pdp"><div class="rb" data-v="Dichiarato" onclick="pick(this)">Dichiarato</div><div class="rb" data-v="Presunto" onclick="pick(this)">Presunto</div><div class="rb na" data-v="" onclick="pick(this)">N/A</div></div></div>
           <div class="field"><label>Marchio</label><input type="text" id="f-mar"></div>
-          <div class="field"><label>Fusibili dichiarati</label><input type="text" id="f-fud"></div>
+          <div class="field"><label>Fusibili dichiarati</label><select id="f-fud" class="sel-field"><option value="">—</option><option value="Si">Sì</option><option value="No">No</option><option value="Interni">Fusibili interni</option></select></div>
           <div class="field"><label>Fusibili riscontrati</label><input type="text" id="f-fur"></div>
           <div class="field"><label>Classe</label><div class="rg" id="rg-cls"><div class="rb" data-v="I" onclick="pick(this);uM()">I</div><div class="rb" data-v="II" onclick="pick(this);uM()">II</div><div class="rb" data-v="AI" onclick="pick(this);uM()">AI</div></div></div>
           <div class="field"><label>Classe D/P</label><div class="rg" id="rg-cdp"><div class="rb" data-v="Dichiarato" onclick="pick(this)">Dichiarato</div><div class="rb" data-v="Presunto" onclick="pick(this)">Presunto</div></div></div>
@@ -284,9 +290,9 @@ h1{font-size:18px;font-weight:600;margin-bottom:4px}
       <div class="sec">
         <div class="sec-hdr">Ispezione visiva</div>
         <div class="sec-body">
-          <div class="field"><label>Tipo spina</label><input type="text" id="f-spi"></div>
+          <div class="field"><label>Tipo spina</label><select id="f-spi" class="sel-field"><option value="">—</option><option value="Pettine 10A">Pettine 10A</option><option value="Pettine 16A">Pettine 16A</option><option value="Shuko">Shuko</option><option value="CE">CE</option><option value="Connettore">Connettore</option><option value="Impianto Fisso">Impianto Fisso</option></select></div>
           <div class="field"><label>Smontabile/pressofusa</label><div class="rg" id="rg-smo"><div class="rb" data-v="Pressofusa" onclick="pick(this)">Pressofusa</div><div class="rb" data-v="Smontabile" onclick="pick(this)">Smontabile</div></div></div>
-          <div class="field"><label>Marchio spina</label><input type="text" id="f-msp"></div>
+          <div class="field"><label>Marchio spina</label><select id="f-msp" class="sel-field"><option value="">—</option><option value="VDE">VDE</option><option value="IMQ">IMQ</option></select></div>
           <div class="field"><label>Cavo alimentazione</label><div class="rg" id="rg-cav"><div class="rb" data-v="Separabile" onclick="pick(this)">Sep.</div><div class="rb" data-v="Non Separabile" onclick="pick(this)">Non sep.</div></div></div>
           <div class="field"><label>Integrità cavo</label><div class="rg" id="rg-icv"><div class="rb ok" data-v="Conforme" onclick="pick(this)">Conf.</div><div class="rb ko" data-v="Non conforme" onclick="pick(this)">Non conf.</div></div></div>
           <div class="field"><label>Integrità spina</label><div class="rg" id="rg-isp"><div class="rb ok" data-v="Conforme" onclick="pick(this)">Conf.</div><div class="rb ko" data-v="Non conforme" onclick="pick(this)">Non conf.</div></div></div>
@@ -809,13 +815,68 @@ function restoreVSE(rec){
 function pick(el){el.closest('.rg').querySelectorAll('.rb').forEach(b=>b.classList.remove('sel'));el.classList.add('sel');dirty=true;uP();}
 
 function uM(){
-  const ai=gr('rg-cls')==='AI';const pa=gr('rg-pa');const hp=pa==='BF'||pa==='CF';
-  document.getElementById('blk-terra').style.display=ai?'none':'block';
-  document.getElementById('blk-tms').style.display=ai?'none':'flex';
-  document.getElementById('blk-cor').style.display=ai?'none':'flex';
-  document.getElementById('blk-ai-info').style.display=ai?'block':'none';
-  document.getElementById('badge-ai').style.display=(ai&&hp)?'inline-block':'none';
-  document.getElementById('blk-pa').style.display=hp?'block':'none';
+  const cls=gr('rg-cls');
+  const pa=gr('rg-pa');
+  const norma=gr('rg-norma')||'62353';
+  const isAI=cls==='AI';
+  const isCls2=cls==='CL2';
+  const noTerra=isAI||isCls2;
+  const haPA=pa==='B'||pa==='BF'||pa==='CF';
+  const isCF=pa==='CF';
+
+  // Terra — disabilita per Classe II e AI
+  const blkTerra=document.getElementById('blk-terra');
+  if(blkTerra){
+    blkTerra.style.display='block';
+    const inp=document.getElementById('f-trm');
+    const lim=document.getElementById('lim-tr');
+    if(noTerra){
+      if(inp){inp.disabled=true;inp.value='';inp.placeholder='N/A';}
+      if(lim)lim.textContent='N/A';
+    } else {
+      if(inp){inp.disabled=false;inp.placeholder='';}
+      if(lim)lim.textContent='300';
+    }
+  }
+
+  // Unità misura terra
+  const uTerra=document.getElementById('u-trm');
+  if(uTerra)uTerra.textContent=noTerra?'':'mΩ';
+
+  // Limiti involucro in base a norma
+  const limInvNC=norma==='61010'?3500:100;
+  const limInvSFC=norma==='61010'?3500:500;
+  const limPN=document.getElementById('lim-pn');
+  const limPI=document.getElementById('lim-pi');
+  if(limPN)limPN.textContent=noTerra&&isAI?limInvNC:limInvNC;
+  if(limPI)limPI.textContent=noTerra&&isAI?limInvSFC:limInvSFC;
+
+  // Dispersione PN/PI (involucro) — disabilita se non applicabile
+  const inpPnm=document.getElementById('f-pnm');
+  const inpPim=document.getElementById('f-pim');
+  if(inpPnm){inpPnm.disabled=false;inpPnm.placeholder='';}
+  if(inpPim){inpPim.disabled=false;inpPim.placeholder='';}
+
+  // Blocco PA — mostra solo se ha parti applicate e norma non è 61010
+  const blkPA=document.getElementById('blk-pa');
+  const showPA=haPA&&norma!=='61010';
+  if(blkPA)blkPA.style.display=showPA?'block':'none';
+
+  // Limiti PA in base a tipo
+  const limPnBF=document.getElementById('lim-pnbf');
+  const limPiBF=document.getElementById('lim-pibf');
+  const limPnCF=document.getElementById('lim-pncf');
+  const limPiCF=document.getElementById('lim-picf');
+  if(limPnBF)limPnBF.textContent=isCF?'10':'100';
+  if(limPiBF)limPiBF.textContent=isCF?'50':'500';
+  if(limPnCF)limPnCF.textContent='10';
+  if(limPiCF)limPiCF.textContent='50';
+
+  // Badge AI
+  document.getElementById('blk-tms').style.display=isAI?'none':'flex';
+  document.getElementById('blk-cor').style.display=isAI?'none':'flex';
+  document.getElementById('blk-ai-info').style.display=isAI?'block':'none';
+  document.getElementById('badge-ai').style.display=(isAI&&haPA)?'inline-block':'none';
 }
 
 function sG(v){
