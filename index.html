@@ -1743,6 +1743,10 @@ async function openAdmin() {
             <option value="responsabile">Responsabile</option>
             <option value="admin">Admin</option>
           </select>
+          <select id="adm-asl" style="padding:8px 10px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text);font-size:14px">
+  <option value="ASL Benevento">ASL Benevento</option>
+  <option value="ASL Avellino">ASL Avellino</option>
+</select>
           <button onclick="adminCreate()" style="padding:8px 14px;font-size:13px;font-weight:600;background:var(--info);color:#fff;border:none;border-radius:var(--rad);cursor:pointer">+ Crea</button>
         </div>
         <div id="adm-msg" style="display:none;padding:8px 12px;border-radius:var(--rad);font-size:13px;margin-bottom:12px"></div>
@@ -1798,12 +1802,13 @@ async function adminCreate() {
   const email = document.getElementById('adm-email').value.trim();
   const fullName = document.getElementById('adm-name').value.trim();
   const password = document.getElementById('adm-pass').value;
-  const role = document.getElementById('adm-role').value;
+ const role = document.getElementById('adm-role').value;
+const asl = document.getElementById('adm-asl').value;
   const msg = document.getElementById('adm-msg');
   if (!email || !fullName || !password) {
     adminMsg('Compila tutti i campi.', false); return;
   }
-  const res = await adminCall({ action: 'create', email, fullName, password, role });
+ const res = await adminCall({ action: 'create', email, fullName, password, role, asl });
   if (res.error) { adminMsg('Errore: ' + res.error, false); return; }
   adminMsg('Utente creato con successo!', true);
   document.getElementById('adm-email').value = '';
