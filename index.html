@@ -1691,6 +1691,7 @@ function showApp() {
   document.getElementById('user-bar').style.display = 'flex';
   if (p.role === 'admin') document.getElementById('btn-admin').style.display = '';
   document.getElementById('login-screen').style.display = 'none';
+  initDB();
 }
 
 async function doLogout() {
@@ -1839,7 +1840,7 @@ function adminMsg(text, ok) {
   setTimeout(() => { msg.style.display = 'none'; }, 3000);
 }
 // ── FINE PANNELLO ADMIN ──────────────────────────────────────
-initDB();
+
 </script>
 </body>
 </html>
