@@ -2102,13 +2102,17 @@ async function createSession() {
     method: 'POST',
     headers: supaHdrs(token),
     body: JSON.stringify({
-      titolo: title,
+      titolo:    title,
       utente_id: currentUser.id,
-      asl: asl,
-      dati: {}
+      asl:       asl
     })
   });
-  if (!resp.ok) { toast('Errore creazione sessione', 'warn'); return; }
+  if (!resp.ok) {
+    const errText = await resp.text();
+    console.error('Errore createSession:', resp.status, errText);
+    toast('Errore creazione sessione: ' + resp.status, 'warn');
+    return;
+  }
   const rows = await resp.json();
   const sess = Array.isArray(rows) ? rows[0] : rows;
   document.getElementById('sess-new-title').value = '';
