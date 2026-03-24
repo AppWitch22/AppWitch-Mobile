@@ -192,6 +192,30 @@ h1{font-size:18px;font-weight:600;margin-bottom:4px}
 .toast.show{display:block}
 .toast.ok{border-color:var(--ok);color:var(--ok)}
 .toast.warn{border-color:var(--warn);color:var(--warn)}
+/* SESSIONI MODAL */
+#sess-modal{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:10000;display:none;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto}
+#sess-modal.open{display:flex}
+.sess-modal-box{background:var(--bg);border-radius:var(--rad-lg);width:100%;max-width:600px;padding:20px}
+.sess-modal-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.sess-modal-hdr h2{font-size:16px;font-weight:600}
+.sess-new-row{display:flex;gap:8px;margin-bottom:16px}
+.sess-new-row input{flex:1;font-size:14px;padding:9px 12px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text);outline:none}
+.sess-new-row input:focus{border-color:var(--info)}
+.sess-new-row button{padding:9px 16px;font-size:13px;font-weight:600;background:var(--info);color:#fff;border:none;border-radius:var(--rad);cursor:pointer}
+.sess-list{display:flex;flex-direction:column;gap:8px;max-height:400px;overflow-y:auto}
+.sess-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--rad);cursor:pointer;-webkit-tap-highlight-color:transparent}
+.sess-item:hover{background:var(--bg2)}
+.sess-item.active-sess{border-color:var(--info);background:var(--info-bg)}
+.sess-item-info{flex:1}
+.sess-item-title{font-size:14px;font-weight:600;color:var(--text)}
+.sess-item-meta{font-size:11px;color:var(--text3);margin-top:2px}
+.sess-item-btns{display:flex;gap:6px;flex-shrink:0}
+.sess-sync-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.sess-sync-dot.synced{background:var(--ok)}
+.sess-sync-dot.pending{background:var(--warn)}
+.sess-sync-dot.offline{background:var(--border2)}
+.btn-sess{padding:4px 10px;font-size:12px;border-radius:var(--rad);cursor:pointer;background:var(--bg);border:1px solid var(--border2);color:var(--text2)}
+.btn-sess.danger{border-color:var(--ko);color:var(--ko)}
 </style>
 </head>
 <body>
@@ -215,9 +239,14 @@ h1{font-size:18px;font-weight:600;margin-bottom:4px}
     <div class="sess-hdr">
       <div class="card-title" style="margin-bottom:0">Sessione</div>
       <div class="sess-btns">
+        <button class="btn-sm" id="btn-sess-open" onclick="openSessModal()">📋 Sessioni</button>
         <button class="btn-sm" onclick="exportJSON()">⬇ JSON</button>
         <button class="btn-xlsx" id="btn-xlsx" onclick="exportXLSX()" disabled>⬇ Excel</button>
       </div>
+    </div>
+    <div id="sess-sync-bar" style="display:none;font-size:11px;color:var(--text3);margin-bottom:6px;display:flex;align-items:center;gap:6px">
+      <div class="sess-sync-dot offline" id="sync-dot"></div>
+      <span id="sync-label">Nessuna sessione attiva</span>
     </div>
     <div class="chips" id="chips"><span class="sess-empty">Nessun apparecchio compilato</span></div>
     <div class="sess-stats" id="sess-stats" style="display:none"></div>
@@ -510,6 +539,23 @@ h1{font-size:18px;font-weight:600;margin-bottom:4px}
 </div>
 
 <div class="toast" id="toast"></div>
+
+<!-- MODAL SESSIONI -->
+<div id="sess-modal">
+  <div class="sess-modal-box">
+    <div class="sess-modal-hdr">
+      <h2>Sessioni</h2>
+      <button onclick="closeSessModal()" style="padding:4px 10px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text);cursor:pointer">✕</button>
+    </div>
+    <div class="sess-new-row">
+      <input type="text" id="sess-new-title" placeholder="Nome nuova sessione (es. Cardiologia 24/03)" maxlength="80">
+      <button onclick="createSession()">+ Nuova</button>
+    </div>
+    <div class="sess-list" id="sess-list">
+      <div style="font-size:13px;color:var(--text3);padding:8px">Caricamento...</div>
+    </div>
+  </div>
+</div>
 
 <script>
 const MP_POINTS=[
@@ -1066,6 +1112,8 @@ function saveAll(){
   const parts=['VSE','MP'];if(vspRec)parts.push(curVerif.vsp);if(cqRec)parts.push(curVerif.cq);
   const label=parts.join(' + ');
   toast('Salvato: '+cod+' ('+label+')','ok');
+  // Auto-save su Supabase
+  scheduleSync();
   setTimeout(()=>{
     document.querySelector('.card').scrollIntoView({behavior:'smooth'});
     document.getElementById('search-input').focus();
@@ -2020,6 +2068,274 @@ function adminMsg(text, ok) {
   setTimeout(() => { msg.style.display = 'none'; }, 3000);
 }
 // ── FINE PANNELLO ADMIN ──────────────────────────────────────
+
+// ── PERSISTENZA SESSIONI ──────────────────────────────────────
+let currentSessionId = null;   // UUID sessione attiva
+let syncPending = false;        // ci sono modifiche da sincronizzare
+let syncTimer   = null;         // timer auto-save
+
+// ── Helpers Supabase ─────────────────────────────────────────
+async function supaToken() {
+  const { data: { session } } = await supa.auth.getSession();
+  return session?.access_token;
+}
+
+function supaHdrs(token) {
+  return {
+    'apikey': SUPA_KEY,
+    'Authorization': 'Bearer ' + token,
+    'Content-Type': 'application/json',
+    'Prefer': 'return=representation'
+  };
+}
+
+// ── Crea nuova sessione ───────────────────────────────────────
+async function createSession() {
+  const title = document.getElementById('sess-new-title').value.trim();
+  if (!title) { toast('Inserisci un nome per la sessione', 'warn'); return; }
+  const token = await supaToken();
+  const asl   = currentUser?.profile?.asl || 'ASL Benevento';
+  const resp  = await fetch(`${SUPA_URL}/rest/v1/sessioni`, {
+    method: 'POST',
+    headers: supaHdrs(token),
+    body: JSON.stringify({
+      titolo: title,
+      utente_id: currentUser.id,
+      asl: asl,
+      dati: {}
+    })
+  });
+  if (!resp.ok) { toast('Errore creazione sessione', 'warn'); return; }
+  const rows = await resp.json();
+  const sess = Array.isArray(rows) ? rows[0] : rows;
+  document.getElementById('sess-new-title').value = '';
+  await activateSession(sess.id, sess.titolo);
+  await loadSessList();
+  toast('Sessione "' + sess.titolo + '" creata', 'ok');
+}
+
+// ── Attiva una sessione (carica i dati in memoria) ────────────
+async function activateSession(id, titolo) {
+  // Salva sessione corrente prima di cambiare
+  if (currentSessionId && Object.keys(saved).length > 0) {
+    await syncSessionNow();
+  }
+  // Reset memoria
+  Object.keys(saved).forEach(k => delete saved[k]);
+  cur = null; curVerif = null;
+  document.getElementById('form-area').style.display = 'none';
+  currentSessionId = id;
+  // Carica schede
+  const token = await supaToken();
+  const resp  = await fetch(
+    `${SUPA_URL}/rest/v1/sessione_schede?sessione_id=eq.${id}&select=*`,
+    { headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + token } }
+  );
+  if (resp.ok) {
+    const schede = await resp.json();
+    schede.forEach(s => {
+      const rec = {
+        codice: s.codice,
+        ...(s.dati_vse || {}),
+        ...(s.dati_mp  || {}),
+        ...(s.dati_vsp || {}),
+        ...(s.dati_cq  || {}),
+        vse_saved: !!s.dati_vse,
+        mp_saved:  !!s.dati_mp,
+        vsp_saved: !!s.dati_vsp,
+        cq_saved:  !!s.dati_cq,
+        vsp_type:  s.vsp_type || null,
+        cq_type:   s.cq_type  || null,
+      };
+      saved[s.codice] = rec;
+    });
+  }
+  updateSyncBar(titolo, true);
+  renderSession();
+  closeSessModal();
+  toast('Sessione "' + titolo + '" caricata', 'ok');
+}
+
+// ── Sync una scheda su Supabase ───────────────────────────────
+async function syncScheda(codice) {
+  if (!currentSessionId) return;
+  const rec   = saved[codice];
+  if (!rec)   return;
+  const token = await supaToken();
+
+  // Separa i dati per tipo
+  const dati_vse = rec.vse_saved ? collectVSEFromRec(rec) : null;
+  const dati_mp  = rec.mp_saved  ? collectMPFromRec(rec)  : null;
+  const dati_vsp = rec.vsp_saved ? collectVSPFromRec(rec) : null;
+  const dati_cq  = rec.cq_saved  ? collectCQFromRec(rec)  : null;
+
+  const payload = {
+    sessione_id: currentSessionId,
+    codice:      codice,
+    dati_vse:    dati_vse,
+    dati_mp:     dati_mp,
+    dati_vsp:    dati_vsp,
+    dati_cq:     dati_cq,
+    vsp_type:    rec.vsp_type || null,
+    cq_type:     rec.cq_type  || null,
+  };
+
+  await fetch(`${SUPA_URL}/rest/v1/sessione_schede`, {
+    method: 'POST',
+    headers: { ...supaHdrs(token), 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+    body: JSON.stringify(payload)
+  });
+}
+
+// ── Sync completa della sessione ─────────────────────────────
+async function syncSessionNow() {
+  if (!currentSessionId) return;
+  syncPending = false;
+  updateSyncBar(null, false); // mostra "sincronizzando..."
+  const codici = Object.keys(saved);
+  for (const cod of codici) {
+    await syncScheda(cod);
+  }
+  // Aggiorna data_aggiornamento della sessione
+  const token = await supaToken();
+  await fetch(`${SUPA_URL}/rest/v1/sessioni?id=eq.${currentSessionId}`, {
+    method: 'PATCH',
+    headers: { ...supaHdrs(token), 'Prefer': 'return=minimal' },
+    body: JSON.stringify({ data_aggiornamento: new Date().toISOString() })
+  });
+  updateSyncBar(null, true);
+}
+
+// ── Helpers raccolta dati per tipo ───────────────────────────
+function collectVSEFromRec(rec) {
+  const keys = ['data','note','ten','tdp','frq','fdp','pot','pdp','mar','fud','fur',
+    'cls','cdp','pat','pad','fnz','def','spi','smo','msp','cav','icv','isp','int',
+    'pdc','icn','prc','icd','mus','mse','nag','clm','tms','cor','trl','trm','pnl',
+    'pnm','pil','pim','pbl','pbm','ibl','ibm','pcl','pcm','icl','icm','giu','vt',
+    'vd','mot','str','nrs','ver','vrc','sct','ris_inv','ris_pa'];
+  return Object.fromEntries(keys.filter(k => rec[k] != null && rec[k] !== '').map(k => [k, rec[k]]));
+}
+function collectMPFromRec(rec) {
+  const keys = ['mp_data','mp_note','mp_tecnico','mp_data2'];
+  for (let i=1;i<=19;i++) keys.push('mp'+i);
+  return Object.fromEntries(keys.filter(k => rec[k] != null && rec[k] !== '').map(k => [k, rec[k]]));
+}
+function collectVSPFromRec(rec) {
+  return Object.fromEntries(
+    Object.entries(rec).filter(([k,v]) => k.startsWith('vsp_') && v != null && v !== '')
+  );
+}
+function collectCQFromRec(rec) {
+  return Object.fromEntries(
+    Object.entries(rec).filter(([k,v]) => (k.startsWith('cq_') || k.startsWith('cq-')) && v != null && v !== '')
+  );
+}
+
+// ── Barra sync ───────────────────────────────────────────────
+function updateSyncBar(titolo, synced) {
+  const bar   = document.getElementById('sess-sync-bar');
+  const dot   = document.getElementById('sync-dot');
+  const label = document.getElementById('sync-label');
+  if (!bar) return;
+  bar.style.display = 'flex';
+  if (!currentSessionId) {
+    dot.className   = 'sess-sync-dot offline';
+    label.textContent = 'Nessuna sessione attiva';
+    return;
+  }
+  if (synced === false) {
+    dot.className   = 'sess-sync-dot pending';
+    label.textContent = 'Sincronizzazione...';
+  } else if (synced === true) {
+    dot.className   = 'sess-sync-dot synced';
+    label.textContent = (titolo || 'Sessione attiva') + ' · Sincronizzato';
+  } else {
+    dot.className   = 'sess-sync-dot pending';
+    label.textContent = (titolo || 'Sessione attiva') + ' · Modifiche in attesa';
+  }
+}
+
+// ── Auto-save: schedula sync 3s dopo l'ultima modifica ────────
+function scheduleSync() {
+  if (!currentSessionId) return;
+  syncPending = true;
+  updateSyncBar(null, null);
+  if (syncTimer) clearTimeout(syncTimer);
+  syncTimer = setTimeout(() => syncSessionNow(), 3000);
+}
+
+// ── Modal sessioni ───────────────────────────────────────────
+async function openSessModal() {
+  document.getElementById('sess-modal').classList.add('open');
+  await loadSessList();
+}
+function closeSessModal() {
+  document.getElementById('sess-modal').classList.remove('open');
+}
+
+async function loadSessList() {
+  const list  = document.getElementById('sess-list');
+  list.innerHTML = '<div style="font-size:13px;color:var(--text3);padding:8px">Caricamento...</div>';
+  const token = await supaToken();
+  const asl   = currentUser?.profile?.asl || 'ASL Benevento';
+  const role  = currentUser?.profile?.role;
+  // Responsabile e admin vedono tutte le sessioni dell'ASL
+  let url = `${SUPA_URL}/rest/v1/sessioni?asl=eq.${encodeURIComponent(asl)}&order=data_aggiornamento.desc&limit=50`;
+  if (role === 'verificatore') {
+    url = `${SUPA_URL}/rest/v1/sessioni?utente_id=eq.${currentUser.id}&order=data_aggiornamento.desc&limit=50`;
+  }
+  const resp = await fetch(url, {
+    headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + token }
+  });
+  if (!resp.ok) { list.innerHTML = '<div style="color:var(--ko);padding:8px">Errore caricamento</div>'; return; }
+  const sessioni = await resp.json();
+  if (!sessioni.length) {
+    list.innerHTML = '<div style="font-size:13px;color:var(--text3);padding:8px">Nessuna sessione. Creane una nuova.</div>';
+    return;
+  }
+  list.innerHTML = sessioni.map(s => {
+    const isActive = s.id === currentSessionId;
+    const data = s.data_aggiornamento
+      ? new Date(s.data_aggiornamento).toLocaleDateString('it-IT', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})
+      : '—';
+    return `<div class="sess-item${isActive?' active-sess':''}" onclick="activateSession('${s.id}','${s.titolo.replace(/'/g,"\\'")}')">
+      <div class="sess-item-info">
+        <div class="sess-item-title">${s.titolo}</div>
+        <div class="sess-item-meta">Aggiornata: ${data}</div>
+      </div>
+      <div class="sess-item-btns">
+        ${isActive ? '<span style="font-size:11px;color:var(--info);font-weight:600">ATTIVA</span>' : ''}
+        <button class="btn-sess danger" onclick="event.stopPropagation();deleteSession('${s.id}','${s.titolo.replace(/'/g,"\\'")}')">✕</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function deleteSession(id, titolo) {
+  if (!confirm(`Eliminare la sessione "${titolo}"?\nTutti i dati verranno persi.`)) return;
+  const token = await supaToken();
+  // Elimina prima le schede
+  await fetch(`${SUPA_URL}/rest/v1/sessione_schede?sessione_id=eq.${id}`, {
+    method: 'DELETE',
+    headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + token }
+  });
+  // Poi la sessione
+  await fetch(`${SUPA_URL}/rest/v1/sessioni?id=eq.${id}`, {
+    method: 'DELETE',
+    headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + token }
+  });
+  if (currentSessionId === id) {
+    currentSessionId = null;
+    Object.keys(saved).forEach(k => delete saved[k]);
+    cur = null; curVerif = null;
+    document.getElementById('form-area').style.display = 'none';
+    updateSyncBar(null, null);
+    renderSession();
+  }
+  await loadSessList();
+  toast('Sessione eliminata', 'warn');
+}
+// ── FINE PERSISTENZA SESSIONI ─────────────────────────────────
 
 </script>
 </body>
