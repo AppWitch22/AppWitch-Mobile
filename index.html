@@ -1,0 +1,2412 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <title>AppWitch — Verifiche Dispositivi Medici</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#ffffff;--bg2:#f5f5f5;--bg3:#eeeeee;
+  --text:#1a1a1a;--text2:#666666;--text3:#999999;
+  --border:#e0e0e0;--border2:#cccccc;
+  --info-bg:#e8f0fe;--info:#1a56db;
+  --ok-bg:#e8f5e9;--ok:#1b5e20;
+  --ko-bg:#fce8e6;--ko:#b71c1c;
+  --warn-bg:#fff3e0;--warn:#e65100;
+  --rad:8px;--rad-lg:12px;
+}
+@media(prefers-color-scheme:dark){:root{
+  --bg:#1e1e1e;--bg2:#2a2a2a;--bg3:#333333;
+  --text:#f0f0f0;--text2:#aaaaaa;--text3:#777777;
+  --border:#444444;--border2:#555555;
+  --info-bg:#1a2a4a;--info:#7baaf7;
+  --ok-bg:#1a2e1a;--ok:#81c784;
+  --ko-bg:#2e1a1a;--ko:#ef9a9a;
+  --warn-bg:#2e2200;--warn:#ffb74d;
+}}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--bg);color:var(--text);font-size:15px;padding:0;min-height:100vh}
+.app{max-width:720px;margin:0 auto;padding:12px 14px 60px}
+h1{font-size:18px;font-weight:600;margin-bottom:4px}
+.subtitle{font-size:13px;color:var(--text2);margin-bottom:16px}
+.db-bar{padding:8px 12px;border-radius:var(--rad);font-size:13px;margin-bottom:14px;border:1px solid var(--border)}
+.db-bar.loading{background:var(--bg2);color:var(--text2)}
+.db-bar.ready{background:var(--ok-bg);color:var(--ok)}
+.db-bar.error{background:var(--ko-bg);color:var(--ko)}
+.card{background:var(--bg);border:1px solid var(--border);border-radius:var(--rad-lg);padding:14px;margin-bottom:14px}
+.card-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--text2);margin-bottom:10px}
+.search-row{display:flex;gap:8px}
+.search-row input{flex:1;font-size:16px;padding:10px 12px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text);outline:none;-webkit-appearance:none}
+.search-row input:focus{border-color:var(--info)}
+.search-row button{padding:10px 16px;font-size:14px;font-weight:600;background:var(--info);color:#fff;border:none;border-radius:var(--rad);cursor:pointer}
+.results{margin-top:10px}
+.result-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--rad);margin-bottom:6px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.result-item:active{background:var(--bg2)}
+.r-cod{font-family:monospace;font-size:13px;color:var(--info);min-width:70px;flex-shrink:0}
+.r-nome{font-size:14px;font-weight:500;flex:1}
+.r-loc{font-size:11px;color:var(--text3);text-align:right}
+.r-stato{font-size:11px;display:flex;gap:4px}
+.r-tag{padding:2px 6px;border-radius:10px;font-weight:600}
+.r-tag.done{background:var(--ok-bg);color:var(--ok)}
+.r-tag.part{background:var(--warn-bg);color:var(--warn)}
+.not-found{padding:9px 12px;background:var(--warn-bg);color:var(--warn);border-radius:var(--rad);font-size:13px}
+.sess-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:8px;flex-wrap:wrap}
+.sess-btns{display:flex;gap:6px}
+.btn-sm{padding:6px 10px;font-size:12px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text2);cursor:pointer}
+.btn-xlsx{padding:6px 12px;font-size:12px;font-weight:600;border:1px solid var(--ok);border-radius:var(--rad);background:var(--ok-bg);color:var(--ok);cursor:pointer}
+.btn-xlsx:disabled{opacity:.4;cursor:not-allowed}
+.chips{display:flex;flex-wrap:wrap;gap:6px;min-height:22px}
+.chip{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;border:1px solid var(--border);font-size:12px;cursor:pointer;background:var(--bg);color:var(--text2)}
+.chip.part{border-color:var(--warn);background:var(--warn-bg);color:var(--warn)}
+.chip.done{border-color:var(--ok);background:var(--ok-bg);color:var(--ok)}
+.chip.active{border-color:var(--info);background:var(--info-bg);color:var(--info)}
+.chip-dot{width:6px;height:6px;border-radius:50%;background:currentColor}
+.sess-empty{font-size:12px;color:var(--text3);font-style:italic}
+.sess-stats{font-size:12px;color:var(--text2);margin-top:8px;padding-top:8px;border-top:1px solid var(--border)}
+.export-preview{display:none;background:var(--ok-bg);border:1px solid var(--ok);border-radius:var(--rad-lg);padding:12px;margin-bottom:14px}
+.export-preview-title{font-size:12px;font-weight:600;color:var(--ok);margin-bottom:8px}
+.ex-row{display:flex;align-items:center;justify-content:space-between;background:var(--bg);border:1px solid var(--border);border-radius:var(--rad);padding:8px 12px;margin-bottom:6px;gap:8px;flex-wrap:wrap}
+.ex-row:last-child{margin-bottom:0}
+.ex-cod{font-family:monospace;font-size:12px;color:var(--info);min-width:70px}
+.ex-nome{font-size:13px;font-weight:500;flex:1}
+.ex-tags{display:flex;gap:4px}
+.badge{font-size:11px;font-weight:600;padding:2px 7px;border-radius:20px}
+.badge.pos{background:var(--ok-bg);color:var(--ok)}
+.badge.neg{background:var(--ko-bg);color:var(--ko)}
+.badge.info{background:var(--info-bg);color:var(--info)}
+/* LOGIN */
+#login-screen{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center;padding:24px}
+.login-box{width:100%;max-width:360px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--rad-lg);padding:28px 24px}
+.login-logo{font-size:22px;font-weight:700;margin-bottom:4px;color:var(--text)}
+.login-sub{font-size:13px;color:var(--text2);margin-bottom:24px}
+.login-field{margin-bottom:14px}
+.login-field label{display:block;font-size:12px;font-weight:600;color:var(--text2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em}
+.login-field input{width:100%;font-size:16px;padding:10px 12px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text);outline:none;-webkit-appearance:none}
+.login-field input:focus{border-color:var(--info)}
+.login-btn{width:100%;padding:12px;font-size:15px;font-weight:600;background:var(--info);color:#fff;border:none;border-radius:var(--rad);cursor:pointer;margin-top:4px}
+.login-btn:disabled{opacity:.5;cursor:not-allowed}
+.login-err{margin-top:12px;padding:9px 12px;background:var(--ko-bg);color:var(--ko);border-radius:var(--rad);font-size:13px;display:none}
+/* HEADER UTENTE */
+#user-bar{display:none;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--info-bg);border:1px solid var(--info);border-radius:var(--rad);margin-bottom:14px;font-size:13px}
+#user-bar .u-name{font-weight:600;color:var(--info)}
+#user-bar .u-role{color:var(--text2);margin-left:6px}
+#user-bar button{padding:4px 10px;font-size:12px;border:1px solid var(--info);border-radius:var(--rad);background:transparent;color:var(--info);cursor:pointer}
+/* FORM */
+.form-area{display:none}
+.topbar{display:flex;align-items:flex-start;justify-content:space-between;padding:12px 0 12px;border-bottom:1px solid var(--border);margin-bottom:12px;gap:8px}
+.dev-badge{font-size:12px;font-weight:600;padding:3px 10px;border-radius:20px;background:var(--info-bg);color:var(--info)}
+.dev-name{font-size:15px;font-weight:600;margin-top:4px}
+.dev-sub{font-size:12px;color:var(--text2);margin-top:2px}
+.dev-loc-badge{display:inline-block;font-size:11px;padding:2px 8px;background:var(--warn-bg);color:var(--warn);border-radius:4px;margin-top:4px}
+.top-btns{display:flex;gap:6px;flex-shrink:0}
+.top-btns button{padding:8px 14px;font-size:13px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text);cursor:pointer;-webkit-tap-highlight-color:transparent}
+.btn-salva{background:var(--info)!important;color:#fff!important;border-color:var(--info)!important;font-weight:600}
+.prog-bar{height:3px;background:var(--border);border-radius:2px;margin-bottom:12px}
+.prog-fill{height:100%;background:var(--info);border-radius:2px;transition:width .3s}
+
+/* TABS */
+.tabs{display:flex;gap:0;margin-bottom:14px;border:1px solid var(--border);border-radius:var(--rad);overflow:hidden}
+.tab{flex:1;padding:10px;font-size:13px;font-weight:600;text-align:center;cursor:pointer;background:var(--bg2);color:var(--text2);border:none;-webkit-tap-highlight-color:transparent;position:relative}
+.tab.active{background:var(--info-bg);color:var(--info)}
+.tab.saved-tab::after{content:"✓";font-size:10px;margin-left:4px;color:var(--ok)}
+.tab-panel{display:none}
+.tab-panel.active{display:block}
+
+/* SECTIONS */
+.sec{margin-bottom:14px;border:1px solid var(--border);border-radius:var(--rad-lg);overflow:hidden}
+.sec-hdr{background:var(--bg2);padding:10px 14px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--text2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.sec-body{padding:14px;display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+.field{display:flex;flex-direction:column;gap:5px}
+.field.full{grid-column:1/-1}
+.field label{font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.03em}
+.field input{font-size:14px;padding:9px 11px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text);outline:none;-webkit-appearance:none;width:100%}
+.field input:focus{border-color:var(--info)}
+.field input[readonly]{background:var(--bg2);color:var(--text2)}
+.rg{display:flex;gap:6px;flex-wrap:wrap}
+.rb{padding:8px 14px;font-size:13px;border:1px solid var(--border2);border-radius:20px;cursor:pointer;background:var(--bg);color:var(--text2);user-select:none;-webkit-tap-highlight-color:transparent}
+.rb.sel{background:var(--info-bg);color:var(--info);border-color:var(--info)}
+.rb.ok.sel{background:var(--ok-bg);color:var(--ok);border-color:var(--ok)}
+.rb.ko.sel{background:var(--ko-bg);color:var(--ko);border-color:var(--ko)}
+.rb.na.sel{background:var(--bg3);color:var(--text2);border-color:var(--border2)}
+.mblk{padding:0 14px 14px}
+.mrow{display:grid;grid-template-columns:1fr 1fr 60px;gap:8px;align-items:end;margin-bottom:8px}
+.mlim{font-size:14px;padding:9px 11px;background:var(--bg2);border-radius:var(--rad);border:1px solid var(--border);color:var(--text2)}
+.esito{font-size:13px;font-weight:700;text-align:center;padding-top:6px}
+.msub{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--text2);margin:10px 0 8px}
+.ai-info{background:var(--warn-bg);border:1px solid var(--warn);border-radius:var(--rad);padding:9px 12px;font-size:13px;color:var(--warn);margin:0 14px 14px}
+.badge-ai{font-size:11px;padding:2px 8px;border-radius:20px;background:var(--warn-bg);color:var(--warn)}
+.gbar{display:flex;gap:8px;margin-top:6px}
+.gbtn{flex:1;padding:12px;font-size:14px;font-weight:600;border-radius:var(--rad);border:1px solid var(--border2);cursor:pointer;background:var(--bg);color:var(--text2);text-align:center;-webkit-tap-highlight-color:transparent}
+.gbtn.pos.sel{background:var(--ok-bg);color:var(--ok);border-color:var(--ok)}
+.gbtn.neg.sel{background:var(--ko-bg);color:var(--ko);border-color:var(--ko)}
+
+/* MP POINTS */
+.mp-point{border:1px solid var(--border);border-radius:var(--rad);margin-bottom:8px;overflow:hidden}
+.mp-point-hdr{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg2);cursor:pointer;-webkit-tap-highlight-color:transparent}
+.mp-num{width:24px;height:24px;border-radius:50%;background:var(--info-bg);color:var(--info);font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.mp-title{font-size:13px;font-weight:600;flex:1}
+.mp-stato{font-size:12px;font-weight:700;min-width:30px;text-align:right}
+.mp-stato.ok{color:var(--ok)}
+.mp-stato.ko{color:var(--ko)}
+.mp-stato.na{color:var(--text3)}
+.mp-desc{padding:8px 12px 10px 46px;font-size:12px;color:var(--text2);line-height:1.5;border-top:1px solid var(--border)}
+.mp-btns{display:flex;gap:6px;padding:8px 12px 10px 46px}
+.mp-btn{flex:1;padding:9px;font-size:13px;font-weight:600;border-radius:var(--rad);border:1px solid var(--border2);cursor:pointer;background:var(--bg);color:var(--text2);text-align:center;-webkit-tap-highlight-color:transparent}
+.mp-btn.ok.sel{background:var(--ok-bg);color:var(--ok);border-color:var(--ok)}
+.mp-btn.ko.sel{background:var(--ko-bg);color:var(--ko);border-color:var(--ko)}
+.mp-btn.na.sel{background:var(--bg3);color:var(--text2);border-color:var(--border2)}
+.mp-progress{font-size:12px;color:var(--text2);margin-bottom:8px}
+.mp-progress span{font-weight:600;color:var(--info)}
+
+
+/* VSP */
+.vsp-sec{margin-bottom:14px;border:1px solid var(--border);border-radius:var(--rad-lg);overflow:hidden}
+.vsp-sec-hdr{background:var(--bg2);padding:9px 14px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--text2);border-bottom:1px solid var(--border)}
+.vsp-point{display:flex;align-items:flex-start;gap:10px;padding:9px 12px;border-bottom:1px solid var(--border)}
+.vsp-point:last-child{border-bottom:none}
+.vsp-point-id{width:22px;height:22px;border-radius:50%;background:var(--info-bg);color:var(--info);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px}
+.vsp-point-desc{flex:1;font-size:13px;line-height:1.4;padding-top:2px}
+.vsp-btns{display:flex;gap:5px;flex-shrink:0}
+.vsp-btn{padding:5px 10px;font-size:12px;font-weight:600;border-radius:20px;border:1px solid var(--border2);cursor:pointer;background:var(--bg);color:var(--text2);-webkit-tap-highlight-color:transparent}
+.vsp-btn.ok.sel{background:var(--ok-bg);color:var(--ok);border-color:var(--ok)}
+.vsp-btn.ko.sel{background:var(--ko-bg);color:var(--ko);border-color:var(--ko)}
+.vsp-btn.na.sel{background:var(--bg3);color:var(--text2);border-color:var(--border2)}
+.vsp-btn.pa.sel{background:var(--info-bg);color:var(--info);border-color:var(--info)}
+.vsp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px;padding:12px 14px}
+.vsp-field{display:flex;flex-direction:column;gap:4px}
+.vsp-field label{font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.03em}
+.vsp-field input{font-size:13px;padding:7px 10px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text);outline:none;width:100%;-webkit-appearance:none}
+.vsp-field input:focus{border-color:var(--info)}
+.vsp-table{width:100%;border-collapse:collapse;font-size:12px;margin:8px 14px 12px}
+.vsp-table th{background:var(--bg2);padding:6px 8px;text-align:center;border:1px solid var(--border);font-weight:600;font-size:11px;color:var(--text2)}
+.vsp-table td{padding:6px 8px;border:1px solid var(--border);text-align:center}
+.vsp-table td:first-child{text-align:left;font-weight:500}
+
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--bg);border:1px solid var(--border2);border-radius:var(--rad-lg);padding:10px 18px;font-size:14px;white-space:nowrap;display:none;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,.15)}
+.toast.show{display:block}
+.toast.ok{border-color:var(--ok);color:var(--ok)}
+.toast.warn{border-color:var(--warn);color:var(--warn)}
+/* SESSIONI MODAL */
+#sess-modal{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:10000;display:none;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto}
+#sess-modal.open{display:flex}
+.sess-modal-box{background:var(--bg);border-radius:var(--rad-lg);width:100%;max-width:600px;padding:20px}
+.sess-modal-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.sess-modal-hdr h2{font-size:16px;font-weight:600}
+.sess-new-row{display:flex;gap:8px;margin-bottom:16px}
+.sess-new-row input{flex:1;font-size:14px;padding:9px 12px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text);outline:none}
+.sess-new-row input:focus{border-color:var(--info)}
+.sess-new-row button{padding:9px 16px;font-size:13px;font-weight:600;background:var(--info);color:#fff;border:none;border-radius:var(--rad);cursor:pointer}
+.sess-list{display:flex;flex-direction:column;gap:8px;max-height:400px;overflow-y:auto}
+.sess-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--rad);cursor:pointer;-webkit-tap-highlight-color:transparent}
+.sess-item:hover{background:var(--bg2)}
+.sess-item.active-sess{border-color:var(--info);background:var(--info-bg)}
+.sess-item-info{flex:1}
+.sess-item-title{font-size:14px;font-weight:600;color:var(--text)}
+.sess-item-meta{font-size:11px;color:var(--text3);margin-top:2px}
+.sess-item-btns{display:flex;gap:6px;flex-shrink:0}
+.sess-sync-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.sess-sync-dot.synced{background:var(--ok)}
+.sess-sync-dot.pending{background:var(--warn)}
+.sess-sync-dot.offline{background:var(--border2)}
+.btn-sess{padding:4px 10px;font-size:12px;border-radius:var(--rad);cursor:pointer;background:var(--bg);border:1px solid var(--border2);color:var(--text2)}
+.btn-sess.danger{border-color:var(--ko);color:var(--ko)}
+</style>
+</head>
+<body>
+<div class="app">
+  <h1>AppWitch</h1>
+  <div class="subtitle">Verifiche Dispositivi Medici</div>
+  <div class="db-bar loading" id="db-bar">Caricamento database...</div>
+
+  <div class="card">
+    <div class="card-title">Cerca apparecchio</div>
+    <div class="search-row">
+      <input type="text" id="search-input" placeholder="Codice o nome apparecchio"
+        inputmode="numeric" autocomplete="off" autocorrect="off" spellcheck="false"
+        oninput="onSearch()" onkeydown="if(event.key==='Enter')doSearch()">
+      <button onclick="doSearch()">Cerca</button>
+    </div>
+    <div class="results" id="results"></div>
+  </div>
+
+  <div class="card">
+    <div class="sess-hdr">
+      <div class="card-title" style="margin-bottom:0">Sessione</div>
+      <div class="sess-btns">
+        <button class="btn-sm" id="btn-sess-open" onclick="openSessModal()">📋 Sessioni</button>
+        <button class="btn-sm" onclick="exportJSON()">⬇ JSON</button>
+        <button class="btn-xlsx" id="btn-xlsx" onclick="exportXLSX()" disabled>⬇ Excel</button>
+      </div>
+    </div>
+    <div id="sess-sync-bar" style="display:none;font-size:11px;color:var(--text3);margin-bottom:6px;display:flex;align-items:center;gap:6px">
+      <div class="sess-sync-dot offline" id="sync-dot"></div>
+      <span id="sync-label">Nessuna sessione attiva</span>
+    </div>
+    <div class="chips" id="chips"><span class="sess-empty">Nessun apparecchio compilato</span></div>
+    <div class="sess-stats" id="sess-stats" style="display:none"></div>
+  </div>
+
+  <div class="export-preview" id="export-preview">
+    <div class="export-preview-title">Riepilogo sessione</div>
+    <div id="export-rows"></div>
+  </div>
+
+  <div class="form-area" id="form-area">
+    <div class="topbar">
+      <div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="dev-badge" id="dev-cod"></span>
+          <span class="dev-name" id="dev-nom"></span>
+        </div>
+        <div class="dev-sub" id="dev-inf"></div>
+        <div id="dev-loc" style="display:none" class="dev-loc-badge"></div>
+      </div>
+      <div class="top-btns">
+        <button onclick="resetCur()">↺</button>
+        <button class="btn-salva" onclick="saveAll()">Salva</button>
+      </div>
+    </div>
+    <div class="prog-bar"><div class="prog-fill" id="prog" style="width:0%"></div></div>
+
+    <!-- TABS -->
+    <div class="tabs">
+      <button class="tab active" id="tab-vse" onclick="switchTab('vse')">VSE — Sicurezza Elettrica</button>
+      <button class="tab" id="tab-mp" onclick="switchTab('mp')">MP — Manutenzione Preventiva</button>
+    </div>
+
+    <!-- TAB VSE -->
+    <div class="tab-panel active" id="panel-vse">
+      <div class="sec">
+        <div class="sec-hdr">Dati generali</div>
+        <div class="sec-body">
+          <div class="field"><label>Codice</label><input type="text" id="f-codice" readonly></div>
+          <div class="field"><label>Data verifica</label><input type="date" id="f-data"></div>
+          <div class="field full"><label>Note</label><input type="text" id="f-note"></div>
+        </div>
+      </div>
+      <div class="sec">
+  <div class="sec-hdr">Norma di riferimento</div>
+  <div class="sec-body">
+    <div class="field full"><label>Norma</label><div class="rg" id="rg-norma"><div class="rb ok" data-v="62353" onclick="pick(this);uM()">CEI EN 62353</div><div class="rb" data-v="60601" onclick="pick(this);uM()">CEI EN 60601-1</div><div class="rb" data-v="61010" onclick="pick(this);uM()">IEC 61010</div></div></div>
+  </div>
+</div>
+      <div class="sec">
+        <div class="sec-hdr">Dati di targa</div>
+        <div class="sec-body">
+          <div class="field"><label>Tensione</label><input type="text" id="f-ten"></div>
+          <div class="field"><label>Tensione D/P</label><div class="rg" id="rg-tdp"><div class="rb" data-v="Dichiarato" onclick="pick(this)">Dichiarato</div><div class="rb" data-v="Presunto" onclick="pick(this)">Presunto</div></div></div>
+          <div class="field"><label>Frequenza</label><input type="text" id="f-frq"></div>
+          <div class="field"><label>Frequenza D/P</label><div class="rg" id="rg-fdp"><div class="rb" data-v="Dichiarato" onclick="pick(this)">Dichiarato</div><div class="rb" data-v="Presunto" onclick="pick(this)">Presunto</div></div></div>
+          <div class="field"><label>Potenza</label><input type="text" id="f-pot"></div>
+          <div class="field"><label>Potenza D/P</label><div class="rg" id="rg-pdp"><div class="rb" data-v="Dichiarato" onclick="pick(this)">Dichiarato</div><div class="rb" data-v="Presunto" onclick="pick(this)">Presunto</div><div class="rb na" data-v="" onclick="pick(this)">N/A</div></div></div>
+          <div class="field"><label>Marchio</label><input type="text" id="f-mar"></div>
+          <div class="field"><label>Fusibili dichiarati</label><select id="f-fud" class="sel-field"><option value="">—</option><option value="Si">Sì</option><option value="No">No</option><option value="Interni">Fusibili interni</option></select></div>
+          <div class="field"><label>Fusibili riscontrati</label><input type="text" id="f-fur"></div>
+          <div class="field"><label>Classe</label><div class="rg" id="rg-cls"><div class="rb" data-v="I" onclick="pick(this);uM()">I</div><div class="rb" data-v="II" onclick="pick(this);uM()">II</div><div class="rb" data-v="AI" onclick="pick(this);uM()">AI</div></div></div>
+          <div class="field"><label>Classe D/P</label><div class="rg" id="rg-cdp"><div class="rb" data-v="Dichiarato" onclick="pick(this)">Dichiarato</div><div class="rb" data-v="Presunto" onclick="pick(this)">Presunto</div></div></div>
+          <div class="field"><label>PA Tipo</label><div class="rg" id="rg-pa"><div class="rb" data-v="B" onclick="pick(this);uM()">B</div><div class="rb" data-v="BF" onclick="pick(this);uM()">BF</div><div class="rb" data-v="CF" onclick="pick(this);uM()">CF</div><div class="rb na" data-v="" onclick="pick(this);uM()">N/A</div></div></div>
+          <div class="field"><label>PA D/P</label><div class="rg" id="rg-padp"><div class="rb" data-v="Dichiarato" onclick="pick(this)">Dichiarato</div><div class="rb" data-v="Presunto" onclick="pick(this)">Presunto</div><div class="rb na" data-v="" onclick="pick(this)">N/A</div></div></div>
+          <div class="field"><label>Funzionamento</label><div class="rg" id="rg-fnz"><div class="rb" data-v="Continuo" onclick="pick(this)">Continuo</div><div class="rb" data-v="Intermittente" onclick="pick(this)">Intermittente</div></div></div>
+          <div class="field"><label>Prot. defibrillatore</label><div class="rg" id="rg-def"><div class="rb ok" data-v="SI" onclick="pick(this)">SI</div><div class="rb ko" data-v="NO" onclick="pick(this)">NO</div><div class="rb na" data-v="" onclick="pick(this)">N/A</div></div></div>
+        </div>
+      </div>
+      <div class="sec">
+        <div class="sec-hdr">Ispezione visiva</div>
+        <div class="sec-body">
+          <div class="field"><label>Tipo spina</label><select id="f-spi" class="sel-field" onchange="uM()"><option value="">—</option><option value="Pettine 10A">Pettine 10A</option><option value="Pettine 16A">Pettine 16A</option><option value="Shuko">Shuko</option><option value="CE">CE</option><option value="Connettore">Connettore</option><option value="Impianto Fisso">Impianto Fisso</option></select></div>
+          <div class="field"><label>Smontabile/pressofusa</label><div class="rg" id="rg-smo"><div class="rb" data-v="Pressofusa" onclick="pick(this)">Pressofusa</div><div class="rb" data-v="Smontabile" onclick="pick(this)">Smontabile</div></div></div>
+          <div class="field"><label>Marchio spina</label><select id="f-msp" class="sel-field"><option value="">—</option><option value="VDE">VDE</option><option value="IMQ">IMQ</option></select></div>
+          <div class="field"><label>Cavo alimentazione</label><div class="rg" id="rg-cav"><div class="rb" data-v="Separabile" onclick="pick(this)">Sep.</div><div class="rb" data-v="Non Separabile" onclick="pick(this)">Non sep.</div></div></div>
+          <div class="field"><label>Integrità cavo</label><div class="rg" id="rg-icv"><div class="rb ok" data-v="Conforme" onclick="pick(this)">Conf.</div><div class="rb ko" data-v="Non conforme" onclick="pick(this)">Non conf.</div></div></div>
+          <div class="field"><label>Integrità spina</label><div class="rg" id="rg-isp"><div class="rb ok" data-v="Conforme" onclick="pick(this)">Conf.</div><div class="rb ko" data-v="Non conforme" onclick="pick(this)">Non conf.</div></div></div>
+          <div class="field"><label>Interruttore rete</label><div class="rg" id="rg-int"><div class="rb ok" data-v="Presente" onclick="pick(this)">Presente</div><div class="rb ko" data-v="Assente" onclick="pick(this)">Assente</div><div class="rb na" data-v="" onclick="pick(this)">N/A</div></div></div>
+          <div class="field"><label>Parte applicata</label><input type="text" id="f-pdc"></div>
+          <div class="field"><label>Integr. connettori</label><div class="rg" id="rg-icn"><div class="rb ok" data-v="Conforme" onclick="pick(this)">Conf.</div><div class="rb ko" data-v="Non conforme" onclick="pick(this)">Non conf.</div></div></div>
+          <div class="field"><label>Prot. conduttori</label><div class="rg" id="rg-prc"><div class="rb ok" data-v="Conforme" onclick="pick(this)">Conf.</div><div class="rb ko" data-v="Non conforme" onclick="pick(this)">Non conf.</div></div></div>
+          <div class="field"><label>Integr. conduttori</label><div class="rg" id="rg-icd"><div class="rb ok" data-v="Conforme" onclick="pick(this)">Conf.</div><div class="rb ko" data-v="Non conforme" onclick="pick(this)">Non conf.</div></div></div>
+          <div class="field"><label>Manuale uso</label><div class="rg" id="rg-mus"><div class="rb ok" data-v="SI" onclick="pick(this)">SI</div><div class="rb ko" data-v="NO" onclick="pick(this)">NO</div></div></div>
+          <div class="field"><label>Manuale servizio</label><div class="rg" id="rg-mse"><div class="rb ok" data-v="SI" onclick="pick(this)">SI</div><div class="rb ko" data-v="NO" onclick="pick(this)">NO</div></div></div>
+          <div class="field full"><label>Note aggiuntive</label><input type="text" id="f-nag"></div>
+        </div>
+      </div>
+      <div class="sec">
+        <div class="sec-hdr">
+          <span>Misurazioni elettriche</span>
+          <span class="badge-ai" id="badge-ai" style="display:none">AI con PA</span>
+        </div>
+
+        <!-- Classe misura + tensione + corrente -->
+        <div class="sec-body">
+          <div class="field"><label>Classe misura</label><div class="rg" id="rg-clm"><div class="rb" data-v="CL1" onclick="pick(this)">CL1</div><div class="rb" data-v="CL2" onclick="pick(this)">CL2</div><div class="rb" data-v="AI" onclick="pick(this)">AI</div></div></div>
+          <div class="field" id="blk-tms"><label>Tensione mis. (V)</label><input type="number" id="f-tms" inputmode="decimal"></div>
+          <div class="field" id="blk-cor"><label>Corrente assorbita (A)</label><input type="text" id="f-cor"></div>
+        </div>
+
+        <!-- INFO: Impianto Fisso -->
+        <div id="blk-fisso-info" style="display:none" class="ai-info">
+          Impianto Fisso — misure di dispersione non applicabili. Compilare solo la resistenza PE se Classe I.
+        </div>
+
+        <!-- INFO: Classe AI -->
+        <div id="blk-ai-info" style="display:none" class="ai-info">
+          Classe AI (Alimentazione Interna) — terra e dispersione involucro non applicabili. Con PA BF/CF compilare solo la sezione dispersione PA.
+        </div>
+
+        <!-- TERRA DI PROTEZIONE (solo Classe I, non Impianto Fisso) -->
+        <div class="mblk" id="blk-terra">
+          <div class="msub">Terra di protezione — Classe I</div>
+          <div class="mrow">
+            <div class="field"><label>Limite (mΩ)</label><div class="mlim" id="lim-tr">300</div></div>
+            <div class="field"><label>Resistenza PE (mΩ)</label><input type="number" id="f-trm" inputmode="decimal" oninput="cv('f-trm','lim-tr','e-tr');aG()"></div>
+            <div class="esito" id="e-tr"></div>
+          </div>
+        </div>
+
+        <!-- RESISTENZA DI ISOLAMENTO -->
+        <div class="mblk" id="blk-isol">
+          <div class="msub">Resistenza di isolamento</div>
+          <div class="mrow">
+            <div class="field"><label>Rete / Involucro</label></div>
+            <div class="field"><label>Misurata (MΩ)</label><input type="number" id="f-ris-inv" inputmode="decimal"></div>
+            <div style="width:60px"></div>
+          </div>
+          <div class="mrow" id="blk-ris-pa" style="display:none">
+            <div class="field"><label>PA / Massa</label></div>
+            <div class="field"><label>Misurata (MΩ)</label><input type="number" id="f-ris-pa" inputmode="decimal"></div>
+            <div style="width:60px"></div>
+          </div>
+        </div>
+
+        <!-- DISPERSIONE INVOLUCRO -->
+        <div class="mblk" id="blk-disp-inv">
+          <div class="msub" id="msub-disp-inv">Corrente dispersione apparecchio — Involucro</div>
+          <div class="mrow">
+            <div class="field"><label>PN Limite (µA)</label><div class="mlim" id="lim-pn">100</div></div>
+            <div class="field"><label>PN Misurata (µA)</label><input type="number" id="f-pnm" inputmode="decimal" oninput="cv('f-pnm','lim-pn','e-pn');aG()"></div>
+            <div class="esito" id="e-pn"></div>
+          </div>
+          <div class="mrow">
+            <div class="field"><label>PI Limite (µA)</label><div class="mlim" id="lim-pi">100</div></div>
+            <div class="field"><label>PI Misurata (µA)</label><input type="number" id="f-pim" inputmode="decimal" oninput="cv('f-pim','lim-pi','e-pi');aG()"></div>
+            <div class="esito" id="e-pi"></div>
+          </div>
+        </div>
+
+        <!-- DISPERSIONE PA BF (solo se PA = BF) -->
+        <div class="mblk" id="blk-pa-bf" style="display:none">
+          <div class="msub">Corrente dispersione PA — Tipo BF (limite ≤ 100 µA)</div>
+          <div class="mrow">
+            <div class="field"><label>PN Limite (µA)</label><div class="mlim" id="lim-pnbf">100</div></div>
+            <div class="field"><label>PN Misurata (µA)</label><input type="number" id="f-pbm" inputmode="decimal" oninput="cv('f-pbm','lim-pnbf','e-pnbf');aG()"></div>
+            <div class="esito" id="e-pnbf"></div>
+          </div>
+          <div class="mrow">
+            <div class="field"><label>PI Limite (µA)</label><div class="mlim" id="lim-pibf">100</div></div>
+            <div class="field"><label>PI Misurata (µA)</label><input type="number" id="f-ibm" inputmode="decimal" oninput="cv('f-ibm','lim-pibf','e-pibf');aG()"></div>
+            <div class="esito" id="e-pibf"></div>
+          </div>
+        </div>
+
+        <!-- DISPERSIONE PA CF (solo se PA = CF) -->
+        <div class="mblk" id="blk-pa-cf" style="display:none">
+          <div class="msub">Corrente dispersione PA — Tipo CF (limite ≤ 10 µA)</div>
+          <div class="mrow">
+            <div class="field"><label>PN Limite (µA)</label><div class="mlim" id="lim-pncf">10</div></div>
+            <div class="field"><label>PN Misurata (µA)</label><input type="number" id="f-pcm" inputmode="decimal" oninput="cv('f-pcm','lim-pncf','e-pncf');aG()"></div>
+            <div class="esito" id="e-pncf"></div>
+          </div>
+          <div class="mrow">
+            <div class="field"><label>PI Limite (µA)</label><div class="mlim" id="lim-picf">10</div></div>
+            <div class="field"><label>PI Misurata (µA)</label><input type="number" id="f-icm" inputmode="decimal" oninput="cv('f-icm','lim-picf','e-picf');aG()"></div>
+            <div class="esito" id="e-picf"></div>
+          </div>
+        </div>
+
+        <!-- blk-pa vuoto — retrocompatibilità collectVSE/restoreVSE -->
+        <div id="blk-pa" style="display:none"></div>
+      </div>
+      <div class="sec">
+        <div class="sec-hdr">Esito e strumento</div>
+        <div class="sec-body">
+          <div class="field full"><label>Giudizio finale</label><div class="gbar"><div class="gbtn pos" id="gp" onclick="sG('POSITIVO')">POSITIVO</div><div class="gbtn neg" id="gn" onclick="sG('NEGATIVO')">NEGATIVO</div></div></div>
+          <div class="field"><label>Valori terra</label><div class="rg" id="rg-vt"><div class="rb ok" data-v="Rientrano" onclick="pick(this)">Rientrano</div><div class="rb ko" data-v="Non rientrano" onclick="pick(this)">Non rientrano</div><div class="rb na" data-v="N/A" onclick="pick(this)">N/A</div></div></div>
+          <div class="field"><label>Valori dispersione</label><div class="rg" id="rg-vd"><div class="rb ok" data-v="Rientrano" onclick="pick(this)">Rientrano</div><div class="rb ko" data-v="Non rientrano" onclick="pick(this)">Non rientrano</div><div class="rb na" data-v="N/A" onclick="pick(this)">N/A</div></div></div>
+          <div class="field full"><label>Motivi non conformità</label><input type="text" id="f-mot"></div>
+          <div class="field"><label>Strumento</label><input type="text" id="f-str"></div>
+          <div class="field"><label>N° serie strumento</label><input type="text" id="f-nrs"></div>
+          <div class="field"><label>Verificatore</label><input type="text" id="f-ver"></div>
+          <div class="field"><label>Data verifica str.</label><input type="date" id="f-dat2"></div>
+          <div class="field"><label>VERIFICATO</label><input type="text" id="f-vrc"></div>
+          <div class="field"><label>Scadenza taratura</label><input type="date" id="f-sct"></div>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- TAB VSP_CEN -->
+    <di<div class="tab-panel" id="panel-mp">
+      <div class="sec">
+        <div class="sec-hdr">Dati generali</div>
+        <div class="sec-body">
+          <div class="field"><label>Codice</label><input type="text" id="mp-codice" readonly></div>
+          <div class="field"><label>Data verifica</label><input type="date" id="mp-data"></div>
+          <div class="field full"><label>Note</label><input type="text" id="mp-note"></div>
+        </div>
+      </div>
+      <div class="sec">
+        <div class="sec-hdr">Punti di manutenzione</div>
+        <div style="padding:12px 14px 4px">
+          <div class="mp-progress">Completati: <span id="mp-count">0</span> / 19</div>
+          <div id="mp-points"></div>
+        </div>
+      </div>
+      <div class="sec">
+        <div class="sec-body">
+          <div class="field"><label>Tecnico esecutore</label><input type="text" id="mp-tecnico"></div>
+          <div class="field"><label>Data</label><input type="date" id="mp-data2"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB VSP_CEN -->
+  <div class="tab-panel" id="panel-vsp">
+    <div class="sec">
+      <div class="sec-hdr">Dati generali</div>
+      <div class="sec-body">
+        <div class="field"><label>Codice</label><input type="text" id="vsp-codice" readonly></div>
+        <div class="field"><label>Data verifica</label><input type="date" id="vsp-data"></div>
+        <div class="field full"><label>Note</label><input type="text" id="vsp-note"></div>
+      </div>
+    </div>
+    <div class="sec">
+      <div class="sec-hdr" id="vsp-sec-title">Controllo visivo</div>
+      <div style="padding:12px 14px 4px">
+        <div class="mp-progress">Completati: <span id="vsp-count">0</span> / <span id="vsp-total">0</span></div>
+        <div id="vsp-points"></div>
+      </div>
+    </div>
+    <div id="vsp-extra" style="display:none"></div>
+    <div class="sec">
+      <div class="sec-body">
+        <div class="field"><label>Tecnico esecutore</label><input type="text" id="vsp-tecnico"></div>
+        <div class="field"><label>Data</label><input type="date" id="vsp-data2"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB CQ -->
+  <div class="tab-panel" id="panel-cq">
+    <div class="sec">
+      <div class="sec-hdr">Dati generali</div>
+      <div class="sec-body">
+        <div class="field"><label>Codice</label><input type="text" id="cq-codice" readonly></div>
+        <div class="field"><label>Data verifica</label><input type="date" id="cq-data"></div>
+        <div class="field full"><label>Note</label><input type="text" id="cq-note"></div>
+      </div>
+    </div>
+    <div class="sec">
+      <div class="sec-hdr" id="cq-sec-title">Controllo visivo</div>
+      <div style="padding:12px 14px 4px">
+        <div class="mp-progress">Completati: <span id="cq-count">0</span> / <span id="cq-total">0</span></div>
+        <div id="cq-points"></div>
+      </div>
+    </div>
+    <div id="cq-prova" style="display:none"></div>
+    <div class="sec">
+      <div class="sec-hdr">Strumentazione utilizzata</div>
+      <div class="sec-body">
+        <div class="field"><label>Strumento</label><input type="text" id="cq-strum"></div>
+        <div class="field"><label>Modello</label><input type="text" id="cq-strum-mod"></div>
+        <div class="field"><label>N° Serie</label><input type="text" id="cq-strum-ser"></div>
+        <div class="field"><label>Certificato N.</label><input type="text" id="cq-strum-cert"></div>
+        <div class="field"><label>Scadenza taratura</label><input type="date" id="cq-strum-scad"></div>
+      </div>
+    </div>
+    <div class="sec">
+      <div class="sec-body">
+        <div class="field"><label>Tecnico esecutore</label><input type="text" id="cq-tecnico"></div>
+        <div class="field"><label>Data</label><input type="date" id="cq-data2"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- MODAL SESSIONI -->
+<div id="sess-modal">
+  <div class="sess-modal-box">
+    <div class="sess-modal-hdr">
+      <h2>Sessioni</h2>
+      <button onclick="closeSessModal()" style="padding:4px 10px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text);cursor:pointer">✕</button>
+    </div>
+    <div class="sess-new-row">
+      <input type="text" id="sess-new-title" placeholder="Nome nuova sessione (es. Cardiologia 24/03)" maxlength="80">
+      <button onclick="createSession()">+ Nuova</button>
+    </div>
+    <div class="sess-list" id="sess-list">
+      <div style="font-size:13px;color:var(--text3);padding:8px">Caricamento...</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const MP_POINTS=[
+  {n:1,t:"Integrità dell'involucro",d:"Esaminare l'esterno dell'apparecchiatura, verificare che non ci siano segni di versamento di liquidi e che non vi sia nessun tipo di danneggiamento grave. Assicurarsi che viti, dadi e bloccaggi siano ben saldi."},
+  {n:2,t:"Supporti",d:"Accertare che i supporti sui quali l'apparecchiatura poggia siano sicuri e ben saldi."},
+  {n:3,t:"Ruote e sistemi frenanti",d:"Accertare che le ruote siano libere di ruotare e piroettare ed il corretto funzionamento dei meccanismi di blocco ruote."},
+  {n:4,t:"Circuito di alimentazione",d:"Accertare l'integrità dei cavi elettrici, dei passacavi, delle spine e di eventuali prese a bordo macchina. Negli apparecchi con alimentazione separata, verificare l'integrità del cavo di collegamento e il funzionamento del carica batterie."},
+  {n:5,t:"Connettori e collegamento elettrico",d:"Verificare i connettori prestando particolare attenzione ai loro pin e al loro corretto ancoraggio all'involucro, rimuovere eventuali tracce di ossido."},
+  {n:6,t:"Cavi di collegamento",d:"Controllare che tutti i cavi e connettori utilizzati per i collegamenti apparecchio-accessori siano in buone condizioni e correttamente cablati. Verificare l'assenza di rotture e/o schiacciamenti."},
+  {n:7,t:"Tubi e raccordi di alimentazione",d:"Verificare accuratamente l'integrità dei tubi, dei raccordi e dei connettori, che non siano tagliati, attorcigliati, ostruiti o crepati. Accertare l'assenza di perdite."},
+  {n:8,t:"Filtri",d:"Controllare lo stato e il corretto posizionamento dei filtri e se necessario sostituirli."},
+  {n:9,t:"Sistema di ventilazione/raffreddamento",d:"Verificare il funzionamento delle ventole di raffreddamento, pulire i filtri (dove presenti), se necessario eseguire una pulizia accurata interna."},
+  {n:10,t:"Sistema di riscaldamento",d:"Verificare lo stato e il funzionamento del sistema di riscaldamento."},
+  {n:11,t:"Comandi, interruttori, indicatori luminosi e sonori",d:"Accertare che ogni comando manuale ed elettronico del pannello di controllo espleti correttamente la propria funzione. Controllare il funzionamento di tutti gli indicatori luminosi e sonori."},
+  {n:12,t:"Allarmi",d:"Controllare il buon funzionamento di tutti gli allarmi."},
+  {n:13,t:"Livello liquidi",d:"Controllare il livello dei liquidi e rabboccare se necessario."},
+  {n:14,t:"Meccanica di trascinamento",d:"Verificare lo stato e la regolare tensione delle cinghie di trascinamento, se necessario pulire e registrare. Pulire e/o lubrificare gli ingranaggi meccanici."},
+  {n:15,t:"Indicazioni corretto utilizzo",d:"Verificare che serigrafie e simboli riportati su tasti, comandi ed involucro siano intatti e ben leggibili."},
+  {n:16,t:"Verifica finale",d:"Verifica finale del funzionamento generale dello strumento. Reimpostare l'apparecchiatura come ad avvio di manutenzione."},
+  {n:17,t:"Manutenzione specifica",d:"Consultare il Manuale di Servizio per eventuali manutenzioni specifiche."},
+  {n:18,t:"Valutazione finale",d:"Valutare la necessità di aprire un intervento di manutenzione correttiva."},
+  {n:19,t:"Attendibilità/ripetibilità misurazioni",d:"Accertarsi che le varie misurazioni / risultati effettuati sulla funzionalità dell'apparecchiatura siano attendibili e ripetibili."}
+];
+
+let mpState={};  // punto -> 'OK'|'KO'|'NA'
+
+function buildMPPoints(){
+  const container=document.getElementById('mp-points');
+  container.innerHTML=MP_POINTS.map(p=>`
+    <div class="mp-point" id="mp-p-${p.n}">
+      <div class="mp-point-hdr" onclick="toggleMPDesc(${p.n})">
+        <div class="mp-num">${p.n}</div>
+        <div class="mp-title">${p.t}</div>
+        <div class="mp-stato" id="mp-stato-${p.n}">—</div>
+      </div>
+      <div class="mp-desc" id="mp-desc-${p.n}" style="display:none">${p.d}</div>
+      <div class="mp-btns" id="mp-btns-${p.n}" style="display:none">
+        <button class="mp-btn ok" onclick="setMP(${p.n},'OK')">OK</button>
+        <button class="mp-btn ko" onclick="setMP(${p.n},'KO')">KO</button>
+        <button class="mp-btn na" onclick="setMP(${p.n},'NA')">NA</button>
+      </div>
+    </div>`).join('');
+}
+
+function toggleMPDesc(n){
+  const desc=document.getElementById('mp-desc-'+n);
+  const btns=document.getElementById('mp-btns-'+n);
+  const open=desc.style.display!=='none';
+  desc.style.display=open?'none':'block';
+  btns.style.display=open?'none':'flex';
+}
+
+function setMP(n,val){
+  mpState[n]=val;
+  const stato=document.getElementById('mp-stato-'+n);
+  stato.textContent=val;
+  stato.className='mp-stato '+val.toLowerCase();
+  // Color the point header
+  const hdr=document.querySelector('#mp-p-'+n+' .mp-point-hdr');
+  hdr.style.background=val==='OK'?'var(--ok-bg)':val==='KO'?'var(--ko-bg)':'var(--bg2)';
+  // Update buttons
+  document.querySelectorAll('#mp-btns-'+n+' .mp-btn').forEach(b=>{
+    b.classList.toggle('sel',b.textContent===val);
+  });
+  // Close after selection
+  document.getElementById('mp-desc-'+n).style.display='none';
+  document.getElementById('mp-btns-'+n).style.display='none';
+  updateMPCount();
+  uP();
+}
+
+function updateMPCount(){
+  const done=Object.keys(mpState).length;
+  document.getElementById('mp-count').textContent=done;
+}
+
+function resetMPPoints(){
+  mpState={};
+  MP_POINTS.forEach(p=>{
+    const stato=document.getElementById('mp-stato-'+p.n);
+    if(stato){stato.textContent='—';stato.className='mp-stato';}
+    const hdr=document.querySelector('#mp-p-'+p.n+' .mp-point-hdr');
+    if(hdr)hdr.style.background='';
+    document.querySelectorAll('#mp-btns-'+p.n+' .mp-btn').forEach(b=>b.classList.remove('sel'));
+    const desc=document.getElementById('mp-desc-'+p.n);
+    const btns=document.getElementById('mp-btns-'+p.n);
+    if(desc)desc.style.display='none';
+    if(btns)btns.style.display='none';
+  });
+  document.getElementById('mp-count').textContent='0';
+}
+
+function loadMPSaved(rec){
+  if(!rec)return;
+  MP_POINTS.forEach(p=>{
+    const val=rec['mp'+p.n];
+    if(val)setMP(p.n,val);
+  });
+  const e=document.getElementById('mp-tecnico');if(e)e.value=rec.mp_tecnico||'';
+  const d=document.getElementById('mp-data');if(d)d.value=rec.mp_data||'';
+  const d2=document.getElementById('mp-data2');if(d2)d2.value=rec.mp_data2||'';
+  const n=document.getElementById('mp-note');if(n)n.value=rec.mp_note||'-';
+  const c=document.getElementById('mp-codice');if(c)c.value=rec.codice||'';
+}
+
+function collectMP(){
+  const t=new Date().toISOString().split('T')[0];
+  const rec={codice:gv('mp-codice'),mp_data:gv('mp-data')||t,mp_note:gv('mp-note'),mp_tecnico:gv('mp-tecnico'),mp_data2:gv('mp-data2')||t};
+  MP_POINTS.forEach(p=>{rec['mp'+p.n]=mpState[p.n]||'';});
+  return rec;
+}
+
+function switchTab(tab){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  const btn=document.getElementById('tab-'+tab);
+  if(btn)btn.classList.add('active');
+  document.getElementById('panel-vse').classList.toggle('active',tab==='vse');
+  document.getElementById('panel-mp').classList.toggle('active',tab==='mp');
+  document.getElementById('panel-vsp').classList.toggle('active',tab==='vsp');
+  document.getElementById('panel-cq').classList.toggle('active',tab==='cq');
+  // CQ placeholder
+  let ph=document.getElementById('panel-placeholder');
+  if(!ph){ph=document.createElement('div');ph.id='panel-placeholder';ph.className='tab-panel';document.getElementById('form-area').appendChild(ph);}
+  if(ph) ph.classList.remove('active');
+}
+
+// MAIN APP
+// Mappa verifiche per codice — generata da Programmate_2025 + CIVAB
+// v = tipi verifica, cq = foglio CQ, vsp = foglio VSP
+const VERIF_MAP={"0000017":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0000039":{"vsp":"VSP_ELB","cq":"CQ_ELB"},"0000053":{"vsp":"VSP_ELB","cq":"CQ_ELB"},"0000054":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0000058":{"cq":"CQ_VPO"},"0000062":{"cq":"CQ_ECT"},"0000067":{"cq":"CQ_ECT"},"0000100":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0000101":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0000102":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0000103":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0000109":{"cq":"CQ_ECT"},"0000112":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0000117":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0000143":{"cq":"CQ_ECT"},"0000158":{"vsp":"VSP_ELB","cq":"CQ_ELB"},"0000171":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0000172":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0000173":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0000181":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0000182":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0000185":{"cq":"CQ_VPO"},"0000190":{"cq":"CQ_ECT"},"0000194":{"cq":"CQ_ECT"},"0000221":{"vsp":"VSP_ELB","cq":"CQ_ELB"},"0000225":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0000226":{"cq":"CQ_VPO"},"0000233":{"cq":"CQ_MON"},"0000234":{"cq":"CQ_MON"},"0000247":{"cq":"CQ_VPO"},"0000248":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0000255":{"vsp":"VSP_ELB","cq":"CQ_ELB"},"0000260":{"cq":"CQ_FBI"},"0000262":{"cq":"CQ_FBI"},"0000273":{"cq":"CQ_FBI"},"0000274":{"cq":"CQ_FBI"},"0000275":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0000283":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0000284":{"cq":"CQ_FBI"},"0000292":{"cq":"CQ_FBI"},"0000293":{"cq":"CQ_FBI"},"0000306":{"cq":"CQ_ECT"},"0000313":{"cq":"CQ_ECT"},"0000319":{"cq":"CQ_ANS"},"0000348":{"cq":"CQ_ECT"},"0000375":{"cq":"CQ_ANS"},"0000376":{"cq":"CQ_MON"},"0000380":{"cq":"CQ_MON"},"0000381":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0000383":{"vsp":"VSP_ELB","cq":"CQ_ELB"},"0000387":{"cq":"CQ_FBI"},"0000392":{"cq":"CQ_VPO"},"0000401":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0000408":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0000416":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0000418":{"cq":"CQ_FBI"},"0000421":{"cq":"CQ_FBI"},"0000422":{"cq":"CQ_FBI"},"0000428":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0000435":{"cq":"CQ_FBI"},"0000436":{"cq":"CQ_FBI"},"0000441":{"vsp":"VSP_ELB","cq":"CQ_ELB"},"0000442":{"cq":"CQ_ANS"},"0000446":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0000447":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0000451":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0000452":{"cq":"CQ_VPO"},"0000469":{"vsp":"VSP_ELB","cq":"CQ_ELB"},"0000475":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0000476":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0000502":{"vsp":"VSP_ELB","cq":"CQ_ELB"},"0000505":{"cq":"CQ_ECT"},"0000511":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0000512":{"cq":"CQ_FBI"},"0000513":{"cq":"CQ_FBI"},"0000514":{"cq":"CQ_FBI"},"0000515":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0000516":{"cq":"CQ_FBI"},"0000517":{"cq":"CQ_FBI"},"0000522":{"cq":"CQ_FBI"},"0000523":{"cq":"CQ_FBI"},"0000525":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0000533":{"cq":"CQ_FBI"},"0000534":{"cq":"CQ_FBI"},"0000535":{"cq":"CQ_FBI"},"0000539":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0000540":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0000559":{"vsp":"VSP_ELB","cq":"CQ_ELB"},"0000563":{"cq":"CQ_FBI"},"0000578":{"cq":"CQ_ECT"},"0000596":{"cq":"CQ_FBI"},"0000597":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0000602":{"cq":"CQ_FBI"},"0000603":{"cq":"CQ_FBI"},"0000611":{"cq":"CQ_FBI"},"0000623":{"cq":"CQ_FBI"},"0000624":{"cq":"CQ_FBI"},"0000625":{"cq":"CQ_FBI"},"0000626":{"cq":"CQ_FBI"},"0000628":{"cq":"CQ_FBI"},"0000629":{"cq":"CQ_FBI"},"0000630":{"cq":"CQ_FBI"},"0000642":{"cq":"CQ_FBI"},"0000643":{"cq":"CQ_FBI"},"0000652":{"cq":"CQ_ECT"},"0000671":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0000688":{"vsp":"VSP_ELB","cq":"CQ_ELB"},"0000705":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0000706":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0000709":{"cq":"CQ_FBI"},"0000716":{"cq":"CQ_FBI"},"0000717":{"cq":"CQ_FBI"},"0000718":{"cq":"CQ_FBI"},"0000721":{"cq":"CQ_FBI"},"0000734":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0000740":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0000741":{"cq":"CQ_ECT"},"0000749":{"cq":"CQ_FBI"},"0000760":{"cq":"CQ_FBI"},"0000761":{"cq":"CQ_FBI"},"0000762":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0000766":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0000774":{"cq":"CQ_FBI"},"0000790":{"cq":"CQ_ECT"},"0000808":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0000809":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0000811":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0000812":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0000821":{"vsp":"VSP_ELB","cq":"CQ_ELB"},"0000827":{"cq":"CQ_ECT"},"0000837":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0000841":{"cq":"CQ_FBI"},"0000842":{"cq":"CQ_FBI"},"0000843":{"cq":"CQ_FBI"},"0000885":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0000892":{"cq":"CQ_FBI"},"0000893":{"cq":"CQ_FBI"},"0000894":{"cq":"CQ_FBI"},"0000895":{"cq":"CQ_FBI"},"0000907":{"cq":"CQ_FBI"},"0000914":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0000915":{"cq":"CQ_FBI"},"0000918":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0000920":{"cq":"CQ_FBI"},"0000924":{"cq":"CQ_FBI"},"0000925":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0000926":{"cq":"CQ_FBI"},"0000931":{"cq":"CQ_FBI"},"0000932":{"cq":"CQ_FBI"},"0000939":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0000942":{"cq":"CQ_ECT"},"0000945":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0000949":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0000953":{"cq":"CQ_FBI"},"0000974":{"cq":"CQ_FBI"},"0000983":{"vsp":"VSP_ELB","cq":"CQ_ELB"},"0001001":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0001012":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0001013":{"cq":"CQ_ECT"},"0001016":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0001017":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0001021":{"cq":"CQ_ECT"},"0001044":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0001046":{"cq":"CQ_FBI"},"0001053":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0001054":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0001055":{"cq":"CQ_FBI"},"0001058":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0001073":{"cq":"CQ_FBI"},"0001074":{"cq":"CQ_FBI"},"0001077":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0001082":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0001091":{"vsp":"VSP_ELB","cq":"CQ_ELB"},"0001092":{"vsp":"VSP_ELB","cq":"CQ_ELB"},"0001094":{"cq":"CQ_ANS"},"0001096":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0001097":{"vsp":"VSP_ELB","cq":"CQ_ELB"},"0001106":{"cq":"CQ_VPO"},"0001108":{"cq":"CQ_FBI"},"0001110":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0001124":{"cq":"CQ_FBI"},"0001135":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0001361":{"cq":"CQ_FBI"},"0001366":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0001369":{"cq":"CQ_FBI"},"0001373":{"cq":"CQ_FBI"},"0001374":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0001379":{"cq":"CQ_FBI"},"0001380":{"cq":"CQ_FBI"},"0001381":{"cq":"CQ_FBI"},"0001384":{"cq":"CQ_FBI"},"0001386":{"cq":"CQ_FBI"},"0001387":{"cq":"CQ_FBI"},"0001389":{"cq":"CQ_FBI"},"0001392":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0001393":{"cq":"CQ_MON"},"0001396":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0001398":{"cq":"CQ_FBI"},"0001399":{"cq":"CQ_FBI"},"0001400":{"cq":"CQ_FBI"},"0001406":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0001414":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0001415":{"cq":"CQ_ECT"},"0001422":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0001426":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0001427":{"cq":"CQ_FBI"},"0001430":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0001431":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0001432":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0001433":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0001434":{"cq":"CQ_VPO"},"0001466":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0001467":{"cq":"CQ_FBI"},"0001469":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0001472":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0001474":{"cq":"CQ_FBI"},"0001475":{"cq":"CQ_FBI"},"0001476":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0001479":{"cq":"CQ_FBI"},"0001480":{"cq":"CQ_FBI"},"0001481":{"cq":"CQ_FBI"},"0001534":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0001560":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0001594":{"cq":"CQ_FBI"},"0001595":{"cq":"CQ_FBI"},"0001596":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0001597":{"cq":"CQ_FBI"},"0001598":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0001599":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0001600":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0001623":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0001642":{"cq":"CQ_FBI"},"0001647":{"cq":"CQ_FBI"},"0001648":{"cq":"CQ_FBI"},"0001655":{"cq":"CQ_ECT"},"0001671":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0001672":{"cq":"CQ_FBI"},"0001673":{"cq":"CQ_FBI"},"0001683":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0001705":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0001724":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0001725":{"cq":"CQ_FBI"},"0001735":{"cq":"CQ_FBI"},"0001756":{"cq":"CQ_FBI"},"0001771":{"cq":"CQ_FBI"},"0001772":{"cq":"CQ_FBI"},"0001782":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0001797":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0001798":{"cq":"CQ_FBI"},"0001806":{"cq":"CQ_FBI"},"0001807":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0001824":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0001825":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0001856":{"cq":"CQ_FBI"},"0001862":{"cq":"CQ_FBI"},"0001864":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0001866":{"cq":"CQ_FBI"},"0001867":{"cq":"CQ_FBI"},"0001871":{"cq":"CQ_FBI"},"0001872":{"cq":"CQ_FBI"},"0001873":{"cq":"CQ_FBI"},"0001874":{"cq":"CQ_FBI"},"0001879":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0001880":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0001881":{"cq":"CQ_FBI"},"0001882":{"cq":"CQ_FBI"},"0001883":{"cq":"CQ_FBI"},"0001886":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0001893":{"cq":"CQ_FBI"},"0001894":{"cq":"CQ_FBI"},"0001902":{"cq":"CQ_ECT"},"0001909":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0001910":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0001916":{"cq":"CQ_MON"},"0001926":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0001928":{"vsp":"VSP_ELB","cq":"CQ_ELB"},"0001955":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0001974":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0001977":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0001989":{"cq":"CQ_FBI"},"0001993":{"cq":"CQ_ECT"},"0001994":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0001999":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0002014":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0002017":{"cq":"CQ_FBI"},"0002020":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0002021":{"cq":"CQ_FBI"},"0002022":{"cq":"CQ_FBI"},"0002024":{"cq":"CQ_FBI"},"0002032":{"cq":"CQ_FBI"},"0002034":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0002040":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0002046":{"cq":"CQ_FBI"},"0002047":{"cq":"CQ_FBI"},"0002051":{"cq":"CQ_FBI"},"0002052":{"cq":"CQ_FBI"},"0002053":{"cq":"CQ_FBI"},"0002054":{"cq":"CQ_FBI"},"0002055":{"cq":"CQ_FBI"},"0002069":{"cq":"CQ_FBI"},"0002070":{"cq":"CQ_FBI"},"0002071":{"cq":"CQ_FBI"},"0002072":{"cq":"CQ_FBI"},"0002073":{"cq":"CQ_FBI"},"0002083":{"cq":"CQ_FBI"},"0002148":{"cq":"CQ_FBI"},"0002191":{"cq":"CQ_FBI"},"0002199":{"cq":"CQ_FBI"},"0002202":{"cq":"CQ_FBI"},"0002203":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0002205":{"cq":"CQ_ECT"},"0002223":{"cq":"CQ_FBI"},"0002224":{"cq":"CQ_FBI"},"0002234":{"cq":"CQ_ECT"},"0002256":{"cq":"CQ_FBI"},"0002262":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0002326":{"cq":"CQ_FBI"},"0002327":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0002328":{"cq":"CQ_FBI"},"0002333":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0002334":{"cq":"CQ_ECT"},"0002399":{"cq":"CQ_FBI"},"0002400":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0002405":{"cq":"CQ_FBI"},"0002417":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0002452":{"cq":"CQ_ECT"},"0002551":{"cq":"CQ_MON"},"0002552":{"cq":"CQ_MON"},"0002553":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0002567":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0002636":{"cq":"CQ_FBI"},"0002637":{"cq":"CQ_FBI"},"0002639":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0002640":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0002650":{"cq":"CQ_ECT"},"0002672":{"vsp":"VSP_ELB","cq":"CQ_ELB"},"0002684":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0002693":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0002706":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0002711":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0002717":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0002719":{"cq":"CQ_FBI"},"0002720":{"cq":"CQ_FBI"},"0002721":{"cq":"CQ_ECT"},"0002738":{"cq":"CQ_FBI"},"0002739":{"cq":"CQ_FBI"},"0002741":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0002742":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0002751":{"cq":"CQ_ANS"},"0002752":{"cq":"CQ_MON"},"0002765":{"cq":"CQ_FBI"},"0002766":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0002767":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0002769":{"cq":"CQ_FBI"},"0002772":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0002776":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0002788":{"cq":"CQ_FBI"},"0002828":{"cq":"CQ_VPO"},"0002831":{"cq":"CQ_VPO"},"0002837":{"cq":"CQ_ECT"},"0002845":{"cq":"CQ_VPO"},"0002846":{"cq":"CQ_ANS"},"0002847":{"cq":"CQ_MON"},"0002872":{"cq":"CQ_FBI"},"0002904":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0002906":{"cq":"CQ_FBI"},"0002914":{"vsp":"VSP_ELB","cq":"CQ_ELB"},"0002947":{"cq":"CQ_MON"},"0002949":{"cq":"CQ_MON"},"0002952":{"cq":"CQ_MON"},"0002954":{"cq":"CQ_MON"},"0002955":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0002957":{"cq":"CQ_MON"},"0002963":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0002973":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0002984":{"cq":"CQ_FBI"},"0002985":{"cq":"CQ_FBI"},"0002986":{"cq":"CQ_FBI"},"0002987":{"cq":"CQ_FBI"},"0002989":{"vsp":"VSP_ELB","cq":"CQ_ELB"},"0002990":{"cq":"CQ_FBI"},"0002991":{"cq":"CQ_FBI"},"0002992":{"cq":"CQ_FBI"},"0002995":{"cq":"CQ_ECT"},"0002999":{"cq":"CQ_ECT"},"0003001":{"cq":"CQ_FBI"},"0003027":{"cq":"CQ_FBI"},"0003029":{"cq":"CQ_VPO"},"0003103":{"cq":"CQ_ECT"},"0003129":{"cq":"CQ_VPO"},"0003130":{"cq":"CQ_VPO"},"0003133":{"cq":"CQ_VPO"},"0003135":{"cq":"CQ_VPO"},"0003143":{"cq":"CQ_VPO"},"0003150":{"cq":"CQ_FBI"},"0003187":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0003226":{"cq":"CQ_ECT"},"0003235":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0003236":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0003252":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0003260":{"cq":"CQ_VPO"},"0003261":{"cq":"CQ_VPO"},"0003262":{"cq":"CQ_VPO"},"0003263":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0003264":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0003272":{"cq":"CQ_VPO"},"0003291":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0003316":{"cq":"CQ_VPO"},"0003318":{"cq":"CQ_VPO"},"0003325":{"cq":"CQ_VPO"},"0003366":{"cq":"CQ_VPO"},"0003378":{"cq":"CQ_ANS"},"0003379":{"cq":"CQ_MON"},"0003396":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0003399":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0003405":{"cq":"CQ_FBI"},"0003406":{"cq":"CQ_FBI"},"0003407":{"cq":"CQ_FBI"},"0003408":{"cq":"CQ_FBI"},"0003409":{"cq":"CQ_FBI"},"0003410":{"cq":"CQ_FBI"},"0003419":{"cq":"CQ_FBI"},"0003420":{"cq":"CQ_FBI"},"0003432":{"cq":"CQ_VPO"},"0003434":{"cq":"CQ_FBI"},"0003435":{"cq":"CQ_FBI"},"0003445":{"cq":"CQ_FBI"},"0003455":{"cq":"CQ_FBI"},"0003457":{"cq":"CQ_FBI"},"0003458":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0003459":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0003460":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0003461":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0003462":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0003463":{"cq":"CQ_VPO"},"0003471":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0003472":{"cq":"CQ_VPO"},"0003485":{"cq":"CQ_VPO"},"0003499":{"vsp":"VSP_ELB","cq":"CQ_ELB"},"0003505":{"cq":"CQ_VPO"},"0003565":{"cq":"CQ_VPO"},"0003572":{"cq":"CQ_VPO"},"0003585":{"cq":"CQ_FBI"},"0003586":{"cq":"CQ_FBI"},"0003587":{"cq":"CQ_FBI"},"0003588":{"cq":"CQ_FBI"},"0003593":{"cq":"CQ_FBI"},"0003598":{"cq":"CQ_FBI"},"0003599":{"cq":"CQ_FBI"},"0003600":{"cq":"CQ_FBI"},"0003612":{"cq":"CQ_FBI"},"0003619":{"cq":"CQ_VPO"},"0003625":{"cq":"CQ_FBI"},"0003626":{"cq":"CQ_FBI"},"0003627":{"cq":"CQ_FBI"},"0003628":{"cq":"CQ_FBI"},"0003629":{"cq":"CQ_FBI"},"0003630":{"cq":"CQ_VPO"},"0003647":{"cq":"CQ_FBI"},"0003660":{"cq":"CQ_VPO"},"0003675":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0003676":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0003677":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0003678":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0003679":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0003680":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0003730":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0003737":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0003739":{"cq":"CQ_VPO"},"0003741":{"cq":"CQ_VPO"},"0003770":{"cq":"CQ_VPO"},"0003774":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0003776":{"cq":"CQ_VPO"},"0003782":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0003783":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0003827":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0003837":{"cq":"CQ_FBI"},"0003859":{"cq":"CQ_VPO"},"0003891":{"cq":"CQ_VPO"},"0003892":{"cq":"CQ_FBI"},"0003896":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0003920":{"cq":"CQ_VPO"},"0003922":{"cq":"CQ_FBI"},"0003923":{"cq":"CQ_FBI"},"0003960":{"cq":"CQ_FBI"},"0003964":{"cq":"CQ_VPO"},"0003970":{"cq":"CQ_FBI"},"0003971":{"cq":"CQ_VPO"},"0004003":{"cq":"CQ_ECT"},"0004038":{"cq":"CQ_ECT"},"0004142":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0004143":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0004144":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0004145":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0004146":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0004147":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0004148":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0004149":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0004181":{"cq":"CQ_ECT"},"0004188":{"cq":"CQ_ECT"},"0004193":{"cq":"CQ_FBI"},"0004194":{"cq":"CQ_FBI"},"0004195":{"cq":"CQ_FBI"},"0004198":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0004199":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0004200":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0004204":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0004205":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0004206":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0004253":{"cq":"CQ_VPO"},"0004254":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0004255":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0004268":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0004274":{"cq":"CQ_VPO"},"0004275":{"cq":"CQ_VPO"},"0004277":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0004369":{"cq":"CQ_MON"},"0004382":{"cq":"CQ_VPO"},"0004395":{"cq":"CQ_VPO"},"0004411":{"cq":"CQ_FBI"},"0004487":{"cq":"CQ_FBI"},"0004519":{"cq":"CQ_ECT"},"0004541":{"cq":"CQ_VPO"},"0004580":{"cq":"CQ_FBI"},"0004581":{"cq":"CQ_FBI"},"0004585":{"cq":"CQ_VPO"},"0004596":{"cq":"CQ_MON"},"0004597":{"cq":"CQ_MON"},"0004598":{"cq":"CQ_MON"},"0004599":{"cq":"CQ_MON"},"0004612":{"cq":"CQ_VPO"},"0004622":{"vsp":"VSP_ELB","cq":"CQ_ELB"},"0004623":{"vsp":"VSP_ELB","cq":"CQ_ELB"},"0004624":{"vsp":"VSP_ELB","cq":"CQ_ELB"},"0004626":{"cq":"CQ_FBI"},"0004632":{"cq":"CQ_ANS"},"0004634":{"cq":"CQ_FBI"},"0004635":{"cq":"CQ_FBI"},"0004636":{"cq":"CQ_FBI"},"0004641":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0004658":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0004663":{"cq":"CQ_FBI"},"0004667":{"cq":"CQ_ECT"},"0004675":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0004685":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0004698":{"vsp":"VSP_ELB","cq":"CQ_ELB"},"0004701":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0004702":{"cq":"CQ_FBI"},"0004704":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0004705":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0004706":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0004747":{"cq":"CQ_FBI"},"0004752":{"cq":"CQ_FBI"},"0004766":{"cq":"CQ_VPO"},"0004769":{"cq":"CQ_FBI"},"0004770":{"cq":"CQ_FBI"},"0004822":{"cq":"CQ_FBI"},"0004823":{"cq":"CQ_FBI"},"0004824":{"cq":"CQ_FBI"},"0004825":{"cq":"CQ_FBI"},"0004826":{"cq":"CQ_FBI"},"0004874":{"cq":"CQ_VPO"},"0004888":{"cq":"CQ_VPO"},"0004893":{"cq":"CQ_ANS"},"0004894":{"cq":"CQ_MON"},"0004958":{"cq":"CQ_VPO"},"0004991":{"cq":"CQ_VPO"},"0004999":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0005012":{"cq":"CQ_VPO"},"0005013":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0005014":{"cq":"CQ_VPO"},"0005018":{"cq":"CQ_VPO"},"0005039":{"cq":"CQ_VPO"},"0005049":{"cq":"CQ_VPO"},"0005086":{"cq":"CQ_FBI"},"0005091":{"cq":"CQ_FBI"},"0005092":{"cq":"CQ_FBI"},"0005093":{"cq":"CQ_FBI"},"0005094":{"cq":"CQ_FBI"},"0005095":{"cq":"CQ_FBI"},"0005096":{"cq":"CQ_FBI"},"0005097":{"cq":"CQ_FBI"},"0005098":{"cq":"CQ_FBI"},"0005101":{"cq":"CQ_VPO"},"0005106":{"cq":"CQ_VPO"},"0005107":{"cq":"CQ_VPO"},"0005144":{"cq":"CQ_VPO"},"0005151":{"cq":"CQ_VPO"},"0005187":{"cq":"CQ_VPO"},"0005203":{"cq":"CQ_VPO"},"0005226":{"cq":"CQ_FBI"},"0005227":{"cq":"CQ_FBI"},"0005233":{"cq":"CQ_VPO"},"0005246":{"cq":"CQ_VPO"},"0005248":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0005280":{"cq":"CQ_VPO"},"0005299":{"cq":"CQ_VPO"},"0005337":{"cq":"CQ_VPO"},"0005338":{"cq":"CQ_VPO"},"0005350":{"cq":"CQ_VPO"},"0005355":{"cq":"CQ_VPO"},"0005372":{"cq":"CQ_VPO"},"0005389":{"cq":"CQ_VPO"},"0005427":{"cq":"CQ_VPO"},"0005433":{"cq":"CQ_FBI"},"0005442":{"cq":"CQ_VPO"},"0005447":{"cq":"CQ_VPO"},"0005450":{"cq":"CQ_VPO"},"0005486":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0005492":{"cq":"CQ_VPO"},"0005506":{"cq":"CQ_VPO"},"0005606":{"cq":"CQ_VPO"},"0005628":{"cq":"CQ_VPO"},"0005629":{"cq":"CQ_VPO"},"0005630":{"cq":"CQ_VPO"},"0005662":{"cq":"CQ_VPO"},"0005665":{"cq":"CQ_VPO"},"0005672":{"cq":"CQ_VPO"},"0005675":{"cq":"CQ_VPO"},"0005690":{"cq":"CQ_VPO"},"0005693":{"cq":"CQ_VPO"},"0005699":{"cq":"CQ_VPO"},"0005709":{"cq":"CQ_VPO"},"0005720":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0005721":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0005722":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0005723":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0005724":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0005725":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0005784":{"cq":"CQ_VPO"},"0005785":{"cq":"CQ_VPO"},"0005790":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0005801":{"cq":"CQ_FBI"},"0005814":{"cq":"CQ_VPO"},"0005819":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0005838":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0005847":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0005860":{"cq":"CQ_VPO"},"0005861":{"cq":"CQ_VPO"},"0005876":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0005882":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0005891":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0005901":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0005910":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0005921":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0005942":{"cq":"CQ_VPO"},"0005955":{"cq":"CQ_VPO"},"0005956":{"cq":"CQ_VPO"},"0005963":{"cq":"CQ_VPO"},"0005964":{"cq":"CQ_VPO"},"0005975":{"cq":"CQ_VPO"},"0005983":{"cq":"CQ_VPO"},"0006052":{"cq":"CQ_VPO"},"0006057":{"cq":"CQ_VPO"},"0006092":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0006093":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0006097":{"cq":"CQ_VPO"},"0006098":{"cq":"CQ_VPO"},"0006106":{"cq":"CQ_ECT"},"0006115":{"cq":"CQ_VPO"},"0006644":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0006161":{"cq":"CQ_FBI"},"0006162":{"cq":"CQ_FBI"},"0006163":{"cq":"CQ_FBI"},"0006180":{"cq":"CQ_FBI"},"0006186":{"cq":"CQ_FBI"},"0006190":{"cq":"CQ_FBI"},"0006191":{"cq":"CQ_FBI"},"0006192":{"cq":"CQ_FBI"},"0006204":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0006205":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0006206":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0006209":{"cq":"CQ_FBI"},"0006210":{"cq":"CQ_FBI"},"0006211":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0006212":{"cq":"CQ_FBI"},"0006264":{"cq":"CQ_VPO"},"0006271":{"cq":"CQ_VPO"},"0006291":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0006303":{"cq":"CQ_FBI"},"0006348":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0006349":{"cq":"CQ_VPO"},"0006357":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0006366":{"vsp":"VSP_ELB","cq":"CQ_ELB"},"0006370":{"vsp":"VSP_ELB","cq":"CQ_ELB"},"0006371":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0006376":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0006378":{"cq":"CQ_FBI"},"0006388":{"cq":"CQ_ECT"},"0006393":{"cq":"CQ_ECT"},"0006414":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0006415":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0006420":{"cq":"CQ_FBI"},"0006426":{"cq":"CQ_FBI"},"0006429":{"cq":"CQ_FBI"},"0006442":{"cq":"CQ_FBI"},"0006453":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0006460":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0006470":{"cq":"CQ_ECT"},"0006475":{"cq":"CQ_ECT"},"0006481":{"cq":"CQ_ECT"},"0006491":{"cq":"CQ_ECT"},"0006496":{"cq":"CQ_ECT"},"0006503":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0006506":{"cq":"CQ_ECT"},"0006512":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0006514":{"cq":"CQ_ECT"},"0006518":{"cq":"CQ_FBI"},"0006537":{"cq":"CQ_FBI"},"0006593":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0006594":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0006595":{"vsp":"VSP_ELB","cq":"CQ_ELB"},"0006596":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0006597":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0006599":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0006600":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0006601":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0006602":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0006603":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0006611":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0006619":{"cq":"CQ_MON"},"0006620":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0006621":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0006622":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0006623":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0006624":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0006625":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0006626":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0006627":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0006628":{"cq":"CQ_ECT"},"0006645":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0006646":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0006647":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0006648":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0006649":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0006650":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0006651":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0006652":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0006653":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0006654":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0006655":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0006656":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0006657":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0006658":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0006659":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0006660":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0006661":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0006662":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0006663":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0006664":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0006665":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0006666":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0006667":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0006668":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0006669":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0006672":{"cq":"CQ_MON"},"0006675":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0006681":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0006688":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0006698":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0006699":{"cq":"CQ_FBI"},"0006800":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0006852":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0006131":{"cq":"CQ_ECT"},"0006860":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0006864":{"cq":"CQ_FBI"},"0006900":{"cq":"CQ_FBI"},"0006901":{"cq":"CQ_FBI"},"0006902":{"cq":"CQ_FBI"},"0006957":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0006975":{"cq":"CQ_FBI"},"0006986":{"cq":"CQ_FBI"},"0006988":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0006996":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0007073":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0007074":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0007075":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0007076":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0007077":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0007078":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0007080":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0007084":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0007085":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0007099":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0007101":{"cq":"CQ_MON"},"0007102":{"cq":"CQ_MON"},"0007103":{"cq":"CQ_MON"},"0007104":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0007107":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0007127":{"cq":"CQ_FBI"},"0007129":{"cq":"CQ_FBI"},"0007136":{"cq":"CQ_FBI"},"0007198":{"cq":"CQ_FBI"},"0007201":{"cq":"CQ_ANS"},"0007202":{"cq":"CQ_FBI"},"0007205":{"cq":"CQ_FBI"},"0007214":{"cq":"CQ_ECT"},"0007217":{"cq":"CQ_ECT"},"0007296":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0007297":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0007305":{"cq":"CQ_ECT"},"0007312":{"cq":"CQ_ECT"},"0007329":{"cq":"CQ_FBI"},"0007330":{"cq":"CQ_FBI"},"0007334":{"cq":"CQ_FBI"},"0007335":{"cq":"CQ_FBI"},"0007336":{"cq":"CQ_FBI"},"0007337":{"cq":"CQ_FBI"},"0007338":{"cq":"CQ_FBI"},"0007339":{"cq":"CQ_FBI"},"0007340":{"cq":"CQ_FBI"},"0007341":{"cq":"CQ_FBI"},"0007346":{"cq":"CQ_FBI"},"0007389":{"vsp":"VSP_ELB","cq":"CQ_ELB"},"0007406":{"cq":"CQ_FBI"},"0007407":{"cq":"CQ_FBI"},"0007408":{"vsp":"VSP_ELB","cq":"CQ_ELB"},"0007409":{"cq":"CQ_FBI"},"0007410":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0007411":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0007412":{"cq":"CQ_FBI"},"0007417":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0007421":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0007422":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0007426":{"cq":"CQ_FBI"},"0007449":{"cq":"CQ_FBI"},"0007450":{"cq":"CQ_FBI"},"0007458":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0007473":{"cq":"CQ_FBI"},"0007487":{"cq":"CQ_ECT"},"0007491":{"cq":"CQ_FBI"},"0007492":{"cq":"CQ_FBI"},"0007493":{"cq":"CQ_FBI"},"0007494":{"cq":"CQ_FBI"},"0007495":{"cq":"CQ_FBI"},"0007508":{"cq":"CQ_FBI"},"0007510":{"cq":"CQ_FBI"},"0007515":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0007517":{"cq":"CQ_MON"},"0007522":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0007526":{"cq":"CQ_FBI"},"0007530":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0007531":{"cq":"CQ_FBI"},"0007560":{"cq":"CQ_FBI"},"0007566":{"cq":"CQ_FBI"},"0007567":{"cq":"CQ_FBI"},"0007591":{"cq":"CQ_FBI"},"0007592":{"cq":"CQ_FBI"},"0007601":{"cq":"CQ_ECT"},"0007607":{"cq":"CQ_ECT"},"0007613":{"cq":"CQ_ECT"},"0007619":{"cq":"CQ_ECT"},"0007629":{"cq":"CQ_ECT"},"0007637":{"cq":"CQ_ECT"},"0007643":{"cq":"CQ_ECT"},"0007649":{"cq":"CQ_ECT"},"0007653":{"cq":"CQ_ECT"},"0007657":{"cq":"CQ_FBI"},"0007658":{"cq":"CQ_FBI"},"0007659":{"cq":"CQ_FBI"},"0007666":{"cq":"CQ_ECT"},"0007669":{"cq":"CQ_ECT"},"0007714":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0007715":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0007716":{"cq":"CQ_MON"},"0007755":{"cq":"CQ_ECT"},"0006566":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0007762":{"cq":"CQ_ECT"},"0007766":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0007767":{"cq":"CQ_ECT"},"0007775":{"cq":"CQ_ECT"},"0007917":{"cq":"CQ_ECT"},"0007925":{"cq":"CQ_ECT"},"0007933":{"cq":"CQ_ECT"},"0007941":{"cq":"CQ_ECT"},"0007954":{"cq":"CQ_FBI"},"0007955":{"cq":"CQ_FBI"},"0007958":{"cq":"CQ_ECT"},"0007964":{"cq":"CQ_FBI"},"0007965":{"cq":"CQ_ECT"},"0007978":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0007980":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0007982":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0007984":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0007986":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0007988":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0007990":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0007992":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0007994":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0007996":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0008003":{"cq":"CQ_ECT"},"0008009":{"cq":"CQ_ECT"},"0008016":{"cq":"CQ_FBI"},"0008017":{"cq":"CQ_FBI"},"0008018":{"cq":"CQ_FBI"},"0008019":{"cq":"CQ_FBI"},"0008020":{"cq":"CQ_FBI"},"0008021":{"cq":"CQ_FBI"},"0008022":{"cq":"CQ_FBI"},"0008023":{"cq":"CQ_FBI"},"0008025":{"cq":"CQ_FBI"},"0008034":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0008035":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0008036":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0008037":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0008038":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0008039":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0008040":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0008041":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0008042":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0008043":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0008063":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0008107":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0008108":{"cq":"CQ_ECT"},"0008121":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0008126":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0008155":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0008183":{"cq":"CQ_ECT"},"0008201":{"cq":"CQ_FBI"},"0008202":{"cq":"CQ_FBI"},"0008204":{"cq":"CQ_MON"},"0008205":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0008296":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0008298":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0008407":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0008408":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0008409":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0008410":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0008411":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0008412":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0008413":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0008414":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0008415":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0008416":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0008417":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0008418":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0008419":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0008420":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0008421":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0008422":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0008447":{"cq":"CQ_FBI"},"0008448":{"cq":"CQ_FBI"},"0008449":{"cq":"CQ_FBI"},"0008450":{"cq":"CQ_FBI"},"0008451":{"cq":"CQ_FBI"},"0008452":{"cq":"CQ_FBI"},"0008509":{"cq":"CQ_FBI"}};
+
+let DB={};let cur=null;let curVerif=null;let dirty=false;const saved={};
+
+// Database incorporato e compresso (gzip+base64) — nessun file esterno necessari
+
+async function loadPresets(){
+  try{
+    const asl=currentUser?.profile?.asl||'ASL Benevento';
+    const aslKey=asl.toLowerCase().replace('asl ','');
+    const {data:{session}}=await supa.auth.getSession();
+    const token=session?.access_token;
+    const headers={'apikey':SUPA_KEY,'Authorization':'Bearer '+token};
+    // Carica preset VSE
+    const rVse=await fetch(`${SUPA_URL}/rest/v1/preset_vse_${aslKey}?select=codice,dati&limit=10000`,{headers});
+    if(rVse.ok){
+      const rows=await rVse.json();
+      const p={};rows.forEach(r=>{p[r.codice]=r.dati;});
+      if(!PRESETS)window.PRESETS={};
+      PRESETS['PRESET_VSE']=p;
+    }
+    // Carica preset MP
+    const rMp=await fetch(`${SUPA_URL}/rest/v1/preset_mp_${aslKey}?select=codice,dati&limit=10000`,{headers});
+    if(rMp.ok){
+      const rows=await rMp.json();
+      const p={};rows.forEach(r=>{p[r.codice]=r.dati;});
+      PRESETS['PRESET_MP']=p;
+    }
+    // Carica preset VSP
+    const rVsp=await fetch(`${SUPA_URL}/rest/v1/preset_vsp_${aslKey}?select=codice,tipo,dati&limit=10000`,{headers});
+    if(rVsp.ok){
+      const rows=await rVsp.json();
+      rows.forEach(r=>{
+        const key='PRESET_'+r.tipo;
+        if(!PRESETS[key])PRESETS[key]={};
+        PRESETS[key][r.codice]=r.dati;
+      });
+    }
+    // Carica preset CQ
+    const rCq=await fetch(`${SUPA_URL}/rest/v1/preset_cq_${aslKey}?select=codice,tipo,dati&limit=10000`,{headers});
+    if(rCq.ok){
+      const rows=await rCq.json();
+      rows.forEach(r=>{
+        const key='PRESET_'+r.tipo;
+        if(!PRESETS[key])PRESETS[key]={};
+        PRESETS[key][r.codice]=r.dati;
+      });
+    }
+    console.log('Preset caricati da Supabase');
+  }catch(e){
+    console.error('Preset error:',e);
+  }
+}
+
+
+async function initDB(){
+  const bar=document.getElementById('db-bar');
+  try{
+    bar.textContent='Caricamento database...';
+    const asl=currentUser?.profile?.asl||'ASL Benevento';
+    const tabella='dispositivi_'+asl.toLowerCase().replace('asl ','');
+    const {data:{session}}=await supa.auth.getSession();
+    const token=session?.access_token;
+    const resp=await fetch(
+      `${SUPA_URL}/rest/v1/${tabella}?select=codice,descrizione_classe,costruttore,modello,matricola,presidio,reparto,verifiche&limit=10000`,
+      {headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+token}}
+    );
+    if(!resp.ok)throw new Error('HTTP '+resp.status);
+    const rows=await resp.json();
+    DB={};
+    const VERIF_MAP_NEW={};
+    rows.forEach(r=>{
+      DB[r.codice]={
+        c:r.codice,
+        n:r.descrizione_classe||'',
+        b:r.costruttore||'',
+        m:r.modello||'',
+        mat:r.matricola||'',
+        loc:r.presidio||'',
+        rep:r.reparto||''
+      };
+      if(r.verifiche){
+        const parts=r.verifiche.split(',').map(s=>s.trim());
+        const entry={};
+        parts.forEach(p=>{
+          if(p.startsWith('VSP_'))entry.vsp=p;
+          else if(p.startsWith('CQ_'))entry.cq=p;
+        });
+        if(Object.keys(entry).length)VERIF_MAP_NEW[r.codice]=entry;
+      }
+    });
+    // Sovrascrivi VERIF_MAP globale
+    Object.keys(VERIF_MAP).forEach(k=>delete VERIF_MAP[k]);
+    Object.assign(VERIF_MAP,VERIF_MAP_NEW);
+    bar.textContent='Database pronto — '+Object.keys(DB).length.toLocaleString()+' dispositivi';
+    bar.className='db-bar ready';
+    await loadPresets();
+  }catch(e){
+    console.error('DB error:',e);
+    bar.textContent='Errore caricamento database: '+e.message;
+    bar.className='db-bar error';
+  }
+}
+
+function onSearch(){const q=document.getElementById('search-input').value.trim();if(q.length>=2)doSearch();else document.getElementById('results').innerHTML='';}
+
+function doSearch(){
+  const q=document.getElementById('search-input').value.trim().toLowerCase();
+  if(!q||!Object.keys(DB).length)return;
+  const res=[];
+  const pad=q.replace(/\D/g,'').padStart(7,'0');
+  if(DB[pad])res.push(DB[pad]);
+  for(const d of Object.values(DB)){
+    if(res.length>=7)break;
+    if(d===res[0])continue;
+    if(d.c.includes(q)||d.n.toLowerCase().includes(q)||d.b.toLowerCase().includes(q))res.push(d);
+  }
+  const box=document.getElementById('results');
+  if(!res.length){box.innerHTML='<div class="not-found">Nessun apparecchio trovato</div>';return;}
+  box.innerHTML=res.map(d=>{
+    const s=saved[d.c];
+    const vm=VERIF_MAP[d.c];
+    const extraTags=vm?[vm.vsp,vm.cq].filter(Boolean).map(t=>`<span class="r-tag part">${t}</span>`).join(''):'';
+    const doneTags=s?`<span class="r-tag done">${[s.vse_saved?'VSE':'',s.mp_saved?'MP':''].filter(Boolean).join('+')}</span>`:'';
+    return`<div class="result-item" onclick="sel('${d.c}')">
+      <span class="r-cod">${d.c}</span>
+      <span class="r-nome">${d.n.toLowerCase()}</span>
+      <span class="r-stato">${doneTags}${extraTags}</span>
+      <span class="r-loc">${(d.pre||'').split(' ')[0]}</span>
+    </div>`;
+  }).join('');
+}
+
+function sel(cod){
+  const d=DB[cod];if(!d)return;
+  cur=d;dirty=false;
+  // Get verif info from map (fallback: VS+MP only)
+  curVerif=VERIF_MAP[cod]||null;
+  document.getElementById('results').innerHTML='';
+  document.getElementById('search-input').value='';
+  document.getElementById('form-area').style.display='block';
+  fillVSE(d);
+  setTimeout(()=>fillVSEPreset(cur.c),50);
+  fillMPHeader(d);
+  resetMPPoints();
+  setTimeout(()=>fillMPPreset(cur.c),50);
+  resetVSP();
+  resetCQ();
+  // Build VSP/CQ if needed
+  if(curVerif&&curVerif.vsp){buildVSPPoints(curVerif.vsp);fillVSPHeader(cur);setTimeout(()=>fillVSPPreset(cur.c,curVerif.vsp),50);}
+  if(curVerif&&curVerif.cq){buildCQPoints(curVerif.cq);fillCQHeader(cur);setTimeout(()=>fillCQPreset(cur.c,curVerif.cq),50);}
+  updateTabs();
+  switchTab('vse');
+  // Restore saved if exists
+  if(saved[cod]){
+    if(saved[cod].vse_saved)restoreVSE(saved[cod]);
+    if(saved[cod].mp_saved)loadMPSaved(saved[cod]);
+    if(saved[cod].vsp_saved)loadVSPSaved(saved[cod]);
+    if(saved[cod].cq_saved)loadCQSaved(saved[cod]);
+    updateTabIndicators();
+  }
+  document.getElementById('form-area').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function updateTabs(){
+  const hasCQ=!!(curVerif&&curVerif.cq);
+  const hasVSP=!!(curVerif&&curVerif.vsp);
+  const cqFoglio=hasCQ?curVerif.cq:'';
+  const vspFoglio=hasVSP?curVerif.vsp:'';
+  // Rebuild tab bar
+  const tabBar=document.querySelector('.tabs');
+  tabBar.innerHTML=`
+    <button class="tab active" id="tab-vse" onclick="switchTab('vse')">VSE</button>
+    <button class="tab" id="tab-mp" onclick="switchTab('mp')">MP</button>
+    ${hasVSP?`<button class="tab" id="tab-vsp" onclick="switchTab('vsp')">${vspFoglio||'VSP'}</button>`:''}
+    ${hasCQ?`<button class="tab" id="tab-cq" onclick="switchTab('cq')">${cqFoglio||'CQ'}</button>`:''}
+  `;
+}
+
+function fillMPHeader(d){
+  const t=new Date().toISOString().split('T')[0];
+  document.getElementById('mp-codice').value=d.c;
+  document.getElementById('mp-data').value=t;
+  document.getElementById('mp-note').value='-';
+  document.getElementById('mp-data2').value=t;
+  document.getElementById('mp-tecnico').value=d.ver||'';
+}
+
+const sv=(id,v)=>{const e=document.getElementById(id);if(e&&v!=null)e.value=v;};
+const sr=(g,v)=>{document.querySelectorAll('#'+g+' .rb').forEach(b=>b.classList.toggle('sel',b.dataset.v===v));};
+const gr=(g)=>{const s=document.querySelector('#'+g+' .rb.sel');return s?s.dataset.v:'';};
+const gv=(id)=>{const e=document.getElementById(id);return e?e.value:'';};
+const lv=(id)=>document.getElementById(id).textContent;
+const sl=(id,v)=>{if(v)document.getElementById(id).textContent=v;};
+
+function fillVSE(d){
+  const t=new Date().toISOString().split('T')[0];
+  sv('f-codice',d.c);sv('f-data',t);sv('f-note','-');
+  sv('f-ten',d.ten);sr('rg-tdp',d.tdp);sv('f-frq',d.frq);sr('rg-fdp',d.fdp);
+  sv('f-pot',d.pot);sr('rg-pdp',d.pdp);sv('f-mar',d.mar);sv('f-fud',d.fud);sv('f-fur',d.fur);
+  sr('rg-cls',d.cls);sr('rg-cdp',d.cdp);sr('rg-pa',d.pat);sr('rg-padp',d.pad);
+  sr('rg-fnz',d.fnz);sr('rg-def',d.def);
+  sv('f-spi',d.spi);sr('rg-smo',d.smo);sv('f-msp',d.msp);sr('rg-cav',d.cav);
+  sr('rg-icv',d.icv);sr('rg-isp',d.isp);sr('rg-int',d.int);sv('f-pdc',d.pdc);
+  sr('rg-icn',d.icn);sr('rg-prc',d.prc);sr('rg-icd',d.icd);
+  sr('rg-mus',d.mus);sr('rg-mse',d.mse);sv('f-nag',d.nag);
+  sr('rg-clm',d.clm);sv('f-tms',d.tms);sv('f-cor',d.cor);
+  sl('lim-tr',d.trl);sv('f-trm',d.trm);
+  sl('lim-pn',d.pnl);sv('f-pnm',d.pnm);
+  sl('lim-pi',d.pil);sv('f-pim',d.pim);
+  sl('lim-pnbf',d.pbl);sv('f-pbm',d.pbm);
+  sl('lim-pibf',d.ibl);sv('f-ibm',d.ibm);
+  sl('lim-pncf',d.pcl);sv('f-pcm',d.pcm);
+  sl('lim-picf',d.icl);sv('f-icm',d.icm);
+  sG(d.giu||'POSITIVO');sr('rg-vt',d.vt);sr('rg-vd',d.vd);sv('f-mot',d.mot);
+  sv('f-str',d.str);sv('f-nrs',d.nrs);sv('f-ver',d.ver);
+  sv('f-dat2',t);sv('f-vrc',d.vrc);sv('f-sct',d.sct);
+  document.getElementById('dev-cod').textContent=d.c;
+  document.getElementById('dev-nom').textContent=d.n.toLowerCase();
+  document.getElementById('dev-inf').textContent=d.b+' · '+d.m;
+  const loc=document.getElementById('dev-loc');
+  if(d.pre){loc.textContent='📍 '+d.pre+(d.sed?' — '+d.sed:'');loc.style.display='inline-block';}
+  else loc.style.display='none';
+  uM();
+  ['f-trm','f-pnm','f-pim'].forEach((id,i)=>cv(id,['lim-tr','lim-pn','lim-pi'][i],['e-tr','e-pn','e-pi'][i]));
+  uP();
+}
+
+function restoreVSE(rec){
+  sv('f-data',rec.data);sv('f-note',rec.note);
+  sv('f-ten',rec.ten);sr('rg-tdp',rec.tdp);sv('f-frq',rec.frq);sr('rg-fdp',rec.fdp);
+  sv('f-pot',rec.pot);sr('rg-pdp',rec.pdp);sv('f-mar',rec.mar);sv('f-fud',rec.fud);sv('f-fur',rec.fur);
+  sr('rg-cls',rec.cls);sr('rg-cdp',rec.cdp);sr('rg-pa',rec.pat);sr('rg-padp',rec.pad);
+  sr('rg-fnz',rec.fnz);sr('rg-def',rec.def);
+  sv('f-spi',rec.spi);sr('rg-smo',rec.smo);sv('f-msp',rec.msp);sr('rg-cav',rec.cav);
+  sr('rg-icv',rec.icv);sr('rg-isp',rec.isp);sr('rg-int',rec.int);sv('f-pdc',rec.pdc);
+  sr('rg-icn',rec.icn);sr('rg-prc',rec.prc);sr('rg-icd',rec.icd);
+  sr('rg-mus',rec.mus);sr('rg-mse',rec.mse);sv('f-nag',rec.nag);
+  sr('rg-clm',rec.clm);sv('f-tms',rec.tms);sv('f-cor',rec.cor);
+  sv('f-trm',rec.trm);sv('f-pnm',rec.pnm);sv('f-pim',rec.pim);
+  sv('f-pbm',rec.pbm);sv('f-ibm',rec.ibm);sv('f-pcm',rec.pcm);sv('f-icm',rec.icm);
+  sG(rec.giu||'POSITIVO');sr('rg-vt',rec.vt);sr('rg-vd',rec.vd);sv('f-mot',rec.mot);
+  sv('f-str',rec.str);sv('f-nrs',rec.nrs);sv('f-ver',rec.ver);sv('f-vrc',rec.vrc);sv('f-sct',rec.sct);
+  sv('f-ris-inv',rec.ris_inv);sv('f-ris-pa',rec.ris_pa);
+  uM();
+}
+
+function pick(el){el.closest('.rg').querySelectorAll('.rb').forEach(b=>b.classList.remove('sel'));el.classList.add('sel');dirty=true;uP();}
+
+function uM(){
+  const cls   = gr('rg-cls');
+  const pa    = gr('rg-pa');
+  const norma = gr('rg-norma') || '62353';
+  const spiEl = document.getElementById('f-spi');
+  const spina = spiEl ? spiEl.value : '';
+
+  const isAI    = cls === 'AI';
+  const isCls1  = cls === 'I';
+  const isBF    = pa === 'BF';
+  const isCF    = pa === 'CF';
+  const haPA    = pa === 'B' || pa === 'BF' || pa === 'CF';
+  const isFisso = spina === 'Impianto Fisso';
+  const is61010 = norma === '61010';
+
+  // Tensione mis. + corrente: nascosti per AI
+  const blkTms = document.getElementById('blk-tms');
+  const blkCor = document.getElementById('blk-cor');
+  if(blkTms) blkTms.style.display = isAI ? 'none' : 'flex';
+  if(blkCor) blkCor.style.display = isAI ? 'none' : 'flex';
+
+  // Badge AI
+  const bdgAI = document.getElementById('badge-ai');
+  if(bdgAI) bdgAI.style.display = (isAI && haPA) ? 'inline-block' : 'none';
+
+  // Info Impianto Fisso
+  const blkFissoInfo = document.getElementById('blk-fisso-info');
+  if(blkFissoInfo) blkFissoInfo.style.display = isFisso ? 'block' : 'none';
+
+  // Info AI
+  const blkAIInfo = document.getElementById('blk-ai-info');
+  if(blkAIInfo) blkAIInfo.style.display = isAI ? 'block' : 'none';
+
+  // TERRA — solo Classe I, non Impianto Fisso, non AI
+  const blkTerra = document.getElementById('blk-terra');
+  const inpTrm   = document.getElementById('f-trm');
+  const limTr    = document.getElementById('lim-tr');
+  const showTerra = isCls1 && !isFisso && !isAI;
+  if(blkTerra) blkTerra.style.display = showTerra ? 'block' : 'none';
+  if(inpTrm){
+    inpTrm.disabled = !showTerra;
+    if(!showTerra){ inpTrm.value=''; inpTrm.placeholder='N/A'; }
+    else inpTrm.placeholder='';
+  }
+  if(limTr) limTr.textContent = '300';
+
+  // RESISTENZA DI ISOLAMENTO — nascosta per Impianto Fisso
+  const blkIsol = document.getElementById('blk-isol');
+  if(blkIsol) blkIsol.style.display = isFisso ? 'none' : 'block';
+  const blkRisPa = document.getElementById('blk-ris-pa');
+  if(blkRisPa) blkRisPa.style.display = (isBF || isCF) ? 'block' : 'none';
+
+  // DISPERSIONE INVOLUCRO — nascosta per Impianto Fisso e AI
+  // Limite: 100 µA (62353/60601), 3500 µA (61010)
+  const blkDispInv = document.getElementById('blk-disp-inv');
+  if(blkDispInv) blkDispInv.style.display = (isFisso || isAI) ? 'none' : 'block';
+  const limInv = is61010 ? 3500 : 100;
+  const limPN  = document.getElementById('lim-pn');
+  const limPI  = document.getElementById('lim-pi');
+  if(limPN) limPN.textContent = limInv;
+  if(limPI) limPI.textContent = limInv;
+  const msubInv = document.getElementById('msub-disp-inv');
+  if(msubInv) msubInv.textContent = is61010
+    ? 'Corrente dispersione apparecchio — Involucro (IEC 61010, lim. 3500 µA)'
+    : 'Corrente dispersione apparecchio — Involucro';
+  const inpPnm = document.getElementById('f-pnm');
+  const inpPim = document.getElementById('f-pim');
+  if(inpPnm){ inpPnm.disabled=isFisso||isAI; if(isFisso||isAI){inpPnm.value='';inpPnm.placeholder='N/A';}else inpPnm.placeholder=''; }
+  if(inpPim){ inpPim.disabled=isFisso||isAI; if(isFisso||isAI){inpPim.value='';inpPim.placeholder='N/A';}else inpPim.placeholder=''; }
+
+  // DISPERSIONE PA BF — solo se PA=BF e norma≠61010
+  const blkPABF = document.getElementById('blk-pa-bf');
+  if(blkPABF) blkPABF.style.display = (isBF && !is61010) ? 'block' : 'none';
+  const limPnBF = document.getElementById('lim-pnbf');
+  const limPiBF = document.getElementById('lim-pibf');
+  if(limPnBF) limPnBF.textContent = '100';
+  if(limPiBF) limPiBF.textContent = '100';
+
+  // DISPERSIONE PA CF — solo se PA=CF e norma≠61010
+  const blkPACF = document.getElementById('blk-pa-cf');
+  if(blkPACF) blkPACF.style.display = (isCF && !is61010) ? 'block' : 'none';
+  const limPnCF = document.getElementById('lim-pncf');
+  const limPiCF = document.getElementById('lim-picf');
+  if(limPnCF) limPnCF.textContent = '10';
+  if(limPiCF) limPiCF.textContent = '10';
+
+  // Ricalcola esiti
+  cv('f-trm','lim-tr','e-tr');
+  cv('f-pnm','lim-pn','e-pn');
+  cv('f-pim','lim-pi','e-pi');
+  cv('f-pbm','lim-pnbf','e-pnbf');
+  cv('f-ibm','lim-pibf','e-pibf');
+  cv('f-pcm','lim-pncf','e-pncf');
+  cv('f-icm','lim-picf','e-picf');
+}
+
+function sG(v){
+  document.getElementById('gp').classList.toggle('sel',v==='POSITIVO');
+  document.getElementById('gn').classList.toggle('sel',v==='NEGATIVO');
+  document.getElementById('f-vrc').value=v==='POSITIVO'?'SI è Positivo':'NON CONFORME';
+}
+
+function cv(fid,lid,eid){
+  const v=parseFloat(document.getElementById(fid).value);
+  const l=parseFloat(document.getElementById(lid).textContent);
+  const e=document.getElementById(eid);
+  if(isNaN(v)){e.textContent='';return;}
+  e.textContent=v<=l?'✓ OK':'✗ KO';e.style.color=v<=l?'var(--ok)':'var(--ko)';
+}
+
+function aG(){
+  let neg=false;
+  [
+    ['f-trm','lim-tr'],
+    ['f-pnm','lim-pn'],['f-pim','lim-pi'],
+    ['f-pbm','lim-pnbf'],['f-ibm','lim-pibf'],
+    ['f-pcm','lim-pncf'],['f-icm','lim-picf']
+  ].forEach(([f,l])=>{
+    const el=document.getElementById(f);
+    const lel=document.getElementById(l);
+    if(!el||!lel||el.disabled) return;
+    const v=parseFloat(el.value);
+    const lv=parseFloat(lel.textContent);
+    if(!isNaN(v)&&v>lv) neg=true;
+  });
+  sG(neg?'NEGATIVO':'POSITIVO');
+}
+
+function resetCur(){if(cur){fillVSE(cur);resetMPPoints();fillMPHeader(cur);}dirty=false;}
+
+function uP(){
+  const fs=['f-codice','f-ten','f-mar','f-str','f-ver'];
+  const n=fs.filter(id=>{const e=document.getElementById(id);return e&&e.value.trim()!==''}).length;
+  const mpDone=Object.keys(mpState).length;
+  const total=fs.length+19;
+  document.getElementById('prog').style.width=Math.round((n+mpDone)/total*100)+'%';
+}
+
+function collectVSE(){
+  return{codice:gv('f-codice'),data:gv('f-data'),note:gv('f-note'),
+    ten:gv('f-ten'),tdp:gr('rg-tdp'),frq:gv('f-frq'),fdp:gr('rg-fdp'),
+    pot:gv('f-pot'),pdp:gr('rg-pdp'),mar:gv('f-mar'),fud:gv('f-fud'),fur:gv('f-fur'),
+    cls:gr('rg-cls'),cdp:gr('rg-cdp'),pat:gr('rg-pa'),pad:gr('rg-padp'),
+    fnz:gr('rg-fnz'),def:gr('rg-def'),
+    spi:gv('f-spi'),smo:gr('rg-smo'),msp:gv('f-msp'),cav:gr('rg-cav'),
+    icv:gr('rg-icv'),isp:gr('rg-isp'),int:gr('rg-int'),pdc:gv('f-pdc'),
+    icn:gr('rg-icn'),prc:gr('rg-prc'),icd:gr('rg-icd'),
+    mus:gr('rg-mus'),mse:gr('rg-mse'),nag:gv('f-nag'),
+    clm:gr('rg-clm'),tms:gv('f-tms'),cor:gv('f-cor'),
+    trl:lv('lim-tr'),trm:gv('f-trm'),pnl:lv('lim-pn'),pnm:gv('f-pnm'),
+    pil:lv('lim-pi'),pim:gv('f-pim'),
+    pbl:lv('lim-pnbf'),pbm:gv('f-pbm'),ibl:lv('lim-pibf'),ibm:gv('f-ibm'),
+    pcl:lv('lim-pncf'),pcm:gv('f-pcm'),icl:lv('lim-picf'),icm:gv('f-icm'),
+    giu:document.getElementById('gp').classList.contains('sel')?'POSITIVO':'NEGATIVO',
+    vt:gr('rg-vt'),vd:gr('rg-vd'),mot:gv('f-mot'),
+    str:gv('f-str'),nrs:gv('f-nrs'),ver:gv('f-ver'),vrc:gv('f-vrc'),sct:gv('f-sct'),
+    ris_inv:gv('f-ris-inv'),ris_pa:gv('f-ris-pa')};
+}
+
+function saveAll(){
+  if(!cur){toast('Seleziona un dispositivo','warn');return;}
+  const cod=cur.c;
+  const existing=saved[cod]||{codice:cod};
+  const vseRec=collectVSE();
+  const mpRec=collectMP();
+  const vspRec=curVerif&&curVerif.vsp?collectVSP():null;
+  const cqRec=curVerif&&curVerif.cq?collectCQ():null;
+  saved[cod]={...existing,...vseRec,...mpRec,
+    ...(vspRec?{...vspRec,vsp_saved:true,vsp_type:vspType}:{}),
+    ...(cqRec?{...cqRec,cq_saved:true,cq_type:cqType}:{}),
+    vse_saved:true,mp_saved:true};
+   
+  dirty=false;
+  updateTabIndicators();
+  renderSession();
+  const parts=['VSE','MP'];if(vspRec)parts.push(curVerif.vsp);if(cqRec)parts.push(curVerif.cq);
+  const label=parts.join(' + ');
+  toast('Salvato: '+cod+' ('+label+')','ok');
+  // Auto-save su Supabase
+  scheduleSync();
+  setTimeout(()=>{
+    document.querySelector('.card').scrollIntoView({behavior:'smooth'});
+    document.getElementById('search-input').focus();
+  },700);
+}
+
+function updateTabIndicators(){
+  if(!cur)return;
+  const s=saved[cur.c];
+  const tVse=document.getElementById('tab-vse');
+  const tMp=document.getElementById('tab-mp');
+  const tVsp=document.getElementById('tab-vsp');
+  if(tVse)tVse.classList.toggle('saved-tab',!!(s&&s.vse_saved));
+  if(tMp)tMp.classList.toggle('saved-tab',!!(s&&s.mp_saved));
+  if(tVsp)tVsp.classList.toggle('saved-tab',!!(s&&s.vsp_saved));
+}
+
+function renderSession(){
+  const keys=Object.keys(saved);
+  document.getElementById('btn-xlsx').disabled=keys.length===0;
+  const chips=document.getElementById('chips');
+  const stats=document.getElementById('sess-stats');
+  if(!keys.length){chips.innerHTML='<span class="sess-empty">Nessun apparecchio compilato</span>';stats.style.display='none';document.getElementById('export-preview').style.display='none';return;}
+  chips.innerHTML=keys.map(k=>{
+    const s=saved[k];const act=cur&&cur.c===k;
+    const both=s.vse_saved&&s.mp_saved;
+    return`<div class="chip ${both?'done':'part'}${act?' active':''}" onclick="sel('${k}')">
+      <div class="chip-dot"></div>${k}
+    </div>`;
+  }).join('');
+  const total=keys.length;
+  const both=keys.filter(k=>saved[k].vse_saved&&saved[k].mp_saved).length;
+  const vspCount=keys.filter(k=>saved[k].vsp_saved).length;
+const cqCount=keys.filter(k=>saved[k].cq_saved).length;
+let statsText=total+' dispositivi';
+if(vspCount)statsText+=' · '+vspCount+' VSP';
+if(cqCount)statsText+=' · '+cqCount+' CQ';
+stats.textContent=statsText;
+  stats.style.display='block';
+  document.getElementById('export-preview').style.display='block';
+  document.getElementById('export-rows').innerHTML=keys.map(k=>{
+    const s=saved[k];const d=DB[k]||{};
+    return`<div class="ex-row">
+      <span class="ex-cod">${k}</span>
+      <span class="ex-nome">${(d.n||'').toLowerCase()}</span>
+      <span class="ex-tags">
+        ${s.vse_saved?`<span class="badge ${s.giu==='POSITIVO'?'pos':'neg'}">VSE ${s.giu==='POSITIVO'?'✓':'✗'}</span>`:''}
+        ${s.mp_saved?`<span class="badge info">MP ✓</span>`:''}
+        ${s.vsp_saved?`<span class="badge info">${s.vsp_type} ✓</span>`:''}
+        ${s.cq_saved?`<span class="badge info">${s.cq_type} ✓</span>`:''}
+      </span>
+      <button onclick="removeFromSession('${k}')" style="padding:2px 8px;font-size:11px;border:1px solid var(--ko);border-radius:var(--rad);background:transparent;color:var(--ko);cursor:pointer;flex-shrink:0">✕</button>
+      </div>`;
+ }).join('');
+}
+ function removeFromSession(cod){
+  if(!confirm('Rimuovere '+cod+' dalla sessione?'))return;
+  delete saved[cod];
+  if(cur&&cur.c===cod){cur=null;curVerif=null;document.getElementById('form-area').style.display='none';}
+  renderSession();
+  toast('Rimosso: '+cod,'warn');
+}   
+function exportJSON(){
+  const keys=Object.keys(saved);if(!keys.length){toast('Nessun dato','warn');return;}
+  const b=new Blob([JSON.stringify(keys.map(k=>saved[k]),null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(b);
+  a.download='appwitch_'+new Date().toISOString().split('T')[0]+'.json';a.click();
+  toast('JSON scaricato','ok');
+}
+
+function exportXLSX(){
+  const keys=Object.keys(saved);if(!keys.length){toast('Nessun dato','warn');return;}
+  if(typeof XLSX==='undefined'){
+    toast('Caricamento libreria Excel...','warn');
+    const s=document.createElement('script');
+    s.src='https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+    s.onload=()=>exportXLSX();document.head.appendChild(s);return;
+  }
+  const wb=XLSX.utils.book_new();
+  const date=new Date().toISOString().split('T')[0];
+
+  // Sheet VSE
+  const HVSE=['CODICE','DATA','NOTE','Tensione','Tensione D/P','Frequenza','Frequenza D/P','Potenza','Potenza D/P','Marchio Conformita','Fusibili Dichiarati','Fusibili Riscontrati','Classe','Classe D/P','PA Tipo','Tipo D/P','Funzionamento','Protezione Defibrillatore','Tipo Spina','Smontabile/pressofusa','Marchio Spina','Cavo Alimentazione','IntegritaCavo','Integrita Spina','InterruttoreRete','ParteApplicata','IntegritaConnettori','ProtezioneConduttori','IntegritaConduttori','Manuale Uso','Manuale Servizio','Note Aggiuntive','ClasseMisura','Tensione2','CorrenteAssorbitaMA','TerraProtezioneLimite','TerraProtezioneMisurata','PN Limite','PN Misurata','PI Limite','PI Misurata','PN BF Limite','PN BF Misurata','PI BF Limite','PI BF Misurata','PN CF Limite','PN CF Misurata','PI CF Limite','PI CF Misurata','Giudizio','ValoriMessaTerra','ValoriDispersione','MotiviNonConformita','Strumento','NrSerie','Verificatore','Data2','VERIFICATO','Scadenza Taratura'];
+  const FVSE=['codice','data','note','ten','tdp','frq','fdp','pot','pdp','mar','fud','fur','cls','cdp','pat','pad','fnz','def','spi','smo','msp','cav','icv','isp','int','pdc','icn','prc','icd','mus','mse','nag','clm','tms','cor','trl','trm','pnl','pnm','pil','pim','pbl','pbm','ibl','ibm','pcl','pcm','icl','icm','giu','vt','vd','mot','str','nrs','ver','data','vrc','sct'];
+  const NUMERIC_VSE=new Set([33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49]);
+  const vseKeys=keys.filter(k=>saved[k].vse_saved);
+  if(vseKeys.length){
+    const rows=vseKeys.map(k=>{const r=saved[k];return FVSE.map((f,i)=>{const v=r[f]||'';if(NUMERIC_VSE.has(i)&&v!==''){const n=parseFloat(v);return isNaN(n)?v:n;}return v;});});
+    const ws=XLSX.utils.aoa_to_sheet([HVSE,...rows]);
+    ws['!cols']=HVSE.map(()=>({wch:16}));
+    XLSX.utils.book_append_sheet(wb,ws,'Inserimento_VSE');
+  }
+
+  // Sheet MP — struttura identica a Inserimento_MP originale
+  // Riga 1: CODICE, DATA, NOTE, 1, null, null, 2, null, null, ... 19, null, null, Tecnico Esecutore
+  // Riga 2: null, null, null, OK, KO, NA, OK, KO, NA, ...
+  // Dati:   valore, data, note, X/null, X/null, X/null, ...
+  const mpKeys=keys.filter(k=>saved[k].mp_saved);
+  if(mpKeys.length){
+    const R1=['CODICE','DATA','NOTE'];
+    for(let i=1;i<=19;i++){R1.push(i,null,null);}
+    R1.push('Tecnico Esecutore');
+    const R2=[null,null,null];
+    for(let i=1;i<=19;i++){R2.push('OK','KO','NA');}
+    R2.push(null);
+    const rows=mpKeys.map(k=>{
+      const r=saved[k];
+      const row=[r.codice||'',r.mp_data||'',r.mp_note||''];
+      for(let i=1;i<=19;i++){
+        const v=r['mp'+i]||'';
+        row.push(v==='OK'?'X':null,v==='KO'?'X':null,v==='NA'?'X':null);
+      }
+      row.push(r.mp_tecnico||'');
+      return row;
+    });
+    const ws=XLSX.utils.aoa_to_sheet([R1,R2,...rows]);
+    // Colonne: A=10, B=12, C=20, poi 3 col per ogni punto (5 ciascuna), ultima=20
+    const cols=[{wch:10},{wch:12},{wch:20}];
+    for(let i=0;i<19;i++)cols.push({wch:5},{wch:5},{wch:5});
+    cols.push({wch:20});
+    ws['!cols']=cols;
+    XLSX.utils.book_append_sheet(wb,ws,'Inserimento_MP');
+  }
+
+  // Sheets VSP — one per VSP type found in session
+  const vspTypes = [...new Set(keys.filter(k=>saved[k].vsp_saved).map(k=>saved[k].vsp_type).filter(Boolean))];
+  vspTypes.forEach(vtype=>{
+    const def=VSP_POINTS[vtype];if(!def)return;
+    const vspKeys=keys.filter(k=>saved[k].vsp_saved&&saved[k].vsp_type===vtype);
+    if(!vspKeys.length)return;
+    // Build header rows matching Inserimento sheet structure
+    // Row1: CODICE, DATA, NOTE, section_title, null..., TECNICO ESECUTORE
+    // Row2: null,null,null, A,null,(null), B,...
+    // Row3: null,null,null, OK,KO,NA, OK,KO,NA,...
+    const R1=['CODICE','DATA','NOTE'];
+    const R2=[null,null,null];
+    const R3=[null,null,null];
+    const FIELDS=['codice','data','note']; // maps to collectVSP keys
+    if(vtype==='VSP_CEN'){
+      R1.push('CONTROLLO VISIVO',...Array(14).fill(null),'TECNICO ESECUTORE');
+      ['A','B','C','D','E'].forEach(l=>{R2.push(l,null,null);R3.push('OK','KO','NA');FIELDS.push('vsp_'+l+'_ok','vsp_'+l+'_ko','vsp_'+l+'_na');});
+      R2.push(null);R3.push(null);
+    } else if(vtype==='VSP_ECG'){
+      R1.push('CONTROLLO VISIVO',...Array(13).fill(null),'TECNICO ESECUTORE');
+      ['A','B','C'].forEach(l=>{R2.push(l,null,null);R3.push('OK','KO','NA');FIELDS.push('vsp_'+l+'_ok','vsp_'+l+'_ko','vsp_'+l+'_na');});
+      R2.push('D',null,null,null);R3.push('B','BF','CF','NA');
+      FIELDS.push('vsp_D_b','vsp_D_bf','vsp_D_cf','vsp_D_na');
+      R2.push(null);R3.push(null);
+    } else {
+      // DEF and ELB: simplified single-value per point
+      R1.push('CONTROLLO VISIVO',...Array(def.length*2-1).fill(null),'TECNICO ESECUTORE');
+      def.forEach(p=>{R2.push(p.l,null);R3.push('OK','KO');FIELDS.push('vsp_'+p.l+'_ok','vsp_'+p.l+'_ko');});
+      R2.push(null);R3.push(null);
+    }
+    // Build data rows
+    const rows=vspKeys.map(k=>{
+      const r=saved[k];
+      const row=[r.vsp_codice||'',r.vsp_data||'',r.vsp_note||''];
+      // For each point write X in the right column
+      def.forEach(p=>{
+        const val=r['vsp_'+p.l]||'';
+        const opts=p.opts||['OK','KO','NA'];
+        opts.forEach(o=>row.push(val===o?'X':null));
+      });
+      row.push(r.vsp_tecnico||'');
+      return row;
+    });
+    const wsVsp=XLSX.utils.aoa_to_sheet([R1,R2,R3,...rows]);
+    const sheetName=vtype.replace('VSP_','Inserimento_VSP_');
+    XLSX.utils.book_append_sheet(wb,wsVsp,sheetName);
+  });
+
+  // Sheets CQ — one per CQ type found in session
+  const cqTypes = [...new Set(keys.filter(k=>saved[k].cq_saved).map(k=>saved[k].cq_type).filter(Boolean))];
+  cqTypes.forEach(ctype=>{
+    const cqKeys=keys.filter(k=>saved[k].cq_saved&&saved[k].cq_type===ctype);
+    if(!cqKeys.length)return;
+    const visPoints=CQ_VIS[ctype]||[];
+    const provaFields=[];
+    (CQ_PROVA[ctype]||[]).forEach(sec=>sec.fields.forEach(f=>provaFields.push(f)));
+    // Header row
+    const R1=['CODICE','DATA','NOTE','TECNICO'];
+    visPoints.forEach(p=>R1.push(typeof p==='object'?p.id:p,'',''));
+    provaFields.forEach(f=>R1.push(f.l));
+    const R2=[null,null,null,null];
+    visPoints.forEach(()=>R2.push('OK','KO','NA'));
+    provaFields.forEach(()=>R2.push(null));
+    // Data rows
+    const rows=cqKeys.map(k=>{
+      const r=saved[k];
+      const row=[r.cq_codice||'',r.cq_data||'',r.cq_note||'',r.cq_tecnico||''];
+      visPoints.forEach(p=>{
+        const pid=(typeof p==='object'?p.id:p).replace('.','_');
+        const val=r['cq_vis_'+pid]||'';
+        row.push(val==='OK'?'X':null,val==='KO'?'X':null,val==='NA'?'X':null);
+      });
+      provaFields.forEach(f=>row.push(r[f.id]||''));
+      return row;
+    });
+    const wsCq=XLSX.utils.aoa_to_sheet([R1,R2,...rows]);
+    wsCq['!cols']=[{wch:10},{wch:12},{wch:20},{wch:20},...visPoints.map(()=>({wch:5})),...visPoints.map(()=>({wch:5})),...visPoints.map(()=>({wch:5})),...provaFields.map(()=>({wch:16}))];
+    const sheetName='Inserimento_'+ctype;
+    XLSX.utils.book_append_sheet(wb,wsCq,sheetName);
+  });
+  XLSX.writeFile(wb,'AppWitch_'+date+'.xlsx');
+  toast('Excel scaricato (VSE+MP'+(keys.filter(k=>saved[k].vsp_saved).length>0?'+VSP':'')+')','ok');
+}
+
+function toast(msg,type){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.className='toast show'+(type==='ok'?' ok':type==='warn'?' warn':'');
+  setTimeout(()=>t.classList.remove('show'),3000);
+}
+
+
+
+
+// ===================== VSP =====================
+let vspState = {};
+let vspType  = null;
+
+const VSP_POINTS = {
+  'VSP_CEN': [
+    {l:'A', t:'Il coperchio resta chiuso a centrifuga avviata', opts:['OK','KO','NA']},
+    {l:'B', t:'Il coperchio rimane bloccato finché il rotore non è fermo', opts:['OK','KO','NA']},
+    {l:'C', t:'A coperchio aperto la centrifuga si avvia', opts:['OK','KO','NA']},
+    {l:'D', t:'A coperchio aperto la centrifuga non si avvia', opts:['OK','KO','NA']},
+    {l:'E', t:'Esiste la protezione meccanica sulle parti in movimento, se accessibili', opts:['OK','KO','NA']},
+  ],
+  'VSP_ECG': [
+    {l:'A', t:'Indicazione della protezione da defibrillatore', opts:['OK','KO','NA']},
+    {l:'B', t:'Impossibilità di contatto con un piano conduttore per il connettore lato apparecchio del cavo ECG', opts:['OK','KO','NA']},
+    {l:'C', t:'Segnalazione sorgente elettrica interna scarica', opts:['OK','KO','NA']},
+    {l:'D', t:'SOLO PER I MONITOR: Indicazione del tipo PA (barrare la scelta)', opts:['B','BF','CF','NA']},
+  ],
+  'VSP_DEF': [
+    {l:'A', t:'Verifica prescrizioni istruzioni per la defibrillazione e/o monitoraggio ECG', opts:['OK','KO']},
+    {l:'B', t:'Verifica raccomandazioni elettrodi e cavi paziente', opts:['OK','KO']},
+    {l:'C', t:'Verifica raccomandazioni sorgente elettrica interna', opts:['NA','OK','KO']},
+    {l:'D', t:'Verifica prescrizioni indicatore di stato sorgente elettrica interna', opts:['NA','OK','KO']},
+    {l:'E', t:'Verifica prescrizioni preselettore di energia', opts:['NA','OK','KO']},
+    {l:'F', t:'Verifica prescrizioni preselettore tarato in Joule', opts:['NA','OK','KO']},
+    {l:'G', t:'Verifica prescrizioni indicatore vocale e/o sonoro di fine carica', opts:['OK','KO']},
+    {l:'H', t:'Verifica raccomandazioni dispositivo di ricarica automatica', opts:['NA','OK','KO']},
+    {l:'I', t:'Verifica prescrizioni dispositivo di auto scarica interno', opts:['OK','KO']},
+    {l:'J', t:'Verifica prescrizioni dispositivo di scarica', opts:['OK','KO']},
+    {l:'K', t:'Verifica prescrizioni energia massima selezionabile per elettrodi esterni ≤ 360 J', opts:['NA','OK','KO']},
+    {l:'L', t:'Verifica prescrizioni energia massima selezionabile per elettrodi interni ≤ 50 J', opts:['NA','OK','KO']},
+    {l:'M', t:'Verifica prescrizioni indicazione luminosa e/o sonora del dispositivo di sincronizzazione', opts:['NA','OK','KO']},
+    {l:'N', t:'Verifica prescrizioni dispositivo di sincronizzazione non attivo all\'accensione', opts:['NA','OK','KO']},
+    {l:'O', t:'Verifica prescrizioni indicatore vocale e/o sonoro rilevamento ritmo (DAE)', opts:['NA','OK','KO']},
+    {l:'P', t:'Verifica prescrizioni visualizzazione segnale ECG', opts:['NA','OK','KO']},
+    {l:'Q', t:'Verifica prescrizioni impossibilità attivazione contemporanea elettrodi interni ed esterni', opts:['OK','KO']},
+    {l:'R', t:'Verifica prescrizioni protezione da versamento liquidi', opts:['OK','KO']},
+  ],
+  'VSP_ELB': [
+    {l:'A', t:'Verifica prescrizioni colorazione delle lampade spia (giallo: taglio, blu: coagulo, rosso: guasto piastra)', opts:['OK','KO','NA']},
+    {l:'B', t:'Verifica prescrizioni protezione immersione pedale (Solo per apparecchiature in Sala Operatoria)', opts:['OK','KO','NA']},
+    {l:'C', t:'Verifica prescrizioni assenza alimentazione simultanea degli elettrodi attivi', opts:['OK','KO','NA']},
+    {l:'D', t:'Verifica prescrizioni non intercambiabilità fra elettrodo neutro e attivo', opts:['OK','KO','NA']},
+    {l:'E', t:'Verifica prescrizioni allarme interruzione cavo elettrodo neutro per Pnom>50W', opts:['OK','KO','NA']},
+    {l:'F', t:'Verifica prescrizioni segnalazione sonora di uscita attivata', opts:['OK','KO','NA']},
+  ],
+};
+
+// Extra numeric fields for DEF and ELB
+const VSP_EXTRA = {
+  'VSP_DEF': [
+    {sec:'Precisione energia erogata — Manuale', fields:[
+      {id:'def_e1i',l:'Energia 1 Impostato (J)'},{id:'def_e1m',l:'Energia 1 Misurato (J)'},
+      {id:'def_e2i',l:'Energia 2 Impostato (J)'},{id:'def_e2m',l:'Energia 2 Misurato (J)'},
+      {id:'def_e3i',l:'Energia 3 Impostato (J)'},{id:'def_e3m',l:'Energia 3 Misurato (J)'},
+      {id:'def_e4i',l:'Energia 4 Impostato (J)'},{id:'def_e4m',l:'Energia 4 Misurato (J)'},
+      {id:'def_e5i',l:'Energia 5 Impostato (J)'},{id:'def_e5m',l:'Energia 5 Misurato (J)'},
+    ]},
+    {sec:'Precisione energia erogata — DAE', fields:[
+      {id:'def_dae_mis',l:'DAE Misurato (J)'},
+    ]},
+    {sec:'Tempi di carica alla massima energia', fields:[
+      {id:'def_tc_ar',l:'Config A — Rete (s)'},{id:'def_tc_ab',l:'Config A — Batteria (s)'},{id:'def_tc_am',l:'Config A — Max (s)'},
+      {id:'def_tc_br',l:'Config B — Rete (s)'},{id:'def_tc_bb',l:'Config B — Batteria (s)'},{id:'def_tc_bm',l:'Config B — Max (s)'},
+      {id:'def_tc_cr',l:'Config C — Rete (s)'},{id:'def_tc_cb',l:'Config C — Batteria (s)'},{id:'def_tc_cm',l:'Config C — Max (s)'},
+      {id:'def_tc_dr',l:'Config D — Rete (s)'},{id:'def_tc_db',l:'Config D — Batteria (s)'},{id:'def_tc_dm',l:'Config D — Max (s)'},
+    ]},
+    {sec:'Tempi di ritardo e ripristino', fields:[
+      {id:'def_tr_ar',l:'Config A — Rilevato (s)'},{id:'def_tr_am',l:'Config A — Massimo (s)'},
+      {id:'def_tr_br',l:'Config B — Rilevato (s)'},{id:'def_tr_bm',l:'Config B — Massimo (s)'},
+      {id:'def_tr_cr',l:'Config C — Rilevato (s)'},{id:'def_tr_cm',l:'Config C — Massimo (s)'},
+    ]},
+    {sec:'Strumentazione utilizzata', fields:[
+      {id:'def_strum',l:'Strumento'},{id:'def_mod',l:'Modello'},
+      {id:'def_ser',l:'N° Serie'},{id:'def_cert',l:'Certificato N.'},
+      {id:'def_scad',l:'Scadenza taratura',type:'date'},
+    ]},
+  ],
+  'VSP_ELB': [
+    {sec:'Identificazione — Dati di targa', fields:[
+      {id:'elb_pbip',l:'Potenza bipolare (W)'},{id:'elb_cbip',l:'Carico bip. (Ω)'},
+      {id:'elb_fkhz',l:'Freq. bip. [KHz]'},{id:'elb_fmhz',l:'Freq. bip. [MHz]'},
+      {id:'elb_pmono',l:'Potenza monopolare (W)'},{id:'elb_cmono',l:'Carico mono. (Ω)'},
+      {id:'elb_fkhz2',l:'Freq. mono. [KHz]'},{id:'elb_fmhz2',l:'Freq. mono. [MHz]'},
+      {id:'elb_pa',l:'Tipo PA in HF ([F])'},
+    ]},
+    {sec:'Corrente di dispersione nel paziente in HF', fields:[
+      {id:'elb_ct_t',l:'Carico elettrodi — Taglio (mA)'},{id:'elb_ct_m',l:'Carico elettrodi — Mix (mA)'},{id:'elb_ct_c',l:'Carico elettrodi — Coagulo (mA)'},
+      {id:'elb_at_t',l:'Attivo/terra — Taglio (mA)'},{id:'elb_at_m',l:'Attivo/terra — Mix (mA)'},{id:'elb_at_c',l:'Attivo/terra — Coagulo (mA)'},
+      {id:'elb_en_t',l:'El. neutro — Taglio (mA)'},{id:'elb_en_m',l:'El. neutro — Mix (mA)'},{id:'elb_en_c',l:'El. neutro — Coagulo (mA)'},
+      {id:'elb_ea_t',l:'El. attivo — Taglio (mA)'},{id:'elb_ea_m',l:'El. attivo — Mix (mA)'},{id:'elb_ea_c',l:'El. attivo — Coagulo (mA)'},
+      {id:'elb_iso1n',l:'Uscita isolata CN — El.1 (mA)'},{id:'elb_iso1t',l:'Uscita isolata CN — El.2 (mA)'},
+      {id:'elb_iso2n',l:'Uscita isolata MT — El.1 (mA)'},{id:'elb_iso2t',l:'Uscita isolata MT — El.2 (mA)'},
+    ]},
+    {sec:'Strumentazione utilizzata', fields:[
+      {id:'elb_strum',l:'Strumento'},{id:'elb_mod',l:'Modello'},
+      {id:'elb_ser',l:'N° Serie'},{id:'elb_cert',l:'Certificato N.'},
+      {id:'elb_scad',l:'Scadenza taratura',type:'date'},
+    ]},
+  ],
+};
+
+function buildVSPPoints(type){
+  vspType=type;
+  vspState={};
+  const points=VSP_POINTS[type]||[];
+  document.getElementById('vsp-sec-title').textContent='Controllo visivo — '+type.replace('VSP_','');
+  document.getElementById('vsp-total').textContent=points.length;
+  document.getElementById('vsp-count').textContent='0';
+  // Build points — same style as MP
+  const container=document.getElementById('vsp-points');
+  container.innerHTML=points.map(p=>{
+    const btns=p.opts.map(o=>{
+      const cls=o==='OK'?'mp-btn ok':o==='KO'?'mp-btn ko':'mp-btn na';
+      return `<button class="${cls}" onclick="setVSP('${p.l}','${o}')">${o}</button>`;
+    }).join('');
+    return `<div class="mp-point" id="vsp-p-${p.l}">
+      <div class="mp-point-hdr" onclick="toggleVSP('${p.l}')">
+        <div class="mp-num">${p.l}</div>
+        <div class="mp-title">${p.t}</div>
+        <div class="mp-stato" id="vsp-stato-${p.l}">—</div>
+      </div>
+      <div class="mp-btns" id="vsp-btns-${p.l}" style="display:none">${btns}</div>
+    </div>`;
+  }).join('');
+  // Build extra fields
+  const extraDiv=document.getElementById('vsp-extra');
+  const extra=VSP_EXTRA[type];
+  if(extra){
+    let html='';
+    extra.forEach(sec=>{
+      html+=`<div class="sec" style="margin-bottom:10px"><div class="sec-hdr">${sec.sec}</div><div class="sec-body" style="grid-template-columns:repeat(auto-fill,minmax(180px,1fr))">`;
+      sec.fields.forEach(f=>{
+        const inp=f.type==='date'?`<input type="date" id="${f.id}">`:`<input type="text" id="${f.id}" inputmode="decimal">`;
+        html+=`<div class="field"><label>${f.l}</label>${inp}</div>`;
+      });
+      html+='</div></div>';
+    });
+    extraDiv.innerHTML=html;
+    extraDiv.style.display='block';
+  } else {
+    extraDiv.innerHTML='';
+    extraDiv.style.display='none';
+  }
+}
+
+function toggleVSP(l){
+  const btns=document.getElementById('vsp-btns-'+l);
+  if(btns) btns.style.display=btns.style.display==='none'?'flex':'none';
+}
+
+function setVSP(l,val){
+  vspState[l]=val;
+  const stato=document.getElementById('vsp-stato-'+l);
+  stato.textContent=val;
+  stato.className='mp-stato '+(val==='OK'?'ok':val==='KO'?'ko':'na');
+  const hdr=document.querySelector('#vsp-p-'+l+' .mp-point-hdr');
+  if(hdr) hdr.style.background=val==='OK'?'var(--ok-bg)':val==='KO'?'var(--ko-bg)':'var(--bg2)';
+  document.querySelectorAll('#vsp-btns-'+l+' .mp-btn').forEach(b=>b.classList.toggle('sel',b.textContent===val));
+  document.getElementById('vsp-btns-'+l).style.display='none';
+  document.getElementById('vsp-count').textContent=Object.keys(vspState).length;
+  uP();
+}
+
+function fillVSPHeader(d){
+  const t=new Date().toISOString().split('T')[0];
+  sv('vsp-codice',d.c); sv('vsp-data',t); sv('vsp-note','-');
+  sv('vsp-data2',t); sv('vsp-tecnico',d.ver||'');
+}
+
+function resetVSP(){
+  vspState={}; vspType=null;
+  const c=document.getElementById('vsp-count'); if(c) c.textContent='0';
+  document.querySelectorAll('[id^="vsp-p-"]').forEach(el=>{
+    const l=el.id.replace('vsp-p-','');
+    const s=document.getElementById('vsp-stato-'+l); if(s){s.textContent='—';s.className='mp-stato';}
+    const h=el.querySelector('.mp-point-hdr'); if(h) h.style.background='';
+    const b=document.getElementById('vsp-btns-'+l); if(b){b.style.display='none';b.querySelectorAll('.mp-btn').forEach(x=>x.classList.remove('sel'));}
+  });
+  const ex=document.getElementById('vsp-extra'); if(ex){ex.innerHTML='';ex.style.display='none';}
+}
+
+function collectVSP(){
+  if(!vspType) return null;
+  const t=new Date().toISOString().split('T')[0];
+  const rec={vsp_type:vspType,vsp_codice:gv('vsp-codice'),vsp_data:gv('vsp-data')||t,
+    vsp_note:gv('vsp-note'),vsp_tecnico:gv('vsp-tecnico'),vsp_data2:gv('vsp-data2')||t};
+  (VSP_POINTS[vspType]||[]).forEach(p=>{rec['vsp_'+p.l]=vspState[p.l]||'';});
+  const extra=VSP_EXTRA[vspType];
+  if(extra) extra.forEach(sec=>sec.fields.forEach(f=>{rec[f.id]=gv(f.id)||'';}));
+  return rec;
+}
+
+function loadVSPSaved(rec){
+  if(!rec||!rec.vsp_type) return;
+  buildVSPPoints(rec.vsp_type);
+  sv('vsp-data',rec.vsp_data||''); sv('vsp-note',rec.vsp_note||'-');
+  sv('vsp-tecnico',rec.vsp_tecnico||''); sv('vsp-data2',rec.vsp_data2||'');
+  (VSP_POINTS[rec.vsp_type]||[]).forEach(p=>{if(rec['vsp_'+p.l]) setVSP(p.l,rec['vsp_'+p.l]);});
+  const extra=VSP_EXTRA[rec.vsp_type];
+  if(extra) extra.forEach(sec=>sec.fields.forEach(f=>{const el=document.getElementById(f.id);if(el&&rec[f.id])el.value=rec[f.id];}));
+}
+
+
+// ===================== CQ =====================
+let cqState={}, cqType=null;
+
+const CQ_VIS={
+  'CQ_DEF':[
+    {id:'1.1', t:'Massima energia selezionabile 360 J o 50 J per defibrillazione interna'},
+    {id:'1.2', t:'Controllo integrità piastre e cavi'},
+    {id:'1.3', t:'Istruzioni sul funzionamento e istruzioni per la defibrillazione sull\'involucro in Italiano leggibili da 1 metro'},
+    {id:'1.4', t:'Verifica tempo di carica alla massima energia con alimentazione a batteria (≤ 15s manuale, ≤ 30s DAE)'},
+    {id:'1.5', t:'Verifica presenza segnalazione sonora di raggiunto livello di energia'},
+    {id:'1.6', t:'Verifica, se presente, impulso di sincronizzazione con misura del tempo di sincronismo < 60 ms'},
+    {id:'1.7', t:'Prova funzionale'},
+  ],
+  'CQ_ECG':[
+    {id:'1.1', t:'Controllo integrità involucro esterno'},
+    {id:'1.2', t:'Controllo funzionamento di comandi, interruttori, pulsanti e manopole'},
+    {id:'1.3', t:'Controllo funzionamento spie luminose'},
+    {id:'1.4', t:'Controllo isolamento cavi ECG'},
+    {id:'1.5', t:'Verifica velocità 25 mm/sec'},
+    {id:'1.6', t:'Verifica velocità 5 mm/sec'},
+    {id:'1.7', t:'Prova funzionale'},
+  ],
+  'CQ_CEN':[
+    {id:'1.1', t:'Controllo funzionamento di comandi, interruttori, pulsanti e manopole'},
+    {id:'1.2', t:'Controllo sistema di sicurezza bloccaggio coperchio'},
+    {id:'1.3', t:'Pulizia e lubrificazione rotore e parti in movimento'},
+    {id:'1.4', t:'Prova funzionale'},
+    {id:'1.5', t:'I giri e la temperatura misurata rientrano nei limiti di precisione dichiarati dal costruttore'},
+  ],
+  'CQ_ELB':[
+    {id:'1.1', t:'Presente indicatore luminoso verde indicante tensione di rete'},
+    {id:'1.2', t:'Presente simbolo protezione da defibrillatore'},
+    {id:'1.3', t:'Presente indicatore luminoso giallo indicante taglio attivato'},
+    {id:'1.4', t:'Presente indicatore luminoso blu indicante coagulo attivato'},
+    {id:'1.5', t:'Presente indicatore luminoso rosso indicante guasto circuito piastra'},
+    {id:'1.6', t:'Comandi del manipolo: avanti taglio — dietro coagulo'},
+    {id:'1.7', t:'Comandi del pedale: sinistra taglio — destra coagulo'},
+    {id:'1.8', t:'Presenza segnale sonoro di uscita attivata'},
+    {id:'1.9', t:'Presenza segnale sonoro di allarme guasto circuito piastra'},
+    {id:'1.10', t:'Prova funzionale'},
+  ],
+  'CQ_FBI':[
+    {id:'1.1', t:'Controllo funzionamento di comandi, interruttori, pulsanti e manopole'},
+    {id:'1.2', t:'Controllo presenza allarme temperatura'},
+  ],
+  'CQ_ECT':[
+    {id:'1.1', t:'Controllo integrità involucro'},
+    {id:'1.2', t:'Controllo integrità cavi elettrici / spina / presa'},
+    {id:'1.3', t:'Controllo funzionamento di comandi, interruttori, pulsanti e manopole'},
+    {id:'1.4', t:'Controllo corretta funzionalità dei comandi'},
+    {id:'1.5', t:'Verifica stato sonde (cavi e superficie)'},
+    {id:'1.6', t:'Controllo efficienza dei movimenti meccanici'},
+    {id:'1.7', t:'Pulizia filtri'},
+    {id:'1.8', t:'Prova funzionale'},
+  ],
+  'CQ_MON':[
+    {id:'1.1', t:'Controllo visivo isolamento cavi parti applicate e integrità manicotto NIBP'},
+    {id:'1.2', t:'Controllo funzionamento di comandi, interruttori, pulsanti e manopole'},
+    {id:'1.3', t:'Presenza allarme frequenza cardiaca'},
+  ],
+  'CQ_ANS':[
+    {id:'1.1', t:'Presenza allarme mancanza rete'},
+    {id:'1.2', t:'Cavo di alimentazione protetto contro disconnessione accidentale'},
+    {id:'1.3', t:'Controllo numero prese ausiliarie (massimo 4)'},
+    {id:'1.4', t:'Presenza valvola ossigeno di emergenza'},
+  ],
+  'CQ_SPM':[
+    {id:'1.1', t:'Controllo integrità involucro'},
+    {id:'1.2', t:'Controllo integrità cavi elettrici / spina / presa'},
+    {id:'1.3', t:'Controllo corretto amperaggio fusibili'},
+    {id:'1.4', t:'Controllo funzionamento di comandi, interruttori, pulsanti e manopole'},
+    {id:'1.5', t:'Verifica dello stato dei tubi e connettori'},
+    {id:'1.6', t:'Verifica dell\'integrità del trasduttore'},
+    {id:'1.7', t:'Verifica dello stato delle batterie interne, se presenti'},
+    {id:'1.8', t:'Prova funzionale'},
+  ],
+  'CQ_VPO':[
+    {id:'1.1', t:'Presenza allarme mancanza rete'},
+    {id:'1.2', t:'Cavo di alimentazione protetto contro disconnessione accidentale'},
+    {id:'1.3', t:'Controllo numero prese ausiliarie (massimo 4)'},
+    {id:'1.4', t:'Presenza valvola ossigeno di emergenza'},
+  ],
+};
+
+const CQ_PROVA={
+  'CQ_DEF':[
+    {sec:'Tipologia e opzioni',fields:[{id:'cq_def_tipo_man',l:'Manuale (X)'},{id:'cq_def_tipo_dae',l:'DAE (X)'},{id:'cq_def_opt_pac',l:'Pacing (X)'},{id:'cq_def_opt_nibp',l:'NIBP (X)'},{id:'cq_def_opt_spo2',l:'SPO2 (X)'}]},
+    {sec:'Energia erogata (J) — Impostata / Misurata',fields:[
+      {id:'cq_def_e1i',l:'E1 Impostata'},{id:'cq_def_e1m',l:'E1 Misurata'},
+      {id:'cq_def_e2i',l:'E2 Impostata'},{id:'cq_def_e2m',l:'E2 Misurata'},
+      {id:'cq_def_e3i',l:'E3 Impostata'},{id:'cq_def_e3m',l:'E3 Misurata'},
+      {id:'cq_def_e4i',l:'E4 Impostata'},{id:'cq_def_e4m',l:'E4 Misurata'},
+      {id:'cq_def_e5i',l:'E5 Impostata'},{id:'cq_def_e5m',l:'E5 Misurata'},
+      {id:'cq_def_e6i',l:'E6 Impostata'},{id:'cq_def_e6m',l:'E6 Misurata'},
+    ]},
+  ],
+  'CQ_ECG':[
+    {sec:'Prova funzionale ECG — Impostato / Indicato / Limite',fields:[
+      {id:'cq_ecg_v1i',l:'M1 Impostato'},{id:'cq_ecg_v1ind',l:'M1 Indicato'},{id:'cq_ecg_v1lim',l:'M1 Limite'},
+      {id:'cq_ecg_v2i',l:'M2 Impostato'},{id:'cq_ecg_v2ind',l:'M2 Indicato'},{id:'cq_ecg_v2lim',l:'M2 Limite'},
+      {id:'cq_ecg_v3i',l:'M3 Impostato'},{id:'cq_ecg_v3ind',l:'M3 Indicato'},{id:'cq_ecg_v3lim',l:'M3 Limite'},
+      {id:'cq_ecg_v4i',l:'M4 Impostato'},{id:'cq_ecg_v4ind',l:'M4 Indicato'},{id:'cq_ecg_v4lim',l:'M4 Limite'},
+      {id:'cq_ecg_v5i',l:'M5 Impostato'},{id:'cq_ecg_v5ind',l:'M5 Indicato'},{id:'cq_ecg_v5lim',l:'M5 Limite'},
+    ]},
+  ],
+  'CQ_CEN':[
+    {sec:'Giri — Impostato / Misurato',fields:[
+      {id:'cq_cen_g1i',l:'G1 Impostato'},{id:'cq_cen_g1m',l:'G1 Misurato'},
+      {id:'cq_cen_g2i',l:'G2 Impostato'},{id:'cq_cen_g2m',l:'G2 Misurato'},
+      {id:'cq_cen_g3i',l:'G3 Impostato'},{id:'cq_cen_g3m',l:'G3 Misurato'},
+    ]},
+    {sec:'Temperatura — Impostata / Misurata',fields:[
+      {id:'cq_cen_t1i',l:'T1 Impostata'},{id:'cq_cen_t1m',l:'T1 Misurata'},
+      {id:'cq_cen_t2i',l:'T2 Impostata'},{id:'cq_cen_t2m',l:'T2 Misurata'},
+      {id:'cq_cen_t3i',l:'T3 Impostata'},{id:'cq_cen_t3m',l:'T3 Misurata'},
+    ]},
+  ],
+  'CQ_ELB':[
+    {sec:'Correnti dispersione HF (mA)',fields:[
+      {id:'cq_elb_ct_t',l:'Carico el. — Taglio'},{id:'cq_elb_ct_c',l:'Carico el. — Coagulo'},
+      {id:'cq_elb_at_t',l:'Attivo/terra — T'},{id:'cq_elb_at_c',l:'Attivo/terra — C'},
+      {id:'cq_elb_fn_t',l:'Flott. att./terra — T'},{id:'cq_elb_fn_c',l:'Flott. att./terra — C'},
+      {id:'cq_elb_en_t',l:'El. neutro — T'},{id:'cq_elb_en_c',l:'El. neutro — C'},
+      {id:'cq_elb_iso1',l:'Bipolare El.1'},{id:'cq_elb_iso2',l:'Bipolare El.2'},
+    ]},
+    {sec:'Potenza uscita su carico nominale (W)',fields:[
+      {id:'cq_elb_pt1d',l:'Taglio — Dichiarato'},{id:'cq_elb_pt1r',l:'Taglio — Riscontrato'},
+      {id:'cq_elb_pc1d',l:'Coagulo — Dichiarato'},{id:'cq_elb_pc1r',l:'Coagulo — Riscontrato'},
+      {id:'cq_elb_pb1d',l:'Bipolare — Dichiarato'},{id:'cq_elb_pb1r',l:'Bipolare — Riscontrato'},
+    ]},
+  ],
+  'CQ_FBI':[
+    {sec:'Taratura temperature (Impostata / Indicata / Termografo / Misurata / Limiti)',fields:[
+      {id:'cq_fbi_r1label',l:'Ripiano 1 — Nome'},{id:'cq_fbi_r1i',l:'R1 Impostata'},{id:'cq_fbi_r1ind',l:'R1 Indicata'},{id:'cq_fbi_r1it',l:'R1 Termografo'},{id:'cq_fbi_r1m',l:'R1 Misurata'},{id:'cq_fbi_r1l',l:'R1 Limiti'},
+      {id:'cq_fbi_r2label',l:'Ripiano 2 — Nome'},{id:'cq_fbi_r2i',l:'R2 Impostata'},{id:'cq_fbi_r2ind',l:'R2 Indicata'},{id:'cq_fbi_r2it',l:'R2 Termografo'},{id:'cq_fbi_r2m',l:'R2 Misurata'},{id:'cq_fbi_r2l',l:'R2 Limiti'},
+      {id:'cq_fbi_r3label',l:'Ripiano 3 — Nome'},{id:'cq_fbi_r3i',l:'R3 Impostata'},{id:'cq_fbi_r3ind',l:'R3 Indicata'},{id:'cq_fbi_r3it',l:'R3 Termografo'},{id:'cq_fbi_r3m',l:'R3 Misurata'},{id:'cq_fbi_r3l',l:'R3 Limiti'},
+      {id:'cq_fbi_r4label',l:'Ripiano 4 — Nome'},{id:'cq_fbi_r4i',l:'R4 Impostata'},{id:'cq_fbi_r4ind',l:'R4 Indicata'},{id:'cq_fbi_r4it',l:'R4 Termografo'},{id:'cq_fbi_r4m',l:'R4 Misurata'},{id:'cq_fbi_r4l',l:'R4 Limiti'},
+    ]},
+  ],
+  'CQ_ECT':[
+    {sec:'Identificazione sonde',fields:[
+      {id:'cq_ect_s1',l:'Sonda 1'},{id:'cq_ect_s2',l:'Sonda 2'},{id:'cq_ect_s3',l:'Sonda 3'},{id:'cq_ect_s4',l:'Sonda 4'},
+    ]},
+    {sec:'Misure per sonda',fields:[
+      {id:'cq_ect_m1s1',l:'1) Uniformità S1'},{id:'cq_ect_m1s2',l:'1) Uniformità S2'},
+      {id:'cq_ect_m2s1',l:'2a) Acc.orizz. S1'},{id:'cq_ect_m2s2',l:'2a) Acc.orizz. S2'},
+      {id:'cq_ect_m3s1',l:'2b) Acc.vert. S1'},{id:'cq_ect_m3s2',l:'2b) Acc.vert. S2'},
+      {id:'cq_ect_m4s1',l:'3a) Ris.ass. S1'},{id:'cq_ect_m4s2',l:'3a) Ris.ass. S2'},
+      {id:'cq_ect_m5s1',l:'3b) Ris.lat. S1'},{id:'cq_ect_m5s2',l:'3b) Ris.lat. S2'},
+    ]},
+  ],
+  'CQ_MON':[
+    {sec:'Prova ECG — Impostato / Indicato / Limite',fields:[
+      {id:'cq_mon_e1i',l:'E1 Imp'},{id:'cq_mon_e1ind',l:'E1 Ind'},{id:'cq_mon_e1lim',l:'E1 Lim'},
+      {id:'cq_mon_e2i',l:'E2 Imp'},{id:'cq_mon_e2ind',l:'E2 Ind'},{id:'cq_mon_e2lim',l:'E2 Lim'},
+      {id:'cq_mon_e3i',l:'E3 Imp'},{id:'cq_mon_e3ind',l:'E3 Ind'},{id:'cq_mon_e3lim',l:'E3 Lim'},
+      {id:'cq_mon_e4i',l:'E4 Imp'},{id:'cq_mon_e4ind',l:'E4 Ind'},{id:'cq_mon_e4lim',l:'E4 Lim'},
+      {id:'cq_mon_e5i',l:'E5 Imp'},{id:'cq_mon_e5ind',l:'E5 Ind'},{id:'cq_mon_e5lim',l:'E5 Lim'},
+    ]},
+    {sec:'Prova SPO2 (%) — Impostato / Indicato / Limite',fields:[
+      {id:'cq_mon_s1i',l:'S1 Imp'},{id:'cq_mon_s1ind',l:'S1 Ind'},{id:'cq_mon_s1lim',l:'S1 Lim'},
+      {id:'cq_mon_s2i',l:'S2 Imp'},{id:'cq_mon_s2ind',l:'S2 Ind'},{id:'cq_mon_s2lim',l:'S2 Lim'},
+      {id:'cq_mon_s3i',l:'S3 Imp'},{id:'cq_mon_s3ind',l:'S3 Ind'},{id:'cq_mon_s3lim',l:'S3 Lim'},
+      {id:'cq_mon_s4i',l:'S4 Imp'},{id:'cq_mon_s4ind',l:'S4 Ind'},{id:'cq_mon_s4lim',l:'S4 Lim'},
+      {id:'cq_mon_s5i',l:'S5 Imp'},{id:'cq_mon_s5ind',l:'S5 Ind'},{id:'cq_mon_s5lim',l:'S5 Lim'},
+      {id:'cq_mon_s6i',l:'S6 Imp'},{id:'cq_mon_s6ind',l:'S6 Ind'},{id:'cq_mon_s6lim',l:'S6 Lim'},
+    ]},
+    {sec:'Prova NIBP (mmHg) — Impostato / Indicato / Limite',fields:[
+      {id:'cq_mon_n1i',l:'N1 Imp'},{id:'cq_mon_n1ind',l:'N1 Ind'},{id:'cq_mon_n1lim',l:'N1 Lim'},
+      {id:'cq_mon_n2i',l:'N2 Imp'},{id:'cq_mon_n2ind',l:'N2 Ind'},{id:'cq_mon_n2lim',l:'N2 Lim'},
+      {id:'cq_mon_n3i',l:'N3 Imp'},{id:'cq_mon_n3ind',l:'N3 Ind'},{id:'cq_mon_n3lim',l:'N3 Lim'},
+    ]},
+  ],
+  'CQ_ANS':[
+    {sec:'Controlli funzionali',fields:[
+      {id:'cq_ans_comp',l:'Compliance'},{id:'cq_ans_res',l:'Resistenza'},{id:'cq_ans_ie',l:'I:E'},
+      {id:'cq_ans_fri',l:'Freq.resp. Impostato'},{id:'cq_ans_frv',l:'Freq.resp. Visualizzato'},{id:'cq_ans_frm',l:'Freq.resp. Misurato'},{id:'cq_ans_frl',l:'Freq.resp. Limite'},
+      {id:'cq_ans_vii',l:'Vol.ist. Impostato'},{id:'cq_ans_viv',l:'Vol.ist. Visualizzato'},{id:'cq_ans_vim',l:'Vol.ist. Misurato'},{id:'cq_ans_vil',l:'Vol.ist. Limite'},
+    ]},
+  ],
+  'CQ_SPM':[
+    {sec:'Prova funzionale volume — Impostato / Misurato',fields:[
+      {id:'cq_spm_v1i',l:'V1 Impostato'},{id:'cq_spm_v1m',l:'V1 Misurato'},
+      {id:'cq_spm_v2i',l:'V2 Impostato'},{id:'cq_spm_v2m',l:'V2 Misurato'},
+      {id:'cq_spm_v3i',l:'V3 Impostato'},{id:'cq_spm_v3m',l:'V3 Misurato'},
+    ]},
+  ],
+  'CQ_VPO':[
+    {sec:'Controlli funzionali',fields:[
+      {id:'cq_ans_comp',l:'Compliance'},{id:'cq_ans_res',l:'Resistenza'},{id:'cq_ans_ie',l:'I:E'},
+      {id:'cq_ans_fri',l:'Freq.resp. Impostato'},{id:'cq_ans_frv',l:'Freq.resp. Visualizzato'},{id:'cq_ans_frm',l:'Freq.resp. Misurato'},{id:'cq_ans_frl',l:'Freq.resp. Limite'},
+      {id:'cq_ans_vii',l:'Vol.ist. Impostato'},{id:'cq_ans_viv',l:'Vol.ist. Visualizzato'},{id:'cq_ans_vim',l:'Vol.ist. Misurato'},{id:'cq_ans_vil',l:'Vol.ist. Limite'},
+    ]},
+  ],
+};
+
+function buildCQPoints(type){
+  cqType=type; cqState={};
+  const pts=CQ_VIS[type]||[];
+  if(!pts.length){
+    document.getElementById('cq-sec-title').textContent='Controllo qualità — '+type.replace('CQ_','');
+    document.getElementById('cq-total').textContent='0';
+    document.getElementById('cq-count').textContent='0';
+    document.getElementById('cq-points').innerHTML=`<div style="padding:10px;color:var(--text2);font-size:13px">Form ${type} non ancora disponibile.</div>`;
+    document.getElementById('cq-prova').innerHTML='';
+    document.getElementById('cq-prova').style.display='none';
+    return;
+  }
+  document.getElementById('cq-sec-title').textContent='Controllo visivo — '+type.replace('CQ_','');
+  document.getElementById('cq-total').textContent=pts.length;
+  document.getElementById('cq-count').textContent='0';
+  const container=document.getElementById('cq-points');
+  container.innerHTML=pts.map(p=>{
+    // p può essere oggetto {id,t} o stringa legacy
+    const pid = (typeof p === 'object' ? p.id : p).replace('.','_');
+    const label = typeof p === 'object' ? p.id : p;
+    const title = typeof p === 'object' ? p.t : 'Punto ' + p;
+    return`<div class="mp-point" id="cq-p-${pid}">
+      <div class="mp-point-hdr" onclick="toggleCQ('${pid}')">
+        <div class="mp-num">${label}</div>
+        <div class="mp-title">${title}</div>
+        <div class="mp-stato" id="cq-stato-${pid}">—</div>
+      </div>
+      <div class="mp-btns" id="cq-btns-${pid}" style="display:none">
+        <button class="mp-btn ok" onclick="setCQ('${pid}','OK')">OK</button>
+        <button class="mp-btn ko" onclick="setCQ('${pid}','KO')">KO</button>
+        <button class="mp-btn na" onclick="setCQ('${pid}','NA')">NA</button>
+      </div>
+    </div>`;
+  }).join('');
+  const provaDiv=document.getElementById('cq-prova');
+  const secs=CQ_PROVA[type];
+  if(secs&&secs.length){
+    provaDiv.innerHTML=secs.map(sec=>`
+      <div class="sec" style="margin-bottom:10px">
+        <div class="sec-hdr">${sec.sec}</div>
+        <div class="sec-body" style="grid-template-columns:repeat(auto-fill,minmax(160px,1fr))">
+          ${sec.fields.map(f=>`<div class="field"><label>${f.l}</label><input type="text" id="${f.id}" inputmode="decimal"></div>`).join('')}
+        </div>
+      </div>`).join('');
+    provaDiv.style.display='block';
+  } else {
+    provaDiv.innerHTML=''; provaDiv.style.display='none';
+  }
+}
+
+function fillCQPreset(cod,type){
+  const pkey='PRESET_'+type;
+  if(!PRESETS||!PRESETS[pkey]) return;
+  const preset=PRESETS[pkey][cod];
+  if(!preset) return;
+  (CQ_VIS[type]||[]).forEach(p=>{
+    const pid=(typeof p==='object'?p.id:p).replace('.','_');
+    const val=preset[`cq_vis_${pid}_ok`]?'OK':preset[`cq_vis_${pid}_ko`]?'KO':preset[`cq_vis_${pid}_na`]?'NA':null;
+    if(val) setCQ(pid,val);
+  });
+  (CQ_PROVA[type]||[]).forEach(sec=>sec.fields.forEach(f=>{
+    if(preset[f.id]){const el=document.getElementById(f.id);if(el)el.value=preset[f.id];}
+  }));
+  sv('cq-strum',preset['cq_strum']||'');
+  sv('cq-strum-mod',preset['cq_strum_mod']||'');
+  sv('cq-strum-ser',preset['cq_strum_ser']||'');
+  sv('cq-strum-cert',preset['cq_strum_cert']||'');
+  sv('cq-strum-scad',preset['cq_strum_scad']||'');
+  sv('cq-tecnico',preset['cq_tecnico']||gv('cq-tecnico'));
+}
+
+function toggleCQ(pid){const b=document.getElementById('cq-btns-'+pid);if(b)b.style.display=b.style.display==='none'?'flex':'none';}
+
+function setCQ(pid,val){
+  cqState[pid]=val;
+  const s=document.getElementById('cq-stato-'+pid);
+  s.textContent=val; s.className='mp-stato '+(val==='OK'?'ok':val==='KO'?'ko':'na');
+  const h=document.querySelector('#cq-p-'+pid+' .mp-point-hdr');
+  if(h) h.style.background=val==='OK'?'var(--ok-bg)':val==='KO'?'var(--ko-bg)':'var(--bg2)';
+  document.querySelectorAll('#cq-btns-'+pid+' .mp-btn').forEach(b=>b.classList.toggle('sel',b.textContent===val));
+  document.getElementById('cq-btns-'+pid).style.display='none';
+  document.getElementById('cq-count').textContent=Object.keys(cqState).length;
+  uP();
+}
+
+function fillCQHeader(d){
+  const t=new Date().toISOString().split('T')[0];
+  sv('cq-codice',d.c); sv('cq-data',t); sv('cq-note','-');
+  sv('cq-data2',t); sv('cq-tecnico',d.ver||'');
+}
+
+function resetCQ(){
+  cqState={}; cqType=null;
+  const c=document.getElementById('cq-count'); if(c) c.textContent='0';
+  document.querySelectorAll('[id^="cq-p-"]').forEach(el=>{
+    const pid=el.id.replace('cq-p-','');
+    const s=document.getElementById('cq-stato-'+pid); if(s){s.textContent='—';s.className='mp-stato';}
+    const h=el.querySelector('.mp-point-hdr'); if(h) h.style.background='';
+    const b=document.getElementById('cq-btns-'+pid); if(b){b.style.display='none';b.querySelectorAll('.mp-btn').forEach(x=>x.classList.remove('sel'));}
+  });
+  const p=document.getElementById('cq-prova'); if(p){p.innerHTML='';p.style.display='none';}
+}
+
+function collectCQ(){
+  if(!cqType) return null;
+  const t=new Date().toISOString().split('T')[0];
+  const rec={cq_type:cqType,cq_codice:gv('cq-codice'),cq_data:gv('cq-data')||t,
+    cq_note:gv('cq-note'),cq_tecnico:gv('cq-tecnico'),cq_data2:gv('cq-data2')||t,
+    cq_strum:gv('cq-strum'),cq_strum_mod:gv('cq-strum-mod'),
+    cq_strum_ser:gv('cq-strum-ser'),cq_strum_cert:gv('cq-strum-cert'),cq_strum_scad:gv('cq-strum-scad')};
+  (CQ_VIS[cqType]||[]).forEach(p=>{const pid=(typeof p==='object'?p.id:p).replace('.','_');rec['cq_vis_'+pid]=cqState[pid]||'';});
+  (CQ_PROVA[cqType]||[]).forEach(sec=>sec.fields.forEach(f=>{rec[f.id]=gv(f.id)||'';}));
+  return rec;
+}
+
+function loadCQSaved(rec){
+  if(!rec||!rec.cq_type) return;
+  buildCQPoints(rec.cq_type);
+  sv('cq-data',rec.cq_data||''); sv('cq-note',rec.cq_note||'-');
+  sv('cq-tecnico',rec.cq_tecnico||''); sv('cq-data2',rec.cq_data2||'');
+  sv('cq-strum',rec.cq_strum||''); sv('cq-strum-mod',rec.cq_strum_mod||'');
+  sv('cq-strum-ser',rec.cq_strum_ser||''); sv('cq-strum-cert',rec.cq_strum_cert||'');
+  sv('cq-strum-scad',rec.cq_strum_scad||'');
+  (CQ_VIS[rec.cq_type]||[]).forEach(p=>{const pid=(typeof p==='object'?p.id:p).replace('.','_');if(rec['cq_vis_'+pid])setCQ(pid,rec['cq_vis_'+pid]);});
+  (CQ_PROVA[rec.cq_type]||[]).forEach(sec=>sec.fields.forEach(f=>{const el=document.getElementById(f.id);if(el&&rec[f.id])el.value=rec[f.id];}));
+}
+
+
+function fillVSPPreset(cod,type){
+  const pkey='PRESET_'+type;
+  if(!PRESETS||!PRESETS[pkey]) return;
+  const preset=PRESETS[pkey][cod];
+  if(!preset) return;
+  const pts=VSP_POINTS[type]||[];
+  pts.forEach(p=>{
+    const l=p.l;
+    const opts=p.opts||['OK','KO','NA'];
+    const val=opts.find(o=>preset['vsp_'+l+'_'+o.toLowerCase()]||preset['vsp_'+l]===o);
+    // For simple OK/KO/NA: check vsp_A_ok, vsp_A_ko, vsp_A_na
+    let found=null;
+    if(preset['vsp_'+l+'_ok']) found='OK';
+    else if(preset['vsp_'+l+'_ko']) found='KO';
+    else if(preset['vsp_'+l+'_na']) found='NA';
+    else if(preset['vsp_'+l+'_b']) found='B';
+    else if(preset['vsp_'+l+'_bf']) found='BF';
+    else if(preset['vsp_'+l+'_cf']) found='CF';
+    if(found) setVSP(l,found);
+  });
+  const extra=VSP_EXTRA[type];
+  if(extra) extra.forEach(sec=>sec.fields.forEach(f=>{
+    if(preset[f.id]){const el=document.getElementById(f.id);if(el)el.value=preset[f.id];}
+  }));
+  sv('vsp-tecnico',preset['vsp_tecnico']||gv('vsp-tecnico'));
+}
+
+function fillMPPreset(cod){
+  if(!PRESETS||!PRESETS['PRESET_MP']) return;
+  const preset=PRESETS['PRESET_MP'][cod];
+  if(!preset) return;
+  for(let n=1;n<=19;n++){
+    const val=preset['mp'+n+'_ok']?'OK':preset['mp'+n+'_ko']?'KO':preset['mp'+n+'_na']?'NA':null;
+    if(val) setMP(n,val);
+  }
+  if(preset['mp_tecnico']) sv('mp-tecnico',preset['mp_tecnico']);
+}
+
+function fillVSEPreset(cod){
+  if(!PRESETS||!PRESETS['PRESET_VSE']) return;
+  const p=PRESETS['PRESET_VSE'][cod];
+  if(!p) return;
+  // Input fields
+  const inputs=['ten','frq','pot','mar','fud','fur','spi','msp','pdc','nag','tms','cor','trm','pnm','pim','pbm','ibm','pcm','icm','mot','str','nrs','ver','vrc','sct'];
+  inputs.forEach(f=>{if(p[f]) sv('f-'+f,p[f]);});
+  // Radio button fields
+  const radios=['tdp','fdp','pdp','cls','cdp','pat','pad','fnz','def','smo','cav','icv','isp','int','icn','prc','icd','mus','mse','clm','vt','vd'];
+  radios.forEach(f=>{if(p[f]) sr('rg-'+f,p[f]);});
+  // Special: classe e PA aggiornano le misurazioni
+  if(p['cls']||p['pat']) uM();
+  // Special: giudizio
+  if(p['giu']) sG(p['giu']);
+}
+// ── SUPABASE AUTH ──────────────────────────────────────────
+const SUPA_URL = 'https://ttgvuoiznybjdyhlshpt.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR0Z3Z1b2l6bnliamR5aGxzaHB0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxNDc2OTIsImV4cCI6MjA4OTcyMzY5Mn0.Igk1hjHa_yY70FfDay6oCQRYo5EhIoCh-8H2u9NAXxo';
+const supa = supabase.createClient(SUPA_URL, SUPA_KEY);
+
+let currentUser = null;
+
+document.body.insertAdjacentHTML('afterbegin', `
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">AppWitch</div>
+    <div class="login-sub">Verifiche Dispositivi Medici</div>
+    <div class="login-field">
+      <label>Email</label>
+      <input type="email" id="l-email" placeholder="nome@asl.it" autocomplete="email">
+    </div>
+    <div class="login-field">
+      <label>Password</label>
+      <input type="password" id="l-pass" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <button class="login-btn" id="l-btn" onclick="doLogin()">Accedi</button>
+    <div class="login-err" id="l-err"></div>
+  </div>
+</div>
+`);
+
+document.querySelector('.app').insertAdjacentHTML('afterbegin', `
+<div id="user-bar">
+  <div><span class="u-name" id="u-name"></span><span class="u-role" id="u-role"></span></div>
+ <button onclick="openAdmin()" id="btn-admin" style="display:none">Admin</button>
+  <button onclick="doLogout()">Esci</button>
+</div>
+`);
+
+document.getElementById('l-pass').addEventListener('keydown', e => {
+  if (e.key === 'Enter') doLogin();
+});
+
+async function doLogin() {
+  const email = document.getElementById('l-email').value.trim();
+  const pass = document.getElementById('l-pass').value;
+  const btn = document.getElementById('l-btn');
+  const err = document.getElementById('l-err');
+  err.style.display = 'none';
+  btn.disabled = true;
+  btn.textContent = 'Accesso...';
+  try {
+    const { data, error } = await supa.auth.signInWithPassword({ email, password: pass });
+    if (error) throw error;
+    await onLogin(data.user);
+  } catch(e) {
+    err.textContent = 'Email o password errati.';
+    err.style.display = 'block';
+    btn.disabled = false;
+    btn.textContent = 'Accedi';
+  }
+}
+
+async function onLogin(user) {
+  const { data: profile } = await supa.from('profiles').select('*').eq('id', user.id).single();
+  currentUser = { ...user, profile };
+  localStorage.setItem('aw_session', JSON.stringify({ user, profile }));
+  showApp();
+}
+
+function showApp() {
+  const p = currentUser.profile;
+  document.getElementById('u-name').textContent = p.full_name;
+  document.getElementById('u-role').textContent = ' · ' + p.role;
+  document.getElementById('user-bar').style.display = 'flex';
+  if (p.role === 'admin') document.getElementById('btn-admin').style.display = '';
+  document.getElementById('login-screen').style.display = 'none';
+  initDB();
+}
+
+async function doLogout() {
+  await supa.auth.signOut();
+  localStorage.removeItem('aw_session');
+  currentUser = null;
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('user-bar').style.display = 'none';
+}
+
+async function checkSession() {
+  const { data: { session } } = await supa.auth.getSession();
+  if (session) {
+    await onLogin(session.user);
+    return;
+  }
+  const saved = localStorage.getItem('aw_session');
+  if (saved) {
+    try {
+      const { user, profile } = JSON.parse(saved);
+      currentUser = { ...user, profile };
+      showApp();
+      return;
+    } catch(e) {}
+  }
+}
+
+checkSession();
+// ── FINE AUTH ──────────────────────────────────────────────
+buildMPPoints();
+// ── PANNELLO ADMIN ──────────────────────────────────────────
+async function openAdmin() {
+  if (!currentUser || currentUser.profile.role !== 'admin') return;
+  let modal = document.getElementById('admin-modal');
+  if (!modal) {
+    document.body.insertAdjacentHTML('beforeend', `
+    <div id="admin-modal" style="position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:10000;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto">
+      <div style="background:var(--bg);border-radius:var(--rad-lg);width:100%;max-width:600px;padding:20px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+          <div style="font-size:16px;font-weight:600">Gestione Utenti</div>
+          <button onclick="document.getElementById('admin-modal').remove()" style="padding:4px 10px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text);cursor:pointer">✕</button>
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+          <input id="adm-email" type="email" placeholder="Email" style="flex:1;min-width:160px;padding:8px 10px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text);font-size:14px">
+          <input id="adm-name" type="text" placeholder="Nome completo" style="flex:1;min-width:160px;padding:8px 10px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text);font-size:14px">
+          <input id="adm-pass" type="password" placeholder="Password" style="flex:1;min-width:140px;padding:8px 10px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text);font-size:14px">
+          <select id="adm-role" style="padding:8px 10px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text);font-size:14px">
+            <option value="verificatore">Verificatore</option>
+            <option value="responsabile">Responsabile</option>
+            <option value="admin">Admin</option>
+          </select>
+          <select id="adm-asl" style="padding:8px 10px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text);font-size:14px">
+  <option value="ASL Benevento">ASL Benevento</option>
+  <option value="ASL Avellino">ASL Avellino</option>
+</select>
+          <button onclick="adminCreate()" style="padding:8px 14px;font-size:13px;font-weight:600;background:var(--info);color:#fff;border:none;border-radius:var(--rad);cursor:pointer">+ Crea</button>
+        </div>
+        <div id="adm-msg" style="display:none;padding:8px 12px;border-radius:var(--rad);font-size:13px;margin-bottom:12px"></div>
+        <div id="adm-list" style="font-size:13px;color:var(--text2)">Caricamento...</div>
+      </div>
+    </div>`);
+  } else {
+    modal.style.display = 'flex';
+  }
+  adminLoadUsers();
+}
+
+async function adminCall(payload) {
+  const { data: { session } } = await supa.auth.getSession();
+  const res = await fetch('https://ttgvuoiznybjdyhlshpt.supabase.co/functions/v1/manage-users', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + session.access_token
+    },
+    body: JSON.stringify(payload)
+  });
+  return res.json();
+}
+
+async function adminLoadUsers() {
+  const list = document.getElementById('adm-list');
+  if (!list) return;
+  list.innerHTML = 'Caricamento...';
+  const users = await adminCall({ action: 'list' });
+  if (!Array.isArray(users)) { list.innerHTML = 'Errore caricamento utenti.'; return; }
+  if (users.length === 0) { list.innerHTML = 'Nessun utente.'; return; }
+  list.innerHTML = users.map(u => `
+    <div style="display:flex;align-items:center;gap:8px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--rad);margin-bottom:6px;flex-wrap:wrap">
+      <div style="flex:1;min-width:160px">
+        <div style="font-weight:500;color:var(--text)">${u.profile?.full_name || '—'}</div>
+        <div style="font-size:11px;color:var(--text3)">${u.email}</div>
+      </div>
+      <select onchange="adminUpdateRole('${u.id}', this.value)" style="padding:4px 8px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text);font-size:12px">
+        <option value="verificatore" ${u.profile?.role==='verificatore'?'selected':''}>Verificatore</option>
+        <option value="responsabile" ${u.profile?.role==='responsabile'?'selected':''}>Responsabile</option>
+        <option value="admin" ${u.profile?.role==='admin'?'selected':''}>Admin</option>
+      </select>
+      <button onclick="adminBan('${u.id}', ${u.banned})" style="padding:4px 10px;font-size:12px;border:1px solid ${u.banned ? 'var(--ok)' : 'var(--warn)'};border-radius:var(--rad);background:var(--bg);color:${u.banned ? 'var(--ok)' : 'var(--warn)'};cursor:pointer">
+        ${u.banned ? 'Riabilita' : 'Disabilita'}
+      </button>
+      <button onclick="adminDelete('${u.id}', '${u.email}')" style="padding:4px 10px;font-size:12px;border:1px solid var(--ko);border-radius:var(--rad);background:var(--bg);color:var(--ko);cursor:pointer">Elimina</button>
+    </div>
+  `).join('');
+}
+
+async function adminCreate() {
+  const email = document.getElementById('adm-email').value.trim();
+  const fullName = document.getElementById('adm-name').value.trim();
+  const password = document.getElementById('adm-pass').value;
+ const role = document.getElementById('adm-role').value;
+const asl = document.getElementById('adm-asl').value;
+  const msg = document.getElementById('adm-msg');
+  if (!email || !fullName || !password) {
+    adminMsg('Compila tutti i campi.', false); return;
+  }
+ const res = await adminCall({ action: 'create', email, fullName, password, role, asl });
+  if (res.error) { adminMsg('Errore: ' + res.error, false); return; }
+  adminMsg('Utente creato con successo!', true);
+  document.getElementById('adm-email').value = '';
+  document.getElementById('adm-name').value = '';
+  document.getElementById('adm-pass').value = '';
+  adminLoadUsers();
+}
+
+async function adminUpdateRole(userId, role) {
+  await adminCall({ action: 'update_role', userId, role });
+  adminMsg('Ruolo aggiornato.', true);
+}
+
+async function adminBan(userId, isBanned) {
+  await adminCall({ action: isBanned ? 'unban' : 'ban', userId });
+  adminMsg(isBanned ? 'Utente riabilitato.' : 'Utente disabilitato.', true);
+  adminLoadUsers();
+}
+
+async function adminDelete(userId, email) {
+  if (!confirm('Eliminare definitivamente ' + email + '?')) return;
+  await adminCall({ action: 'delete', userId });
+  adminMsg('Utente eliminato.', true);
+  adminLoadUsers();
+}
+
+function adminMsg(text, ok) {
+  const msg = document.getElementById('adm-msg');
+  if (!msg) return;
+  msg.textContent = text;
+  msg.style.display = 'block';
+  msg.style.background = ok ? 'var(--ok-bg)' : 'var(--ko-bg)';
+  msg.style.color = ok ? 'var(--ok)' : 'var(--ko)';
+  setTimeout(() => { msg.style.display = 'none'; }, 3000);
+}
+// ── FINE PANNELLO ADMIN ──────────────────────────────────────
+
+// ── PERSISTENZA SESSIONI ──────────────────────────────────────
+let currentSessionId = null;   // UUID sessione attiva
+let syncPending = false;        // ci sono modifiche da sincronizzare
+let syncTimer   = null;         // timer auto-save
+
+// ── Helpers Supabase ─────────────────────────────────────────
+async function supaToken() {
+  const { data: { session } } = await supa.auth.getSession();
+  return session?.access_token;
+}
+
+function supaHdrs(token) {
+  return {
+    'apikey': SUPA_KEY,
+    'Authorization': 'Bearer ' + token,
+    'Content-Type': 'application/json',
+    'Prefer': 'return=representation'
+  };
+}
+
+// ── Crea nuova sessione ───────────────────────────────────────
+async function createSession() {
+  const title = document.getElementById('sess-new-title').value.trim();
+  if (!title) { toast('Inserisci un nome per la sessione', 'warn'); return; }
+  const token = await supaToken();
+  const asl   = currentUser?.profile?.asl || 'ASL Benevento';
+  const resp  = await fetch(`${SUPA_URL}/rest/v1/sessioni`, {
+    method: 'POST',
+    headers: supaHdrs(token),
+    body: JSON.stringify({
+      titolo: title,
+      utente_id: currentUser.id,
+      asl: asl,
+      dati: {}
+    })
+  });
+  if (!resp.ok) { toast('Errore creazione sessione', 'warn'); return; }
+  const rows = await resp.json();
+  const sess = Array.isArray(rows) ? rows[0] : rows;
+  document.getElementById('sess-new-title').value = '';
+  await activateSession(sess.id, sess.titolo);
+  await loadSessList();
+  toast('Sessione "' + sess.titolo + '" creata', 'ok');
+}
+
+// ── Attiva una sessione (carica i dati in memoria) ────────────
+async function activateSession(id, titolo) {
+  // Salva sessione corrente prima di cambiare
+  if (currentSessionId && Object.keys(saved).length > 0) {
+    await syncSessionNow();
+  }
+  // Reset memoria
+  Object.keys(saved).forEach(k => delete saved[k]);
+  cur = null; curVerif = null;
+  document.getElementById('form-area').style.display = 'none';
+  currentSessionId = id;
+  // Carica schede
+  const token = await supaToken();
+  const resp  = await fetch(
+    `${SUPA_URL}/rest/v1/sessione_schede?sessione_id=eq.${id}&select=*`,
+    { headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + token } }
+  );
+  if (resp.ok) {
+    const schede = await resp.json();
+    schede.forEach(s => {
+      const rec = {
+        codice: s.codice,
+        ...(s.dati_vse || {}),
+        ...(s.dati_mp  || {}),
+        ...(s.dati_vsp || {}),
+        ...(s.dati_cq  || {}),
+        vse_saved: !!s.dati_vse,
+        mp_saved:  !!s.dati_mp,
+        vsp_saved: !!s.dati_vsp,
+        cq_saved:  !!s.dati_cq,
+        vsp_type:  s.vsp_type || null,
+        cq_type:   s.cq_type  || null,
+      };
+      saved[s.codice] = rec;
+    });
+  }
+  updateSyncBar(titolo, true);
+  renderSession();
+  closeSessModal();
+  toast('Sessione "' + titolo + '" caricata', 'ok');
+}
+
+// ── Sync una scheda su Supabase ───────────────────────────────
+async function syncScheda(codice) {
+  if (!currentSessionId) return;
+  const rec   = saved[codice];
+  if (!rec)   return;
+  const token = await supaToken();
+
+  // Separa i dati per tipo
+  const dati_vse = rec.vse_saved ? collectVSEFromRec(rec) : null;
+  const dati_mp  = rec.mp_saved  ? collectMPFromRec(rec)  : null;
+  const dati_vsp = rec.vsp_saved ? collectVSPFromRec(rec) : null;
+  const dati_cq  = rec.cq_saved  ? collectCQFromRec(rec)  : null;
+
+  const payload = {
+    sessione_id: currentSessionId,
+    codice:      codice,
+    dati_vse:    dati_vse,
+    dati_mp:     dati_mp,
+    dati_vsp:    dati_vsp,
+    dati_cq:     dati_cq,
+    vsp_type:    rec.vsp_type || null,
+    cq_type:     rec.cq_type  || null,
+  };
+
+  await fetch(`${SUPA_URL}/rest/v1/sessione_schede`, {
+    method: 'POST',
+    headers: { ...supaHdrs(token), 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+    body: JSON.stringify(payload)
+  });
+}
+
+// ── Sync completa della sessione ─────────────────────────────
+async function syncSessionNow() {
+  if (!currentSessionId) return;
+  syncPending = false;
+  updateSyncBar(null, false); // mostra "sincronizzando..."
+  const codici = Object.keys(saved);
+  for (const cod of codici) {
+    await syncScheda(cod);
+  }
+  // Aggiorna data_aggiornamento della sessione
+  const token = await supaToken();
+  await fetch(`${SUPA_URL}/rest/v1/sessioni?id=eq.${currentSessionId}`, {
+    method: 'PATCH',
+    headers: { ...supaHdrs(token), 'Prefer': 'return=minimal' },
+    body: JSON.stringify({ data_aggiornamento: new Date().toISOString() })
+  });
+  updateSyncBar(null, true);
+}
+
+// ── Helpers raccolta dati per tipo ───────────────────────────
+function collectVSEFromRec(rec) {
+  const keys = ['data','note','ten','tdp','frq','fdp','pot','pdp','mar','fud','fur',
+    'cls','cdp','pat','pad','fnz','def','spi','smo','msp','cav','icv','isp','int',
+    'pdc','icn','prc','icd','mus','mse','nag','clm','tms','cor','trl','trm','pnl',
+    'pnm','pil','pim','pbl','pbm','ibl','ibm','pcl','pcm','icl','icm','giu','vt',
+    'vd','mot','str','nrs','ver','vrc','sct','ris_inv','ris_pa'];
+  return Object.fromEntries(keys.filter(k => rec[k] != null && rec[k] !== '').map(k => [k, rec[k]]));
+}
+function collectMPFromRec(rec) {
+  const keys = ['mp_data','mp_note','mp_tecnico','mp_data2'];
+  for (let i=1;i<=19;i++) keys.push('mp'+i);
+  return Object.fromEntries(keys.filter(k => rec[k] != null && rec[k] !== '').map(k => [k, rec[k]]));
+}
+function collectVSPFromRec(rec) {
+  return Object.fromEntries(
+    Object.entries(rec).filter(([k,v]) => k.startsWith('vsp_') && v != null && v !== '')
+  );
+}
+function collectCQFromRec(rec) {
+  return Object.fromEntries(
+    Object.entries(rec).filter(([k,v]) => (k.startsWith('cq_') || k.startsWith('cq-')) && v != null && v !== '')
+  );
+}
+
+// ── Barra sync ───────────────────────────────────────────────
+function updateSyncBar(titolo, synced) {
+  const bar   = document.getElementById('sess-sync-bar');
+  const dot   = document.getElementById('sync-dot');
+  const label = document.getElementById('sync-label');
+  if (!bar) return;
+  bar.style.display = 'flex';
+  if (!currentSessionId) {
+    dot.className   = 'sess-sync-dot offline';
+    label.textContent = 'Nessuna sessione attiva';
+    return;
+  }
+  if (synced === false) {
+    dot.className   = 'sess-sync-dot pending';
+    label.textContent = 'Sincronizzazione...';
+  } else if (synced === true) {
+    dot.className   = 'sess-sync-dot synced';
+    label.textContent = (titolo || 'Sessione attiva') + ' · Sincronizzato';
+  } else {
+    dot.className   = 'sess-sync-dot pending';
+    label.textContent = (titolo || 'Sessione attiva') + ' · Modifiche in attesa';
+  }
+}
+
+// ── Auto-save: schedula sync 3s dopo l'ultima modifica ────────
+function scheduleSync() {
+  if (!currentSessionId) return;
+  syncPending = true;
+  updateSyncBar(null, null);
+  if (syncTimer) clearTimeout(syncTimer);
+  syncTimer = setTimeout(() => syncSessionNow(), 3000);
+}
+
+// ── Modal sessioni ───────────────────────────────────────────
+async function openSessModal() {
+  document.getElementById('sess-modal').classList.add('open');
+  await loadSessList();
+}
+function closeSessModal() {
+  document.getElementById('sess-modal').classList.remove('open');
+}
+
+async function loadSessList() {
+  const list  = document.getElementById('sess-list');
+  list.innerHTML = '<div style="font-size:13px;color:var(--text3);padding:8px">Caricamento...</div>';
+  const token = await supaToken();
+  const asl   = currentUser?.profile?.asl || 'ASL Benevento';
+  const role  = currentUser?.profile?.role;
+  // Responsabile e admin vedono tutte le sessioni dell'ASL
+  let url = `${SUPA_URL}/rest/v1/sessioni?asl=eq.${encodeURIComponent(asl)}&order=data_aggiornamento.desc&limit=50`;
+  if (role === 'verificatore') {
+    url = `${SUPA_URL}/rest/v1/sessioni?utente_id=eq.${currentUser.id}&order=data_aggiornamento.desc&limit=50`;
+  }
+  const resp = await fetch(url, {
+    headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + token }
+  });
+  if (!resp.ok) { list.innerHTML = '<div style="color:var(--ko);padding:8px">Errore caricamento</div>'; return; }
+  const sessioni = await resp.json();
+  if (!sessioni.length) {
+    list.innerHTML = '<div style="font-size:13px;color:var(--text3);padding:8px">Nessuna sessione. Creane una nuova.</div>';
+    return;
+  }
+  list.innerHTML = sessioni.map(s => {
+    const isActive = s.id === currentSessionId;
+    const data = s.data_aggiornamento
+      ? new Date(s.data_aggiornamento).toLocaleDateString('it-IT', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})
+      : '—';
+    return `<div class="sess-item${isActive?' active-sess':''}" onclick="activateSession('${s.id}','${s.titolo.replace(/'/g,"\\'")}')">
+      <div class="sess-item-info">
+        <div class="sess-item-title">${s.titolo}</div>
+        <div class="sess-item-meta">Aggiornata: ${data}</div>
+      </div>
+      <div class="sess-item-btns">
+        ${isActive ? '<span style="font-size:11px;color:var(--info);font-weight:600">ATTIVA</span>' : ''}
+        <button class="btn-sess danger" onclick="event.stopPropagation();deleteSession('${s.id}','${s.titolo.replace(/'/g,"\\'")}')">✕</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function deleteSession(id, titolo) {
+  if (!confirm(`Eliminare la sessione "${titolo}"?\nTutti i dati verranno persi.`)) return;
+  const token = await supaToken();
+  // Elimina prima le schede
+  await fetch(`${SUPA_URL}/rest/v1/sessione_schede?sessione_id=eq.${id}`, {
+    method: 'DELETE',
+    headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + token }
+  });
+  // Poi la sessione
+  await fetch(`${SUPA_URL}/rest/v1/sessioni?id=eq.${id}`, {
+    method: 'DELETE',
+    headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + token }
+  });
+  if (currentSessionId === id) {
+    currentSessionId = null;
+    Object.keys(saved).forEach(k => delete saved[k]);
+    cur = null; curVerif = null;
+    document.getElementById('form-area').style.display = 'none';
+    updateSyncBar(null, null);
+    renderSession();
+  }
+  await loadSessList();
+  toast('Sessione eliminata', 'warn');
+}
+// ── FINE PERSISTENZA SESSIONI ─────────────────────────────────
+
+</script>
+</body>
+</html>
