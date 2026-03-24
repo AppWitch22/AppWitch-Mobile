@@ -399,7 +399,7 @@ h1{font-size:18px;font-weight:600;margin-bottom:4px}
           </div>
         </div>
 
-        <!-- blk-pa vuoto — mantenuto per retrocompatibilità collectVSE/restoreVSE -->
+        <!-- blk-pa vuoto — retrocompatibilità collectVSE/restoreVSE -->
         <div id="blk-pa" style="display:none"></div>
       </div>
       <div class="sec">
@@ -903,26 +903,25 @@ function uM(){
   const isFisso = spina === 'Impianto Fisso';
   const is61010 = norma === '61010';
 
-  // ── Tensione mis. + corrente: nascosti per AI ──
+  // Tensione mis. + corrente: nascosti per AI
   const blkTms = document.getElementById('blk-tms');
   const blkCor = document.getElementById('blk-cor');
   if(blkTms) blkTms.style.display = isAI ? 'none' : 'flex';
   if(blkCor) blkCor.style.display = isAI ? 'none' : 'flex';
 
-  // ── Badge AI ──
+  // Badge AI
   const bdgAI = document.getElementById('badge-ai');
   if(bdgAI) bdgAI.style.display = (isAI && haPA) ? 'inline-block' : 'none';
 
-  // ── Info Impianto Fisso ──
+  // Info Impianto Fisso
   const blkFissoInfo = document.getElementById('blk-fisso-info');
   if(blkFissoInfo) blkFissoInfo.style.display = isFisso ? 'block' : 'none';
 
-  // ── Info AI ──
+  // Info AI
   const blkAIInfo = document.getElementById('blk-ai-info');
   if(blkAIInfo) blkAIInfo.style.display = isAI ? 'block' : 'none';
 
-  // ── TERRA DI PROTEZIONE ──
-  // Visibile e abilitata solo per Classe I, non Impianto Fisso, non AI
+  // TERRA — solo Classe I, non Impianto Fisso, non AI
   const blkTerra = document.getElementById('blk-terra');
   const inpTrm   = document.getElementById('f-trm');
   const limTr    = document.getElementById('lim-tr');
@@ -930,21 +929,19 @@ function uM(){
   if(blkTerra) blkTerra.style.display = showTerra ? 'block' : 'none';
   if(inpTrm){
     inpTrm.disabled = !showTerra;
-    if(!showTerra){ inpTrm.value = ''; inpTrm.placeholder = 'N/A'; }
-    else inpTrm.placeholder = '';
+    if(!showTerra){ inpTrm.value=''; inpTrm.placeholder='N/A'; }
+    else inpTrm.placeholder='';
   }
   if(limTr) limTr.textContent = '300';
 
-  // ── RESISTENZA DI ISOLAMENTO ──
-  // Nascosta per Impianto Fisso
+  // RESISTENZA DI ISOLAMENTO — nascosta per Impianto Fisso
   const blkIsol = document.getElementById('blk-isol');
   if(blkIsol) blkIsol.style.display = isFisso ? 'none' : 'block';
-  // Riga PA/Massa — solo se BF o CF
   const blkRisPa = document.getElementById('blk-ris-pa');
   if(blkRisPa) blkRisPa.style.display = (isBF || isCF) ? 'block' : 'none';
 
-  // ── DISPERSIONE INVOLUCRO ──
-  // Nascosta per Impianto Fisso; limite: 100 µA (62353/60601) o 3500 µA (61010)
+  // DISPERSIONE INVOLUCRO — nascosta per Impianto Fisso e AI
+  // Limite: 100 µA (62353/60601), 3500 µA (61010)
   const blkDispInv = document.getElementById('blk-disp-inv');
   if(blkDispInv) blkDispInv.style.display = (isFisso || isAI) ? 'none' : 'block';
   const limInv = is61010 ? 3500 : 100;
@@ -958,10 +955,10 @@ function uM(){
     : 'Corrente dispersione apparecchio — Involucro';
   const inpPnm = document.getElementById('f-pnm');
   const inpPim = document.getElementById('f-pim');
-  if(inpPnm){ inpPnm.disabled = isFisso || isAI; if(isFisso||isAI){inpPnm.value='';inpPnm.placeholder='N/A';}else inpPnm.placeholder=''; }
-  if(inpPim){ inpPim.disabled = isFisso || isAI; if(isFisso||isAI){inpPim.value='';inpPim.placeholder='N/A';}else inpPim.placeholder=''; }
+  if(inpPnm){ inpPnm.disabled=isFisso||isAI; if(isFisso||isAI){inpPnm.value='';inpPnm.placeholder='N/A';}else inpPnm.placeholder=''; }
+  if(inpPim){ inpPim.disabled=isFisso||isAI; if(isFisso||isAI){inpPim.value='';inpPim.placeholder='N/A';}else inpPim.placeholder=''; }
 
-  // ── DISPERSIONE PA BF — visibile solo se PA = BF e norma != 61010 ──
+  // DISPERSIONE PA BF — solo se PA=BF e norma≠61010
   const blkPABF = document.getElementById('blk-pa-bf');
   if(blkPABF) blkPABF.style.display = (isBF && !is61010) ? 'block' : 'none';
   const limPnBF = document.getElementById('lim-pnbf');
@@ -969,7 +966,7 @@ function uM(){
   if(limPnBF) limPnBF.textContent = '100';
   if(limPiBF) limPiBF.textContent = '100';
 
-  // ── DISPERSIONE PA CF — visibile solo se PA = CF e norma != 61010 ──
+  // DISPERSIONE PA CF — solo se PA=CF e norma≠61010
   const blkPACF = document.getElementById('blk-pa-cf');
   if(blkPACF) blkPACF.style.display = (isCF && !is61010) ? 'block' : 'none';
   const limPnCF = document.getElementById('lim-pncf');
@@ -977,7 +974,7 @@ function uM(){
   if(limPnCF) limPnCF.textContent = '10';
   if(limPiCF) limPiCF.textContent = '10';
 
-  // ── Ricalcola tutti gli esiti ──
+  // Ricalcola esiti
   cv('f-trm','lim-tr','e-tr');
   cv('f-pnm','lim-pn','e-pn');
   cv('f-pim','lim-pi','e-pi');
