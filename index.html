@@ -290,7 +290,7 @@ h1{font-size:18px;font-weight:600;margin-bottom:4px}
       <div class="sec">
         <div class="sec-hdr">Ispezione visiva</div>
         <div class="sec-body">
-          <div class="field"><label>Tipo spina</label><select id="f-spi" class="sel-field"><option value="">—</option><option value="Pettine 10A">Pettine 10A</option><option value="Pettine 16A">Pettine 16A</option><option value="Shuko">Shuko</option><option value="CE">CE</option><option value="Connettore">Connettore</option><option value="Impianto Fisso">Impianto Fisso</option></select></div>
+          <div class="field"><label>Tipo spina</label><select id="f-spi" class="sel-field" onchange="uM()"><option value="">—</option><option value="Pettine 10A">Pettine 10A</option><option value="Pettine 16A">Pettine 16A</option><option value="Shuko">Shuko</option><option value="CE">CE</option><option value="Connettore">Connettore</option><option value="Impianto Fisso">Impianto Fisso</option></select></div>
           <div class="field"><label>Smontabile/pressofusa</label><div class="rg" id="rg-smo"><div class="rb" data-v="Pressofusa" onclick="pick(this)">Pressofusa</div><div class="rb" data-v="Smontabile" onclick="pick(this)">Smontabile</div></div></div>
           <div class="field"><label>Marchio spina</label><select id="f-msp" class="sel-field"><option value="">—</option><option value="VDE">VDE</option><option value="IMQ">IMQ</option></select></div>
           <div class="field"><label>Cavo alimentazione</label><div class="rg" id="rg-cav"><div class="rb" data-v="Separabile" onclick="pick(this)">Sep.</div><div class="rb" data-v="Non Separabile" onclick="pick(this)">Non sep.</div></div></div>
@@ -307,27 +307,100 @@ h1{font-size:18px;font-weight:600;margin-bottom:4px}
         </div>
       </div>
       <div class="sec">
-        <div class="sec-hdr"><span>Misurazioni elettriche</span><span class="badge-ai" id="badge-ai" style="display:none">AI con PA</span></div>
+        <div class="sec-hdr">
+          <span>Misurazioni elettriche</span>
+          <span class="badge-ai" id="badge-ai" style="display:none">AI con PA</span>
+        </div>
+
+        <!-- Classe misura + tensione + corrente -->
         <div class="sec-body">
           <div class="field"><label>Classe misura</label><div class="rg" id="rg-clm"><div class="rb" data-v="CL1" onclick="pick(this)">CL1</div><div class="rb" data-v="CL2" onclick="pick(this)">CL2</div><div class="rb" data-v="AI" onclick="pick(this)">AI</div></div></div>
           <div class="field" id="blk-tms"><label>Tensione mis. (V)</label><input type="number" id="f-tms" inputmode="decimal"></div>
-          <div class="field" id="blk-cor"><label>Corrente assorbita</label><input type="text" id="f-cor"></div>
+          <div class="field" id="blk-cor"><label>Corrente assorbita (A)</label><input type="text" id="f-cor"></div>
         </div>
+
+        <!-- INFO: Impianto Fisso -->
+        <div id="blk-fisso-info" style="display:none" class="ai-info">
+          Impianto Fisso — misure di dispersione non applicabili. Compilare solo la resistenza PE se Classe I.
+        </div>
+
+        <!-- INFO: Classe AI -->
+        <div id="blk-ai-info" style="display:none" class="ai-info">
+          Classe AI (Alimentazione Interna) — terra e dispersione involucro non applicabili. Con PA BF/CF compilare solo la sezione dispersione PA.
+        </div>
+
+        <!-- TERRA DI PROTEZIONE (solo Classe I, non Impianto Fisso) -->
         <div class="mblk" id="blk-terra">
-          <div class="msub">Resistenza di terra</div>
-          <div class="mrow"><div class="field"><label>Limite (mΩ)</label><div class="mlim" id="lim-tr">300</div></div><div class="field"><label>Misurata</label><input type="number" id="f-trm" inputmode="decimal" oninput="cv('f-trm','lim-tr','e-tr');aG()"></div><div class="esito" id="e-tr"></div></div>
-          <div class="msub">Dispersione PN / PI</div>
-          <div class="mrow"><div class="field"><label>PN Lim. (µA)</label><div class="mlim" id="lim-pn">3500</div></div><div class="field"><label>PN Mis.</label><input type="number" id="f-pnm" inputmode="decimal" oninput="cv('f-pnm','lim-pn','e-pn');aG()"></div><div class="esito" id="e-pn"></div></div>
-          <div class="mrow"><div class="field"><label>PI Lim. (µA)</label><div class="mlim" id="lim-pi">3500</div></div><div class="field"><label>PI Mis.</label><input type="number" id="f-pim" inputmode="decimal" oninput="cv('f-pim','lim-pi','e-pi');aG()"></div><div class="esito" id="e-pi"></div></div>
+          <div class="msub">Terra di protezione — Classe I</div>
+          <div class="mrow">
+            <div class="field"><label>Limite (mΩ)</label><div class="mlim" id="lim-tr">300</div></div>
+            <div class="field"><label>Resistenza PE (mΩ)</label><input type="number" id="f-trm" inputmode="decimal" oninput="cv('f-trm','lim-tr','e-tr');aG()"></div>
+            <div class="esito" id="e-tr"></div>
+          </div>
         </div>
-        <div id="blk-ai-info" style="display:none" class="ai-info">Classe AI — terra e dispersione non applicabili. Con PA BF/CF compilare solo la sezione PA.</div>
-        <div class="mblk" id="blk-pa" style="display:none">
-          <div class="msub">Dispersione PA (BF/CF)</div>
-          <div class="mrow"><div class="field"><label>PN BF Lim.</label><div class="mlim" id="lim-pnbf">100</div></div><div class="field"><label>PN BF Mis.</label><input type="number" id="f-pbm" inputmode="decimal" oninput="cv('f-pbm','lim-pnbf','e-pnbf')"></div><div class="esito" id="e-pnbf"></div></div>
-          <div class="mrow"><div class="field"><label>PI BF Lim.</label><div class="mlim" id="lim-pibf">5000</div></div><div class="field"><label>PI BF Mis.</label><input type="number" id="f-ibm" inputmode="decimal" oninput="cv('f-ibm','lim-pibf','e-pibf')"></div><div class="esito" id="e-pibf"></div></div>
-          <div class="mrow"><div class="field"><label>PN CF Lim.</label><div class="mlim" id="lim-pncf">50</div></div><div class="field"><label>PN CF Mis.</label><input type="number" id="f-pcm" inputmode="decimal" oninput="cv('f-pcm','lim-pncf','e-pncf')"></div><div class="esito" id="e-pncf"></div></div>
-          <div class="mrow"><div class="field"><label>PI CF Lim.</label><div class="mlim" id="lim-picf">50</div></div><div class="field"><label>PI CF Mis.</label><input type="number" id="f-icm" inputmode="decimal" oninput="cv('f-icm','lim-picf','e-picf')"></div><div class="esito" id="e-picf"></div></div>
+
+        <!-- RESISTENZA DI ISOLAMENTO -->
+        <div class="mblk" id="blk-isol">
+          <div class="msub">Resistenza di isolamento</div>
+          <div class="mrow">
+            <div class="field"><label>Rete / Involucro</label></div>
+            <div class="field"><label>Misurata (MΩ)</label><input type="number" id="f-ris-inv" inputmode="decimal"></div>
+            <div style="width:60px"></div>
+          </div>
+          <div class="mrow" id="blk-ris-pa" style="display:none">
+            <div class="field"><label>PA / Massa</label></div>
+            <div class="field"><label>Misurata (MΩ)</label><input type="number" id="f-ris-pa" inputmode="decimal"></div>
+            <div style="width:60px"></div>
+          </div>
         </div>
+
+        <!-- DISPERSIONE INVOLUCRO -->
+        <div class="mblk" id="blk-disp-inv">
+          <div class="msub" id="msub-disp-inv">Corrente dispersione apparecchio — Involucro</div>
+          <div class="mrow">
+            <div class="field"><label>PN Limite (µA)</label><div class="mlim" id="lim-pn">100</div></div>
+            <div class="field"><label>PN Misurata (µA)</label><input type="number" id="f-pnm" inputmode="decimal" oninput="cv('f-pnm','lim-pn','e-pn');aG()"></div>
+            <div class="esito" id="e-pn"></div>
+          </div>
+          <div class="mrow">
+            <div class="field"><label>PI Limite (µA)</label><div class="mlim" id="lim-pi">100</div></div>
+            <div class="field"><label>PI Misurata (µA)</label><input type="number" id="f-pim" inputmode="decimal" oninput="cv('f-pim','lim-pi','e-pi');aG()"></div>
+            <div class="esito" id="e-pi"></div>
+          </div>
+        </div>
+
+        <!-- DISPERSIONE PA BF (solo se PA = BF) -->
+        <div class="mblk" id="blk-pa-bf" style="display:none">
+          <div class="msub">Corrente dispersione PA — Tipo BF (limite ≤ 100 µA)</div>
+          <div class="mrow">
+            <div class="field"><label>PN Limite (µA)</label><div class="mlim" id="lim-pnbf">100</div></div>
+            <div class="field"><label>PN Misurata (µA)</label><input type="number" id="f-pbm" inputmode="decimal" oninput="cv('f-pbm','lim-pnbf','e-pnbf');aG()"></div>
+            <div class="esito" id="e-pnbf"></div>
+          </div>
+          <div class="mrow">
+            <div class="field"><label>PI Limite (µA)</label><div class="mlim" id="lim-pibf">100</div></div>
+            <div class="field"><label>PI Misurata (µA)</label><input type="number" id="f-ibm" inputmode="decimal" oninput="cv('f-ibm','lim-pibf','e-pibf');aG()"></div>
+            <div class="esito" id="e-pibf"></div>
+          </div>
+        </div>
+
+        <!-- DISPERSIONE PA CF (solo se PA = CF) -->
+        <div class="mblk" id="blk-pa-cf" style="display:none">
+          <div class="msub">Corrente dispersione PA — Tipo CF (limite ≤ 10 µA)</div>
+          <div class="mrow">
+            <div class="field"><label>PN Limite (µA)</label><div class="mlim" id="lim-pncf">10</div></div>
+            <div class="field"><label>PN Misurata (µA)</label><input type="number" id="f-pcm" inputmode="decimal" oninput="cv('f-pcm','lim-pncf','e-pncf');aG()"></div>
+            <div class="esito" id="e-pncf"></div>
+          </div>
+          <div class="mrow">
+            <div class="field"><label>PI Limite (µA)</label><div class="mlim" id="lim-picf">10</div></div>
+            <div class="field"><label>PI Misurata (µA)</label><input type="number" id="f-icm" inputmode="decimal" oninput="cv('f-icm','lim-picf','e-picf');aG()"></div>
+            <div class="esito" id="e-picf"></div>
+          </div>
+        </div>
+
+        <!-- blk-pa vuoto — retrocompatibilità collectVSE/restoreVSE -->
+        <div id="blk-pa" style="display:none"></div>
       </div>
       <div class="sec">
         <div class="sec-hdr">Esito e strumento</div>
@@ -809,74 +882,106 @@ function restoreVSE(rec){
   sv('f-pbm',rec.pbm);sv('f-ibm',rec.ibm);sv('f-pcm',rec.pcm);sv('f-icm',rec.icm);
   sG(rec.giu||'POSITIVO');sr('rg-vt',rec.vt);sr('rg-vd',rec.vd);sv('f-mot',rec.mot);
   sv('f-str',rec.str);sv('f-nrs',rec.nrs);sv('f-ver',rec.ver);sv('f-vrc',rec.vrc);sv('f-sct',rec.sct);
+  sv('f-ris-inv',rec.ris_inv);sv('f-ris-pa',rec.ris_pa);
   uM();
 }
 
 function pick(el){el.closest('.rg').querySelectorAll('.rb').forEach(b=>b.classList.remove('sel'));el.classList.add('sel');dirty=true;uP();}
 
 function uM(){
-  const cls=gr('rg-cls');
-  const pa=gr('rg-pa');
-  const norma=gr('rg-norma')||'62353';
-  const isAI=cls==='AI';
-  const isCls2=cls==='CL2';
-  const noTerra=isAI||isCls2;
-  const haPA=pa==='B'||pa==='BF'||pa==='CF';
-  const isCF=pa==='CF';
+  const cls   = gr('rg-cls');
+  const pa    = gr('rg-pa');
+  const norma = gr('rg-norma') || '62353';
+  const spiEl = document.getElementById('f-spi');
+  const spina = spiEl ? spiEl.value : '';
 
-  // Terra — disabilita per Classe II e AI
-  const blkTerra=document.getElementById('blk-terra');
-  if(blkTerra){
-    blkTerra.style.display='block';
-    const inp=document.getElementById('f-trm');
-    const lim=document.getElementById('lim-tr');
-    if(noTerra){
-      if(inp){inp.disabled=true;inp.value='';inp.placeholder='N/A';}
-      if(lim)lim.textContent='N/A';
-    } else {
-      if(inp){inp.disabled=false;inp.placeholder='';}
-      if(lim)lim.textContent='300';
-    }
-  }
+  const isAI    = cls === 'AI';
+  const isCls1  = cls === 'I';
+  const isBF    = pa === 'BF';
+  const isCF    = pa === 'CF';
+  const haPA    = pa === 'B' || pa === 'BF' || pa === 'CF';
+  const isFisso = spina === 'Impianto Fisso';
+  const is61010 = norma === '61010';
 
-  // Unità misura terra
-  const uTerra=document.getElementById('u-trm');
-  if(uTerra)uTerra.textContent=noTerra?'':'mΩ';
-
-  // Limiti involucro in base a norma
-  const limInvNC=norma==='61010'?3500:100;
-  const limInvSFC=norma==='61010'?3500:500;
-  const limPN=document.getElementById('lim-pn');
-  const limPI=document.getElementById('lim-pi');
-  if(limPN)limPN.textContent=noTerra&&isAI?limInvNC:limInvNC;
-  if(limPI)limPI.textContent=noTerra&&isAI?limInvSFC:limInvSFC;
-
-  // Dispersione PN/PI (involucro) — disabilita se non applicabile
-  const inpPnm=document.getElementById('f-pnm');
-  const inpPim=document.getElementById('f-pim');
-  if(inpPnm){inpPnm.disabled=false;inpPnm.placeholder='';}
-  if(inpPim){inpPim.disabled=false;inpPim.placeholder='';}
-
-  // Blocco PA — mostra solo se ha parti applicate e norma non è 61010
-  const blkPA=document.getElementById('blk-pa');
-  const showPA=haPA&&norma!=='61010';
-  if(blkPA)blkPA.style.display=showPA?'block':'none';
-
-  // Limiti PA in base a tipo
-  const limPnBF=document.getElementById('lim-pnbf');
-  const limPiBF=document.getElementById('lim-pibf');
-  const limPnCF=document.getElementById('lim-pncf');
-  const limPiCF=document.getElementById('lim-picf');
-  if(limPnBF)limPnBF.textContent=isCF?'10':'100';
-  if(limPiBF)limPiBF.textContent=isCF?'50':'500';
-  if(limPnCF)limPnCF.textContent='10';
-  if(limPiCF)limPiCF.textContent='50';
+  // Tensione mis. + corrente: nascosti per AI
+  const blkTms = document.getElementById('blk-tms');
+  const blkCor = document.getElementById('blk-cor');
+  if(blkTms) blkTms.style.display = isAI ? 'none' : 'flex';
+  if(blkCor) blkCor.style.display = isAI ? 'none' : 'flex';
 
   // Badge AI
-  document.getElementById('blk-tms').style.display=isAI?'none':'flex';
-  document.getElementById('blk-cor').style.display=isAI?'none':'flex';
-  document.getElementById('blk-ai-info').style.display=isAI?'block':'none';
-  document.getElementById('badge-ai').style.display=(isAI&&haPA)?'inline-block':'none';
+  const bdgAI = document.getElementById('badge-ai');
+  if(bdgAI) bdgAI.style.display = (isAI && haPA) ? 'inline-block' : 'none';
+
+  // Info Impianto Fisso
+  const blkFissoInfo = document.getElementById('blk-fisso-info');
+  if(blkFissoInfo) blkFissoInfo.style.display = isFisso ? 'block' : 'none';
+
+  // Info AI
+  const blkAIInfo = document.getElementById('blk-ai-info');
+  if(blkAIInfo) blkAIInfo.style.display = isAI ? 'block' : 'none';
+
+  // TERRA — solo Classe I, non Impianto Fisso, non AI
+  const blkTerra = document.getElementById('blk-terra');
+  const inpTrm   = document.getElementById('f-trm');
+  const limTr    = document.getElementById('lim-tr');
+  const showTerra = isCls1 && !isFisso && !isAI;
+  if(blkTerra) blkTerra.style.display = showTerra ? 'block' : 'none';
+  if(inpTrm){
+    inpTrm.disabled = !showTerra;
+    if(!showTerra){ inpTrm.value=''; inpTrm.placeholder='N/A'; }
+    else inpTrm.placeholder='';
+  }
+  if(limTr) limTr.textContent = '300';
+
+  // RESISTENZA DI ISOLAMENTO — nascosta per Impianto Fisso
+  const blkIsol = document.getElementById('blk-isol');
+  if(blkIsol) blkIsol.style.display = isFisso ? 'none' : 'block';
+  const blkRisPa = document.getElementById('blk-ris-pa');
+  if(blkRisPa) blkRisPa.style.display = (isBF || isCF) ? 'block' : 'none';
+
+  // DISPERSIONE INVOLUCRO — nascosta per Impianto Fisso e AI
+  // Limite: 100 µA (62353/60601), 3500 µA (61010)
+  const blkDispInv = document.getElementById('blk-disp-inv');
+  if(blkDispInv) blkDispInv.style.display = (isFisso || isAI) ? 'none' : 'block';
+  const limInv = is61010 ? 3500 : 100;
+  const limPN  = document.getElementById('lim-pn');
+  const limPI  = document.getElementById('lim-pi');
+  if(limPN) limPN.textContent = limInv;
+  if(limPI) limPI.textContent = limInv;
+  const msubInv = document.getElementById('msub-disp-inv');
+  if(msubInv) msubInv.textContent = is61010
+    ? 'Corrente dispersione apparecchio — Involucro (IEC 61010, lim. 3500 µA)'
+    : 'Corrente dispersione apparecchio — Involucro';
+  const inpPnm = document.getElementById('f-pnm');
+  const inpPim = document.getElementById('f-pim');
+  if(inpPnm){ inpPnm.disabled=isFisso||isAI; if(isFisso||isAI){inpPnm.value='';inpPnm.placeholder='N/A';}else inpPnm.placeholder=''; }
+  if(inpPim){ inpPim.disabled=isFisso||isAI; if(isFisso||isAI){inpPim.value='';inpPim.placeholder='N/A';}else inpPim.placeholder=''; }
+
+  // DISPERSIONE PA BF — solo se PA=BF e norma≠61010
+  const blkPABF = document.getElementById('blk-pa-bf');
+  if(blkPABF) blkPABF.style.display = (isBF && !is61010) ? 'block' : 'none';
+  const limPnBF = document.getElementById('lim-pnbf');
+  const limPiBF = document.getElementById('lim-pibf');
+  if(limPnBF) limPnBF.textContent = '100';
+  if(limPiBF) limPiBF.textContent = '100';
+
+  // DISPERSIONE PA CF — solo se PA=CF e norma≠61010
+  const blkPACF = document.getElementById('blk-pa-cf');
+  if(blkPACF) blkPACF.style.display = (isCF && !is61010) ? 'block' : 'none';
+  const limPnCF = document.getElementById('lim-pncf');
+  const limPiCF = document.getElementById('lim-picf');
+  if(limPnCF) limPnCF.textContent = '10';
+  if(limPiCF) limPiCF.textContent = '10';
+
+  // Ricalcola esiti
+  cv('f-trm','lim-tr','e-tr');
+  cv('f-pnm','lim-pn','e-pn');
+  cv('f-pim','lim-pi','e-pi');
+  cv('f-pbm','lim-pnbf','e-pnbf');
+  cv('f-ibm','lim-pibf','e-pibf');
+  cv('f-pcm','lim-pncf','e-pncf');
+  cv('f-icm','lim-picf','e-picf');
 }
 
 function sG(v){
@@ -895,10 +1000,18 @@ function cv(fid,lid,eid){
 
 function aG(){
   let neg=false;
-  [['f-trm','lim-tr'],['f-pnm','lim-pn'],['f-pim','lim-pi']].forEach(([f,l])=>{
-    const v=parseFloat(document.getElementById(f).value);
-    const lv=parseFloat(document.getElementById(l).textContent);
-    if(!isNaN(v)&&v>lv)neg=true;
+  [
+    ['f-trm','lim-tr'],
+    ['f-pnm','lim-pn'],['f-pim','lim-pi'],
+    ['f-pbm','lim-pnbf'],['f-ibm','lim-pibf'],
+    ['f-pcm','lim-pncf'],['f-icm','lim-picf']
+  ].forEach(([f,l])=>{
+    const el=document.getElementById(f);
+    const lel=document.getElementById(l);
+    if(!el||!lel||el.disabled) return;
+    const v=parseFloat(el.value);
+    const lv=parseFloat(lel.textContent);
+    if(!isNaN(v)&&v>lv) neg=true;
   });
   sG(neg?'NEGATIVO':'POSITIVO');
 }
@@ -930,7 +1043,8 @@ function collectVSE(){
     pcl:lv('lim-pncf'),pcm:gv('f-pcm'),icl:lv('lim-picf'),icm:gv('f-icm'),
     giu:document.getElementById('gp').classList.contains('sel')?'POSITIVO':'NEGATIVO',
     vt:gr('rg-vt'),vd:gr('rg-vd'),mot:gv('f-mot'),
-    str:gv('f-str'),nrs:gv('f-nrs'),ver:gv('f-ver'),vrc:gv('f-vrc'),sct:gv('f-sct')};
+    str:gv('f-str'),nrs:gv('f-nrs'),ver:gv('f-ver'),vrc:gv('f-vrc'),sct:gv('f-sct'),
+    ris_inv:gv('f-ris-inv'),ris_pa:gv('f-ris-pa')};
 }
 
 function saveAll(){
