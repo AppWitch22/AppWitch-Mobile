@@ -891,7 +891,7 @@ function fillMPHeader(d){
   document.getElementById('mp-tecnico').value=d.ver||'';
 }
 
-const sv=(id,v)=>{const e=document.getElementById(id);if(e&&v!=null)e.value=v;};
+const sv=(id,v)=>{const e=document.getElementById(id);if(e)e.value=v!=null?v:'';};
 const sr=(g,v)=>{document.querySelectorAll('#'+g+' .rb').forEach(b=>b.classList.toggle('sel',b.dataset.v===v));};
 const gr=(g)=>{const s=document.querySelector('#'+g+' .rb.sel');return s?s.dataset.v:'';};
 const gv=(id)=>{const e=document.getElementById(id);return e?e.value:'';};
