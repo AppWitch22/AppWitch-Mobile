@@ -1549,9 +1549,85 @@ const CQ_VIS={
   'CQ_FBI':['1.1','1.2'],
   'CQ_ECT':['1.1','1.2','1.3','1.4','1.5','1.6','1.7','1.8'],
   'CQ_MON':['1.1','1.2','1.3'],
-  'CQ_ANS':['1.1','1.2','1.3','1.4'],
+  'CQ_ANS':['1.1','1.2','1.3','1.4','1.5'],
   'CQ_SPM':['1.1','1.2','1.3','1.4','1.5','1.6','1.7','1.8'],
   'CQ_VPO':['1.1','1.2','1.3','1.4'],
+};
+
+const CQ_VIS_LABELS={
+  'CQ_DEF':{
+    '1.1':'Massima energia selezionabile 360 J o 50 J per defibrillazione interna',
+    '1.2':'Controllo integrità piastre e cavi',
+    '1.3':'Istruzioni sul funzionamento e istruzioni per la defibrillazione sull\'involucro in Italiano leggibili da 1 Metro e/o udibili',
+    '1.4':'Verifica tempo di carica alla massima energia con alimentazione a batteria',
+    '1.5':'Verifica presenza segnalazione sonora di raggiunto livello di energia',
+    '1.6':'Verifica, se presente, impulso di sincronizzazione con misura del tempo di sincronismo < 60 ms',
+    '1.7':'Prova funzionale',
+  },
+  'CQ_ECG':{
+    '1.1':'Controllo integrità involucro esterno',
+    '1.2':'Controllo funzionamento di comandi, interruttori, pulsanti e manopole',
+    '1.3':'Controllo funzionamento spie luminose',
+    '1.4':'Controllo isolamento cavi ECG',
+    '1.5':'Verifica velocità 25mm/sec',
+    '1.6':'Verifica velocità 5mm/sec',
+    '1.7':'Prova Funzionale',
+  },
+  'CQ_CEN':{
+    '1.1':'Controllo funzionamento di comandi, interruttori, pulsanti e manopole',
+    '1.2':'Controllo sistema di sicurezza bloccaggio coperchio',
+    '1.3':'Pulizia e lubrificazione rotore e parti in movimento',
+    '1.4':'Prova funzionale',
+    '1.5':'I giri e la temperatura misurata rientrano nei limiti di precisione dichiarati dal costruttore nel manuale d\'uso o definiti dall\'utente',
+  },
+  'CQ_ELB':{
+    '1.1':'Presente indicatore luminoso verde indicante tensione di rete',
+    '1.2':'Presente simbolo protezione da defibrillatore',
+    '1.3':'Presente indicatore luminoso giallo indicante taglio attivato',
+    '1.4':'Presente indicatore luminoso blu indicante coagulo attivato',
+    '1.5':'Presente indicatore luminoso rosso indicante guasto circuito piastra',
+    '1.6':'Comandi del manipolo: avanti taglio - dietro coagulo',
+    '1.7':'Comandi del pedale: sinistra taglio - destra coagulo',
+    '1.8':'Presenza segnale sonoro di uscita attivata',
+    '1.9':'Presenza segnale sonoro di allarme guasto circuito piastra',
+    '1.10':'Prova funzionale',
+  },
+  'CQ_FBI':{
+    '1.1':'Controllo funzionamento di comandi, interruttori, pulsanti e manopole',
+    '1.2':'Controllo presenza allarme temperatura',
+  },
+  'CQ_ECT':{
+    '1.1':'Controllo integrità involucro',
+    '1.2':'Controllo integrità cavi elettrici/spina/presa',
+    '1.3':'Controllo funzionamento di comandi, interruttori, pulsanti e manopole',
+    '1.4':'Controllo corretta funzionalità dei comandi',
+    '1.5':'Verifica stato sonde (cavi e superficie)',
+    '1.6':'Controllo efficienza dei movimenti meccanici',
+    '1.7':'Pulizia filtri',
+    '1.8':'Prova funzionale',
+  },
+  'CQ_MON':{
+    '1.1':'Controllo visivo isolamento cavi parti applicate e integrità manicotto NIBP',
+    '1.2':'Controllo funzionamento di comandi, interruttori, pulsanti e manopole',
+    '1.3':'Presenza allarme frequenza cardiaca',
+  },
+  'CQ_ANS':{
+    '1.1':'Presenza allarme mancanza rete',
+    '1.2':'Cavo di alimentazione protetto contro disconnessione accidentale',
+    '1.3':'Controllo numero prese ausiliarie (massimo 4)',
+    '1.4':'Presenza valvola ossigeno di emergenza',
+    '1.5':'Esito di tutte le prove eseguite',
+  },
+  'CQ_SPM':{
+    '1.1':'Controllo integrità involucro',
+    '1.2':'Controllo integrità cavi elettrici/spina/presa',
+    '1.3':'Controllo corretto amperaggio fusibili',
+    '1.4':'Controllo funzionamento di comandi, interruttori, pulsanti e manopole',
+    '1.5':'Verifica dello stato dei tubi e connettori',
+    '1.6':'Verifica dell\'integrità del trasduttore',
+    '1.7':'Verifica dello stato delle batterie interne, se presenti',
+    '1.8':'Prova funzionale',
+  },
 };
 
 const CQ_PROVA={
@@ -1688,7 +1764,7 @@ function buildCQPoints(type){
     return`<div class="mp-point" id="cq-p-${pid}">
       <div class="mp-point-hdr" onclick="toggleCQ('${pid}')">
         <div class="mp-num">${p}</div>
-        <div class="mp-title">Punto ${p}</div>
+        <div class="mp-title">${(CQ_VIS_LABELS[type]||{})[p]||'Punto '+p}</div>
         <div class="mp-stato" id="cq-stato-${pid}">—</div>
       </div>
       <div class="mp-btns" id="cq-btns-${pid}" style="display:none">
