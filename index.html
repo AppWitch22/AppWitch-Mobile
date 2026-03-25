@@ -2215,19 +2215,21 @@ async function createSession() {
   const resp  = await fetch(`${SUPA_URL}/rest/v1/sessioni`, {
     method: 'POST',
     headers: supaHdrs(token),
-    body: JSON.stringify({
-      titolo: title,
-      utente_id: currentUser.id,
-      asl: asl,
-      dati: { dispositivi_attesi: attesiList }
-    })
+    body: JSON.stringify({ titolo: title, utente_id: currentUser.id, asl: asl, dati: {} })
   });
   if (!resp.ok) { toast('Errore creazione sessione', 'warn'); return; }
   const rows = await resp.json();
   const sess = Array.isArray(rows) ? rows[0] : rows;
   document.getElementById('sess-new-title').value = '';
   document.getElementById('sess-new-attesi').value = '';
+  // Attiva la sessione (imposta currentSessionId e attesi)
   await activateSession(sess.id, sess.titolo);
+  // Se ci sono attesi, aggiungili e sincronizza
+  if (attesiList.length) {
+    attesiList.forEach(c => attesi.add(c));
+    renderSession();
+    await syncSessionNow();
+  }
   await loadSessList();
   const msg = attesiList.length ? `Sessione "${sess.titolo}" creata con ${attesiList.length} dispositivi` : `Sessione "${sess.titolo}" creata`;
   toast(msg, 'ok');
