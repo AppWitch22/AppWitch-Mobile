@@ -845,24 +845,29 @@ function sel(cod){
   document.getElementById('search-input').value='';
   document.getElementById('form-area').style.display='block';
   fillVSE(d);
-  setTimeout(()=>fillVSEPreset(cur.c),50);
   fillMPHeader(d);
   resetMPPoints();
-  setTimeout(()=>fillMPPreset(cur.c),50);
   resetVSP();
   resetCQ();
   // Build VSP/CQ if needed
-  if(curVerif&&curVerif.vsp){buildVSPPoints(curVerif.vsp);fillVSPHeader(cur);setTimeout(()=>fillVSPPreset(cur.c,curVerif.vsp),50);}
-  if(curVerif&&curVerif.cq){buildCQPoints(curVerif.cq);fillCQHeader(cur);setTimeout(()=>fillCQPreset(cur.c,curVerif.cq),50);}
+  if(curVerif&&curVerif.vsp){buildVSPPoints(curVerif.vsp);fillVSPHeader(cur);}
+  if(curVerif&&curVerif.cq){buildCQPoints(curVerif.cq);fillCQHeader(cur);}
   updateTabs();
   switchTab('vse');
-  // Restore saved if exists
-  if(saved[cod]){
-    if(saved[cod].vse_saved)restoreVSE(saved[cod]);
-    if(saved[cod].mp_saved)loadMPSaved(saved[cod]);
-    if(saved[cod].vsp_saved)loadVSPSaved(saved[cod]);
-    if(saved[cod].cq_saved)loadCQSaved(saved[cod]);
+  // Restore saved if exists, altrimenti applica i preset
+  const hasSaved = saved[cod];
+  if(hasSaved){
+    if(hasSaved.vse_saved)restoreVSE(hasSaved);
+    if(hasSaved.mp_saved)loadMPSaved(hasSaved);
+    if(hasSaved.vsp_saved)loadVSPSaved(hasSaved);
+    if(hasSaved.cq_saved)loadCQSaved(hasSaved);
     updateTabIndicators();
+  } else {
+    // Nessun dato salvato: applica preset come valori di default
+    setTimeout(()=>fillVSEPreset(cur.c),50);
+    setTimeout(()=>fillMPPreset(cur.c),50);
+    if(curVerif&&curVerif.vsp) setTimeout(()=>fillVSPPreset(cur.c,curVerif.vsp),50);
+    if(curVerif&&curVerif.cq)  setTimeout(()=>fillCQPreset(cur.c,curVerif.cq),50);
   }
   document.getElementById('form-area').scrollIntoView({behavior:'smooth',block:'start'});
 }
@@ -1933,10 +1938,9 @@ function fillMPPreset(cod){
 }
 
 function fillVSEPreset(cod){
-  if(!PRESETS||!PRESETS['PRESET_VSE']) { console.log('[PRESET] PRESET_VSE non disponibile'); return; }
+  if(!PRESETS||!PRESETS['PRESET_VSE']) return;
   const p=PRESETS['PRESET_VSE'][cod];
-  if(!p) { console.log('[PRESET] Nessun preset VSE per codice:', cod); return; }
-  console.log('[PRESET] Applico preset VSE per', cod, '→', p);
+  if(!p) return;
   // Input fields
   const inputs=['ten','frq','pot','mar','fud','fur','spi','msp','pdc','nag','tms','cor','trm','pnm','pim','pbm','ibm','pcm','icm','mot','str','nrs','ver','vrc','sct'];
   inputs.forEach(f=>{
@@ -2570,7 +2574,6 @@ async function saveSessionAsPresets() {
     if (rec.vse_saved) {
       const dati = {};
       VSE_PRESET_FIELDS.forEach(f => { if (rec[f] != null && rec[f] !== '') dati[f] = rec[f]; });
-      console.log(`[PRESET] VSE ${cod}: ${Object.keys(dati).length} campi →`, dati);
       if (Object.keys(dati).length) ok = await presetUpsert(`preset_vse_${aslKey}`, cod, null, dati, token) && ok;
     }
     // MP
