@@ -2506,9 +2506,37 @@ async function deleteSession(id, titolo) {
   await loadSessList();
   toast('Sessione eliminata', 'warn');
 }
-// ── PRESET: Salva sessione corrente come preset ───────────────
+// ── PRESET helpers ────────────────────────────────────────────
 const VSE_PRESET_FIELDS = new Set(['ten','tdp','frq','fdp','pot','pdp','mar','fud','fur','cls','cdp','pat','pad','fnz','def','spi','smo','msp','cav','icv','isp','int','pdc','icn','prc','icd','mus','mse','nag','clm','tms','cor','trm','pnm','pim','pbm','ibm','pcm','icm','giu','vt','vd','mot','str','nrs','ver','vrc','sct']);
 
+// Upsert: PATCH se il record esiste già, POST se è nuovo
+async function presetUpsert(table, codice, tipo, dati, token) {
+  const hdrs = {'apikey':SUPA_KEY,'Authorization':'Bearer '+token};
+  // Controlla esistenza
+  const filter = tipo
+    ? `?codice=eq.${codice}&tipo=eq.${tipo}&select=codice`
+    : `?codice=eq.${codice}&select=codice`;
+  const check = await fetch(`${SUPA_URL}/rest/v1/${table}${filter}`, {headers:hdrs});
+  const rows = check.ok ? await check.json() : [];
+  if (rows.length) {
+    // PATCH
+    const patchFilter = tipo ? `?codice=eq.${codice}&tipo=eq.${tipo}` : `?codice=eq.${codice}`;
+    const r = await fetch(`${SUPA_URL}/rest/v1/${table}${patchFilter}`, {
+      method:'PATCH', headers:{...supaHdrs(token),'Prefer':'return=minimal'}, body:JSON.stringify({dati})
+    });
+    if (!r.ok) { const t=await r.text(); console.error('PATCH preset error',r.status,t); return false; }
+  } else {
+    // POST
+    const body = tipo ? {codice,tipo,dati} : {codice,dati};
+    const r = await fetch(`${SUPA_URL}/rest/v1/${table}`, {
+      method:'POST', headers:{...supaHdrs(token),'Prefer':'return=minimal'}, body:JSON.stringify(body)
+    });
+    if (!r.ok) { const t=await r.text(); console.error('POST preset error',r.status,t); return false; }
+  }
+  return true;
+}
+
+// ── PRESET: Salva sessione corrente come preset ───────────────
 async function saveSessionAsPresets() {
   const keys = Object.keys(saved).filter(k => saved[k].vse_saved || saved[k].mp_saved || saved[k].vsp_saved || saved[k].cq_saved);
   if (!keys.length) { toast('Nessun dispositivo compilato nella sessione', 'warn'); return; }
@@ -2516,18 +2544,15 @@ async function saveSessionAsPresets() {
   const aslKey = asl.toLowerCase().replace('asl ','');
   const token = await supaToken();
   toast(`Salvataggio preset per ${keys.length} dispositivi...`, 'warn');
-  let count = 0;
+  let count = 0, errors = 0;
   for (const cod of keys) {
     const rec = saved[cod];
-    const ops = [];
+    let ok = true;
     // VSE
     if (rec.vse_saved) {
       const dati = {};
       VSE_PRESET_FIELDS.forEach(f => { if (rec[f] != null && rec[f] !== '') dati[f] = rec[f]; });
-      if (Object.keys(dati).length) ops.push(fetch(`${SUPA_URL}/rest/v1/preset_vse_${aslKey}`, {
-        method:'POST', headers:{...supaHdrs(token),'Prefer':'resolution=merge-duplicates,return=minimal'},
-        body:JSON.stringify({codice:cod, dati})
-      }));
+      if (Object.keys(dati).length) ok = await presetUpsert(`preset_vse_${aslKey}`, cod, null, dati, token) && ok;
     }
     // MP
     if (rec.mp_saved) {
@@ -2539,46 +2564,30 @@ async function saveSessionAsPresets() {
         else if (v==='NA') dati['mp'+i+'_na']=true;
       }
       if (rec.mp_tecnico) dati.mp_tecnico=rec.mp_tecnico;
-      if (Object.keys(dati).length) ops.push(fetch(`${SUPA_URL}/rest/v1/preset_mp_${aslKey}`, {
-        method:'POST', headers:{...supaHdrs(token),'Prefer':'resolution=merge-duplicates,return=minimal'},
-        body:JSON.stringify({codice:cod, dati})
-      }));
+      if (Object.keys(dati).length) ok = await presetUpsert(`preset_mp_${aslKey}`, cod, null, dati, token) && ok;
     }
     // VSP
     if (rec.vsp_saved && rec.vsp_type) {
       const tipo=rec.vsp_type, pts=VSP_POINTS[tipo]||[];
       const dati = {};
-      pts.forEach(p => {
-        const v=rec['vsp_'+p.l], opts=p.opts||['OK','KO','NA'];
-        opts.forEach(o => { if (v===o) dati['vsp_'+p.l+'_'+o.toLowerCase()]=true; });
-      });
+      pts.forEach(p => { const v=rec['vsp_'+p.l], opts=p.opts||['OK','KO','NA']; opts.forEach(o=>{ if(v===o) dati['vsp_'+p.l+'_'+o.toLowerCase()]=true; }); });
       if (rec.vsp_tecnico) dati.vsp_tecnico=rec.vsp_tecnico;
-      if (Object.keys(dati).length) ops.push(fetch(`${SUPA_URL}/rest/v1/preset_vsp_${aslKey}`, {
-        method:'POST', headers:{...supaHdrs(token),'Prefer':'resolution=merge-duplicates,return=minimal'},
-        body:JSON.stringify({codice:cod, tipo, dati})
-      }));
+      if (Object.keys(dati).length) ok = await presetUpsert(`preset_vsp_${aslKey}`, cod, tipo, dati, token) && ok;
     }
     // CQ
     if (rec.cq_saved && rec.cq_type) {
       const tipo=rec.cq_type, visPoints=CQ_VIS[tipo]||[];
       const dati = {};
-      visPoints.forEach(p => {
-        const pid=p.replace('.','_'), v=rec['cq_vis_'+pid];
-        if (v==='OK') dati['cq_vis_'+pid+'_ok']=true;
-        else if (v==='KO') dati['cq_vis_'+pid+'_ko']=true;
-        else if (v==='NA') dati['cq_vis_'+pid+'_na']=true;
-      });
+      visPoints.forEach(p => { const pid=p.replace('.','_'), v=rec['cq_vis_'+pid]; if(v==='OK') dati['cq_vis_'+pid+'_ok']=true; else if(v==='KO') dati['cq_vis_'+pid+'_ko']=true; else if(v==='NA') dati['cq_vis_'+pid+'_na']=true; });
       (CQ_PROVA[tipo]||[]).forEach(sec=>sec.fields.forEach(f=>{ if(rec[f.id]) dati[f.id]=rec[f.id]; }));
       ['cq_strum','cq_strum_mod','cq_strum_ser','cq_strum_cert','cq_strum_scad','cq_tecnico'].forEach(f=>{ if(rec[f]) dati[f]=rec[f]; });
-      if (Object.keys(dati).length) ops.push(fetch(`${SUPA_URL}/rest/v1/preset_cq_${aslKey}`, {
-        method:'POST', headers:{...supaHdrs(token),'Prefer':'resolution=merge-duplicates,return=minimal'},
-        body:JSON.stringify({codice:cod, tipo, dati})
-      }));
+      if (Object.keys(dati).length) ok = await presetUpsert(`preset_cq_${aslKey}`, cod, tipo, dati, token) && ok;
     }
-    if (ops.length) { await Promise.all(ops); count++; }
+    if (ok) count++; else errors++;
   }
   await loadPresets();
-  toast(`Preset aggiornati per ${count} dispositivi`, 'ok');
+  if (errors) toast(`${count} preset salvati, ${errors} errori (vedi console)`, 'warn');
+  else toast(`Preset aggiornati per ${count} dispositivi`, 'ok');
 }
 
 // ── PRESET: Importa da file Excel (stesso formato export) ─────
@@ -2596,6 +2605,20 @@ async function importPresetsFromExcel(input) {
   const norm = c => String(c||'').trim().replace(/\D/g,'').padStart(7,'0');
   let total = 0;
 
+  // Helper: delete existing then insert batch
+  async function importBatch(table, payload) {
+    if (!payload.length) return;
+    const codici = [...new Set(payload.map(r=>r.codice))];
+    const tipo = payload[0].tipo;
+    const filter = tipo
+      ? `?codice=in.(${codici.join(',')})&tipo=eq.${tipo}`
+      : `?codice=in.(${codici.join(',')})`;
+    await fetch(`${SUPA_URL}/rest/v1/${table}${filter}`, {method:'DELETE',headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+token}});
+    const r = await fetch(`${SUPA_URL}/rest/v1/${table}`, {method:'POST',headers:{...supaHdrs(token),'Prefer':'return=minimal'},body:JSON.stringify(payload)});
+    if (!r.ok) { const t=await r.text(); toast(`Errore import ${table}: ${t.slice(0,80)}`, 'warn'); return 0; }
+    return payload.length;
+  }
+
   // VSE
   const vseWs = wb.Sheets['Inserimento_VSE'];
   if (vseWs) {
@@ -2603,13 +2626,11 @@ async function importPresetsFromExcel(input) {
     const rows = XLSX.utils.sheet_to_json(vseWs,{header:1,defval:''});
     const payload = rows.slice(1).map(row => {
       const codice=norm(row[0]); if(!DB[codice]) return null;
-      const dati={};
-      FVSE.forEach((f,i)=>{ if(VSE_PRESET_FIELDS.has(f)&&row[i]!=null&&row[i]!=='') dati[f]=String(row[i]); });
+      const dati={}; FVSE.forEach((f,i)=>{ if(VSE_PRESET_FIELDS.has(f)&&row[i]!=null&&row[i]!=='') dati[f]=String(row[i]); });
       return Object.keys(dati).length ? {codice,dati} : null;
     }).filter(Boolean);
-    if (payload.length) { await fetch(`${SUPA_URL}/rest/v1/preset_vse_${aslKey}`,{method:'POST',headers:{...supaHdrs(token),'Prefer':'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(payload)}); total+=payload.length; }
+    total += await importBatch(`preset_vse_${aslKey}`, payload);
   }
-
   // MP
   const mpWs = wb.Sheets['Inserimento_MP'];
   if (mpWs) {
@@ -2621,9 +2642,8 @@ async function importPresetsFromExcel(input) {
       if(row[3+19*3]) dati.mp_tecnico=String(row[3+19*3]);
       return Object.keys(dati).length ? {codice,dati} : null;
     }).filter(Boolean);
-    if (payload.length) { await fetch(`${SUPA_URL}/rest/v1/preset_mp_${aslKey}`,{method:'POST',headers:{...supaHdrs(token),'Prefer':'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(payload)}); total+=payload.length; }
+    total += await importBatch(`preset_mp_${aslKey}`, payload);
   }
-
   // VSP
   for (const tipo of Object.keys(VSP_POINTS)) {
     const ws = wb.Sheets[tipo.replace('VSP_','Inserimento_VSP_')]; if(!ws) continue;
@@ -2636,9 +2656,8 @@ async function importPresetsFromExcel(input) {
       if(row[ci]) dati.vsp_tecnico=String(row[ci]);
       return Object.keys(dati).length ? {codice,tipo,dati} : null;
     }).filter(Boolean);
-    if (payload.length) { await fetch(`${SUPA_URL}/rest/v1/preset_vsp_${aslKey}`,{method:'POST',headers:{...supaHdrs(token),'Prefer':'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(payload)}); total+=payload.length; }
+    total += await importBatch(`preset_vsp_${aslKey}`, payload);
   }
-
   // CQ
   for (const tipo of [...new Set([...Object.keys(CQ_VIS),...Object.keys(CQ_PROVA)])]) {
     const ws = wb.Sheets['Inserimento_'+tipo]; if(!ws) continue;
@@ -2653,9 +2672,8 @@ async function importPresetsFromExcel(input) {
       provaFields.forEach(f=>{ if(row[ci]!=null&&row[ci]!=='') dati[f.id]=String(row[ci]); ci++; });
       return Object.keys(dati).length ? {codice,tipo,dati} : null;
     }).filter(Boolean);
-    if (payload.length) { await fetch(`${SUPA_URL}/rest/v1/preset_cq_${aslKey}`,{method:'POST',headers:{...supaHdrs(token),'Prefer':'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(payload)}); total+=payload.length; }
+    total += await importBatch(`preset_cq_${aslKey}`, payload);
   }
-
   await loadPresets();
   toast(total ? `Importati ${total} preset da Excel` : 'Nessun preset trovato nel file', total?'ok':'warn');
 }
