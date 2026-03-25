@@ -1933,9 +1933,10 @@ function fillMPPreset(cod){
 }
 
 function fillVSEPreset(cod){
-  if(!PRESETS||!PRESETS['PRESET_VSE']) return;
+  if(!PRESETS||!PRESETS['PRESET_VSE']) { console.log('[PRESET] PRESET_VSE non disponibile'); return; }
   const p=PRESETS['PRESET_VSE'][cod];
-  if(!p) return;
+  if(!p) { console.log('[PRESET] Nessun preset VSE per codice:', cod); return; }
+  console.log('[PRESET] Applico preset VSE per', cod, '→', p);
   // Input fields
   const inputs=['ten','frq','pot','mar','fud','fur','spi','msp','pdc','nag','tms','cor','trm','pnm','pim','pbm','ibm','pcm','icm','mot','str','nrs','ver','vrc','sct'];
   inputs.forEach(f=>{
@@ -2569,6 +2570,7 @@ async function saveSessionAsPresets() {
     if (rec.vse_saved) {
       const dati = {};
       VSE_PRESET_FIELDS.forEach(f => { if (rec[f] != null && rec[f] !== '') dati[f] = rec[f]; });
+      console.log(`[PRESET] VSE ${cod}: ${Object.keys(dati).length} campi →`, dati);
       if (Object.keys(dati).length) ok = await presetUpsert(`preset_vse_${aslKey}`, cod, null, dati, token) && ok;
     }
     // MP
