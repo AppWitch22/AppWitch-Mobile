@@ -55,6 +55,7 @@ h1{font-size:18px;font-weight:600;margin-bottom:4px}
 .r-tag{padding:2px 6px;border-radius:10px;font-weight:600}
 .r-tag.done{background:var(--ok-bg);color:var(--ok)}
 .r-tag.part{background:var(--warn-bg);color:var(--warn)}
+.r-tag.pending{background:var(--bg3);color:var(--text3);border:1px solid var(--border2)}
 .not-found{padding:9px 12px;background:var(--warn-bg);color:var(--warn);border-radius:var(--rad);font-size:13px}
 .sess-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:8px;flex-wrap:wrap}
 .sess-btns{display:flex;gap:6px}
@@ -66,6 +67,7 @@ h1{font-size:18px;font-weight:600;margin-bottom:4px}
 .chip.part{border-color:var(--warn);background:var(--warn-bg);color:var(--warn)}
 .chip.done{border-color:var(--ok);background:var(--ok-bg);color:var(--ok)}
 .chip.active{border-color:var(--info);background:var(--info-bg);color:var(--info)}
+.chip.pending{border-color:var(--border2);background:var(--bg2);color:var(--text3)}
 .chip-dot{width:6px;height:6px;border-radius:50%;background:currentColor}
 .sess-empty{font-size:12px;color:var(--text3);font-style:italic}
 .sess-stats{font-size:12px;color:var(--text2);margin-top:8px;padding-top:8px;border-top:1px solid var(--border)}
@@ -547,9 +549,19 @@ h1{font-size:18px;font-weight:600;margin-bottom:4px}
       <h2>Sessioni</h2>
       <button onclick="closeSessModal()" style="padding:4px 10px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text);cursor:pointer">✕</button>
     </div>
-    <div class="sess-new-row">
-      <input type="text" id="sess-new-title" placeholder="Nome nuova sessione (es. Cardiologia 24/03)" maxlength="80">
-      <button onclick="createSession()">+ Nuova</button>
+    <!-- Aggiungi dispositivi attesi alla sessione attiva -->
+    <div id="sess-attesi-section" style="display:none;margin-bottom:16px;padding:12px;background:var(--bg2);border-radius:var(--rad);border:1px solid var(--border)">
+      <div style="font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px">Dispositivi attesi (sessione attiva)</div>
+      <textarea id="sess-attesi-input" placeholder="Inserisci i codici separati da virgola, spazio o invio" style="width:100%;height:70px;font-size:13px;padding:8px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text);resize:vertical;outline:none;display:block"></textarea>
+      <button onclick="addAttesiToSession()" style="margin-top:6px;padding:7px 14px;font-size:13px;font-weight:600;background:var(--info);color:#fff;border:none;border-radius:var(--rad);cursor:pointer">+ Aggiungi dispositivi</button>
+    </div>
+    <!-- Nuova sessione -->
+    <div style="margin-bottom:16px">
+      <div class="sess-new-row" style="margin-bottom:8px">
+        <input type="text" id="sess-new-title" placeholder="Nome nuova sessione (es. Cardiologia 24/03)" maxlength="80">
+        <button onclick="createSession()">+ Nuova</button>
+      </div>
+      <textarea id="sess-new-attesi" placeholder="Dispositivi attesi (opzionale): 0001234, 0002345..." style="width:100%;height:60px;font-size:13px;padding:8px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text);resize:vertical;outline:none;display:block"></textarea>
     </div>
     <div class="sess-list" id="sess-list">
       <div style="font-size:13px;color:var(--text3);padding:8px">Caricamento...</div>
@@ -812,10 +824,11 @@ function doSearch(){
     const vm=VERIF_MAP[d.c];
     const extraTags=vm?[vm.vsp,vm.cq].filter(Boolean).map(t=>`<span class="r-tag part">${t}</span>`).join(''):'';
     const doneTags=s?`<span class="r-tag done">${[s.vse_saved?'VSE':'',s.mp_saved?'MP':''].filter(Boolean).join('+')}</span>`:'';
+    const attTag=attesi.has(d.c)&&!s?`<span class="r-tag pending">atteso</span>`:'';
     return`<div class="result-item" onclick="sel('${d.c}')">
       <span class="r-cod">${d.c}</span>
       <span class="r-nome">${d.n.toLowerCase()}</span>
-      <span class="r-stato">${doneTags}${extraTags}</span>
+      <span class="r-stato">${doneTags}${attTag}${extraTags}</span>
       <span class="r-loc">${(d.pre||'').split(' ')[0]}</span>
     </div>`;
   }).join('');
@@ -1136,41 +1149,52 @@ function updateTabIndicators(){
 
 function renderSession(){
   const keys=Object.keys(saved);
+  const pending=[...attesi].filter(c=>!saved[c]);
   document.getElementById('btn-xlsx').disabled=keys.length===0;
   const chips=document.getElementById('chips');
   const stats=document.getElementById('sess-stats');
-  if(!keys.length){chips.innerHTML='<span class="sess-empty">Nessun apparecchio compilato</span>';stats.style.display='none';document.getElementById('export-preview').style.display='none';return;}
-  chips.innerHTML=keys.map(k=>{
+  if(!keys.length&&!pending.length){chips.innerHTML='<span class="sess-empty">Nessun apparecchio compilato</span>';stats.style.display='none';document.getElementById('export-preview').style.display='none';return;}
+  const savedChips=keys.map(k=>{
     const s=saved[k];const act=cur&&cur.c===k;
     const both=s.vse_saved&&s.mp_saved;
     return`<div class="chip ${both?'done':'part'}${act?' active':''}" onclick="sel('${k}')">
       <div class="chip-dot"></div>${k}
     </div>`;
   }).join('');
-  const total=keys.length;
-  const both=keys.filter(k=>saved[k].vse_saved&&saved[k].mp_saved).length;
+  const pendingChips=pending.map(c=>{
+    return`<div class="chip pending" onclick="sel('${c}')" title="Da verificare">
+      <div class="chip-dot"></div>${c}
+    </div>`;
+  }).join('');
+  chips.innerHTML=savedChips+pendingChips;
+  const totalAttesi=attesi.size||keys.length;
+  const done=keys.filter(k=>saved[k].vse_saved&&saved[k].mp_saved).length;
   const vspCount=keys.filter(k=>saved[k].vsp_saved).length;
-const cqCount=keys.filter(k=>saved[k].cq_saved).length;
-let statsText=total+' dispositivi';
-if(vspCount)statsText+=' · '+vspCount+' VSP';
-if(cqCount)statsText+=' · '+cqCount+' CQ';
-stats.textContent=statsText;
+  const cqCount=keys.filter(k=>saved[k].cq_saved).length;
+  let statsText=attesi.size?`${done}/${totalAttesi} completati`:`${keys.length} dispositivi`;
+  if(vspCount)statsText+=' · '+vspCount+' VSP';
+  if(cqCount)statsText+=' · '+cqCount+' CQ';
+  stats.textContent=statsText;
   stats.style.display='block';
-  document.getElementById('export-preview').style.display='block';
-  document.getElementById('export-rows').innerHTML=keys.map(k=>{
-    const s=saved[k];const d=DB[k]||{};
-    return`<div class="ex-row">
-      <span class="ex-cod">${k}</span>
-      <span class="ex-nome">${(d.n||'').toLowerCase()}</span>
-      <span class="ex-tags">
-        ${s.vse_saved?`<span class="badge ${s.giu==='POSITIVO'?'pos':'neg'}">VSE ${s.giu==='POSITIVO'?'✓':'✗'}</span>`:''}
-        ${s.mp_saved?`<span class="badge info">MP ✓</span>`:''}
-        ${s.vsp_saved?`<span class="badge info">${s.vsp_type} ✓</span>`:''}
-        ${s.cq_saved?`<span class="badge info">${s.cq_type} ✓</span>`:''}
-      </span>
-      <button onclick="removeFromSession('${k}')" style="padding:2px 8px;font-size:11px;border:1px solid var(--ko);border-radius:var(--rad);background:transparent;color:var(--ko);cursor:pointer;flex-shrink:0">✕</button>
+  if(keys.length){
+    document.getElementById('export-preview').style.display='block';
+    document.getElementById('export-rows').innerHTML=keys.map(k=>{
+      const s=saved[k];const d=DB[k]||{};
+      return`<div class="ex-row">
+        <span class="ex-cod">${k}</span>
+        <span class="ex-nome">${(d.n||'').toLowerCase()}</span>
+        <span class="ex-tags">
+          ${s.vse_saved?`<span class="badge ${s.giu==='POSITIVO'?'pos':'neg'}">VSE ${s.giu==='POSITIVO'?'✓':'✗'}</span>`:''}
+          ${s.mp_saved?`<span class="badge info">MP ✓</span>`:''}
+          ${s.vsp_saved?`<span class="badge info">${s.vsp_type} ✓</span>`:''}
+          ${s.cq_saved?`<span class="badge info">${s.cq_type} ✓</span>`:''}
+        </span>
+        <button onclick="removeFromSession('${k}')" style="padding:2px 8px;font-size:11px;border:1px solid var(--ko);border-radius:var(--rad);background:transparent;color:var(--ko);cursor:pointer;flex-shrink:0">✕</button>
       </div>`;
- }).join('');
+    }).join('');
+  } else {
+    document.getElementById('export-preview').style.display='none';
+  }
 }
  function removeFromSession(cod){
   if(!confirm('Rimuovere '+cod+' dalla sessione?'))return;
@@ -2158,6 +2182,7 @@ function adminMsg(text, ok) {
 
 // ── PERSISTENZA SESSIONI ──────────────────────────────────────
 let currentSessionId = null;   // UUID sessione attiva
+let attesi = new Set();         // codici dispositivi attesi nella sessione corrente
 let syncPending = false;        // ci sono modifiche da sincronizzare
 let syncTimer   = null;         // timer auto-save
 
@@ -2182,6 +2207,11 @@ async function createSession() {
   if (!title) { toast('Inserisci un nome per la sessione', 'warn'); return; }
   const token = await supaToken();
   const asl   = currentUser?.profile?.asl || 'ASL Benevento';
+  // Parse lista dispositivi attesi (se inserita)
+  const attesiTxt = document.getElementById('sess-new-attesi').value.trim();
+  const attesiList = attesiTxt
+    ? attesiTxt.split(/[\s,;]+/).map(c => c.replace(/\D/g,'').padStart(7,'0')).filter(c => c.length === 7 && DB[c])
+    : [];
   const resp  = await fetch(`${SUPA_URL}/rest/v1/sessioni`, {
     method: 'POST',
     headers: supaHdrs(token),
@@ -2189,16 +2219,18 @@ async function createSession() {
       titolo: title,
       utente_id: currentUser.id,
       asl: asl,
-      dati: {}
+      dati: { dispositivi_attesi: attesiList }
     })
   });
   if (!resp.ok) { toast('Errore creazione sessione', 'warn'); return; }
   const rows = await resp.json();
   const sess = Array.isArray(rows) ? rows[0] : rows;
   document.getElementById('sess-new-title').value = '';
+  document.getElementById('sess-new-attesi').value = '';
   await activateSession(sess.id, sess.titolo);
   await loadSessList();
-  toast('Sessione "' + sess.titolo + '" creata', 'ok');
+  const msg = attesiList.length ? `Sessione "${sess.titolo}" creata con ${attesiList.length} dispositivi` : `Sessione "${sess.titolo}" creata`;
+  toast(msg, 'ok');
 }
 
 // ── Attiva una sessione (carica i dati in memoria) ────────────
@@ -2209,17 +2241,20 @@ async function activateSession(id, titolo) {
   }
   // Reset memoria
   Object.keys(saved).forEach(k => delete saved[k]);
+  attesi = new Set();
   cur = null; curVerif = null;
   document.getElementById('form-area').style.display = 'none';
   currentSessionId = id;
-  // Carica schede
+  // Carica schede e metadati sessione in parallelo
   const token = await supaToken();
-  const resp  = await fetch(
-    `${SUPA_URL}/rest/v1/sessione_schede?sessione_id=eq.${id}&select=*`,
-    { headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + token } }
-  );
-  if (resp.ok) {
-    const schede = await resp.json();
+  const [schedeResp, sessResp] = await Promise.all([
+    fetch(`${SUPA_URL}/rest/v1/sessione_schede?sessione_id=eq.${id}&select=*`,
+      { headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + token } }),
+    fetch(`${SUPA_URL}/rest/v1/sessioni?id=eq.${id}&select=dati`,
+      { headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + token } })
+  ]);
+  if (schedeResp.ok) {
+    const schede = await schedeResp.json();
     schede.forEach(s => {
       const rec = {
         codice: s.codice,
@@ -2236,6 +2271,11 @@ async function activateSession(id, titolo) {
       };
       saved[s.codice] = rec;
     });
+  }
+  if (sessResp.ok) {
+    const sessRows = await sessResp.json();
+    const dati = sessRows[0]?.dati || {};
+    (dati.dispositivi_attesi || []).forEach(c => attesi.add(c));
   }
   updateSyncBar(titolo, true);
   renderSession();
@@ -2284,12 +2324,15 @@ async function syncSessionNow() {
   for (const cod of codici) {
     await syncScheda(cod);
   }
-  // Aggiorna data_aggiornamento della sessione
+  // Aggiorna data_aggiornamento e dispositivi_attesi della sessione
   const token = await supaToken();
   const patchResp = await fetch(`${SUPA_URL}/rest/v1/sessioni?id=eq.${currentSessionId}`, {
     method: 'PATCH',
     headers: { ...supaHdrs(token), 'Prefer': 'return=minimal' },
-    body: JSON.stringify({ data_aggiornamento: new Date().toISOString() })
+    body: JSON.stringify({
+      data_aggiornamento: new Date().toISOString(),
+      dati: { dispositivi_attesi: [...attesi] }
+    })
   });
   if (!patchResp.ok) console.error('syncSessionNow PATCH fallita:', patchResp.status, patchResp.statusText);
   updateSyncBar(null, true);
@@ -2353,9 +2396,27 @@ function scheduleSync() {
   syncTimer = setTimeout(() => syncSessionNow(), 3000);
 }
 
+// ── Aggiungi dispositivi attesi alla sessione corrente ────────
+async function addAttesiToSession() {
+  if (!currentSessionId) { toast('Nessuna sessione attiva', 'warn'); return; }
+  const txt = document.getElementById('sess-attesi-input').value.trim();
+  if (!txt) { toast('Inserisci almeno un codice', 'warn'); return; }
+  const codici = txt.split(/[\s,;]+/).map(c => c.replace(/\D/g,'').padStart(7,'0')).filter(c => c.length === 7);
+  const validi = codici.filter(c => DB[c]);
+  const nonTrovati = codici.filter(c => !DB[c] && c !== '0000000');
+  validi.forEach(c => attesi.add(c));
+  document.getElementById('sess-attesi-input').value = '';
+  renderSession();
+  scheduleSync();
+  let msg = validi.length + ' dispositivi aggiunti';
+  if (nonTrovati.length) msg += ' · ' + nonTrovati.length + ' non trovati nel DB';
+  toast(msg, validi.length ? 'ok' : 'warn');
+}
+
 // ── Modal sessioni ───────────────────────────────────────────
 async function openSessModal() {
   document.getElementById('sess-modal').classList.add('open');
+  document.getElementById('sess-attesi-section').style.display = currentSessionId ? 'block' : 'none';
   await loadSessList();
 }
 function closeSessModal() {
@@ -2423,6 +2484,7 @@ async function deleteSession(id, titolo) {
   if (!delSess.ok) console.error('Eliminazione sessione fallita:', delSess.status, delSess.statusText);
   if (currentSessionId === id) {
     currentSessionId = null;
+    attesi = new Set();
     Object.keys(saved).forEach(k => delete saved[k]);
     cur = null; curVerif = null;
     document.getElementById('form-area').style.display = 'none';
