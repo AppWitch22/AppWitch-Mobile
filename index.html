@@ -919,7 +919,7 @@ function fillVSE(d){
   sl('lim-picf',d.icl);sv('f-icm',d.icm);
   sG(d.giu||'POSITIVO');sr('rg-vt',d.vt);sr('rg-vd',d.vd);sv('f-mot',d.mot);
   sv('f-str',d.str);sv('f-nrs',d.nrs);sv('f-ver',d.ver);
-  sv('f-dat2',t);sv('f-vrc',d.vrc);sv('f-sct',d.sct);
+  sv('f-dat2',t);sv('f-vrc',d.vrc);sv('f-sct',d.sct?d.sct.toString().split(' ')[0]:d.sct);
   document.getElementById('dev-cod').textContent=d.c;
   document.getElementById('dev-nom').textContent=d.n.toLowerCase();
   document.getElementById('dev-inf').textContent=d.b+' · '+d.m;
@@ -945,7 +945,7 @@ function restoreVSE(rec){
   sv('f-trm',rec.trm);sv('f-pnm',rec.pnm);sv('f-pim',rec.pim);
   sv('f-pbm',rec.pbm);sv('f-ibm',rec.ibm);sv('f-pcm',rec.pcm);sv('f-icm',rec.icm);
   sG(rec.giu||'POSITIVO');sr('rg-vt',rec.vt);sr('rg-vd',rec.vd);sv('f-mot',rec.mot);
-  sv('f-str',rec.str);sv('f-nrs',rec.nrs);sv('f-ver',rec.ver);sv('f-vrc',rec.vrc);sv('f-sct',rec.sct);
+  sv('f-str',rec.str);sv('f-nrs',rec.nrs);sv('f-ver',rec.ver);sv('f-vrc',rec.vrc);sv('f-sct',rec.sct?rec.sct.toString().split(' ')[0]:rec.sct);
   sv('f-ris-inv',rec.ris_inv);sv('f-ris-pa',rec.ris_pa);
   uM();
 }
@@ -1938,7 +1938,11 @@ function fillVSEPreset(cod){
   if(!p) return;
   // Input fields
   const inputs=['ten','frq','pot','mar','fud','fur','spi','msp','pdc','nag','tms','cor','trm','pnm','pim','pbm','ibm','pcm','icm','mot','str','nrs','ver','vrc','sct'];
-  inputs.forEach(f=>{if(p[f]) sv('f-'+f,p[f]);});
+  inputs.forEach(f=>{
+    if(!p[f]) return;
+    const v = f==='sct' ? p[f].toString().split(' ')[0] : p[f];
+    sv('f-'+f, v);
+  });
   // Radio button fields
   const radios=['tdp','fdp','pdp','cls','cdp','pat','pad','fnz','def','smo','cav','icv','isp','int','icn','prc','icd','mus','mse','clm','vt','vd'];
   radios.forEach(f=>{if(p[f]) sr('rg-'+f,p[f]);});
@@ -2309,11 +2313,24 @@ async function syncScheda(codice) {
     cq_type:     rec.cq_type  || null,
   };
 
-  const resp = await fetch(`${SUPA_URL}/rest/v1/sessione_schede`, {
-    method: 'POST',
-    headers: { ...supaHdrs(token), 'Prefer': 'resolution=merge-duplicates,return=minimal' },
-    body: JSON.stringify(payload)
-  });
+  // Controlla se il record esiste già
+  const hdrs = {'apikey':SUPA_KEY,'Authorization':'Bearer '+token};
+  const check = await fetch(`${SUPA_URL}/rest/v1/sessione_schede?sessione_id=eq.${currentSessionId}&codice=eq.${codice}&select=codice`, {headers:hdrs});
+  const rows = check.ok ? await check.json() : [];
+  let resp;
+  if (rows.length) {
+    resp = await fetch(`${SUPA_URL}/rest/v1/sessione_schede?sessione_id=eq.${currentSessionId}&codice=eq.${codice}`, {
+      method: 'PATCH',
+      headers: { ...supaHdrs(token), 'Prefer': 'return=minimal' },
+      body: JSON.stringify(payload)
+    });
+  } else {
+    resp = await fetch(`${SUPA_URL}/rest/v1/sessione_schede`, {
+      method: 'POST',
+      headers: { ...supaHdrs(token), 'Prefer': 'return=minimal' },
+      body: JSON.stringify(payload)
+    });
+  }
   if (!resp.ok) console.error('syncScheda fallita:', resp.status, resp.statusText);
 }
 
