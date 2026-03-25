@@ -109,6 +109,7 @@ h1{font-size:18px;font-weight:600;margin-bottom:4px}
 .top-btns{display:flex;gap:6px;flex-shrink:0}
 .top-btns button{padding:8px 14px;font-size:13px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text);cursor:pointer;-webkit-tap-highlight-color:transparent}
 .btn-salva{background:var(--info)!important;color:#fff!important;border-color:var(--info)!important;font-weight:600}
+.btn-stampa{background:#1a9e8f!important;color:#fff!important;border-color:#1a9e8f!important;font-weight:600;padding:8px 10px!important;font-size:12px!important}
 .prog-bar{height:3px;background:var(--border);border-radius:2px;margin-bottom:12px}
 .prog-fill{height:100%;background:var(--info);border-radius:2px;transition:width .3s}
 
@@ -274,6 +275,8 @@ h1{font-size:18px;font-weight:600;margin-bottom:4px}
       <div class="top-btns">
         <button onclick="resetCur()">↺</button>
         <button class="btn-salva" onclick="saveAll()">Salva</button>
+        <button class="btn-stampa" onclick="printVS()">🖨 VS</button>
+        <button class="btn-stampa" onclick="printMP()">🖨 MP</button>
       </div>
     </div>
     <div class="prog-bar"><div class="prog-fill" id="prog" style="width:0%"></div></div>
@@ -2701,6 +2704,353 @@ async function importPresetsFromExcel(input) {
 }
 
 // ── FINE PERSISTENZA SESSIONI ─────────────────────────────────
+
+// ── STAMPA SCHEDE ─────────────────────────────────────────────
+function _pRec(cod){
+  // Returns merged rec from saved or current form
+  return saved[cod] ? saved[cod] : Object.assign({},collectVSE(),collectMP());
+}
+function _pDev(cod){ return DB[cod]||{}; }
+function _pVal(v){ return (v!=null&&v!=='') ? v : '—'; }
+function _pEsito(mis,lim){
+  const m=parseFloat(mis),l=parseFloat(lim);
+  if(isNaN(m)||isNaN(l)) return '';
+  return m<=l ? '<span style="color:#0a7a3a;font-weight:bold">✓</span>' : '<span style="color:#c0392b;font-weight:bold">✗</span>';
+}
+
+function _pStyle(){
+  return `<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:Arial,Helvetica,sans-serif;font-size:9.5pt;color:#111;background:#fff}
+  .page{width:210mm;min-height:297mm;padding:8mm 10mm;page-break-after:always}
+  .page:last-child{page-break-after:avoid}
+  .hdr{background:#1a9e8f;color:#fff;padding:5px 10px;display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;border-radius:2px}
+  .hdr-title{font-size:11pt;font-weight:bold;letter-spacing:.5px}
+  .hdr-sub{font-size:8.5pt;opacity:.9}
+  .hdr-cod{font-size:15pt;font-weight:bold}
+  .sec-hdr{background:#1a9e8f;color:#fff;padding:2px 8px;font-weight:bold;font-size:8.5pt;margin:5px 0 2px;border-radius:2px}
+  table{width:100%;border-collapse:collapse;margin-bottom:3px}
+  td,th{border:1px solid #bbb;padding:2.5px 5px;font-size:8.5pt;vertical-align:middle}
+  .lbl{background:#e6f4f2;font-weight:bold;white-space:nowrap;width:38%}
+  .lbl2{background:#e6f4f2;font-weight:bold;white-space:nowrap}
+  .val{}
+  .val2{width:38%}
+  .th-row th{background:#c5e8e3;text-align:center;font-size:8pt}
+  .giu-wrap{text-align:center;margin:4px 0}
+  .giu-box{display:inline-block;padding:6px 28px;font-size:16pt;font-weight:bold;border:3px solid;border-radius:4px;min-width:180px}
+  .giu-pos{color:#0a7a3a;border-color:#0a7a3a;background:#e8f7e8}
+  .giu-neg{color:#c0392b;border-color:#c0392b;background:#fde8e8}
+  .ck-ok{background:#b8f0b8;text-align:center;font-weight:bold;width:26px}
+  .ck-ko{background:#f0b8b8;text-align:center;font-weight:bold;width:26px}
+  .ck-na{background:#e8e8e8;text-align:center;font-weight:bold;width:26px}
+  .mp-n{text-align:center;font-weight:bold;width:22px;background:#e6f4f2}
+  .mp-titolo{font-weight:bold;width:34%}
+  .mp-desc{font-size:7.5pt;color:#444;width:auto}
+  .mp-ok,.mp-ko,.mp-na{text-align:center;width:24px;font-size:8pt}
+  .ok-v{color:#0a7a3a;font-weight:bold}
+  .ko-v{color:#c0392b;font-weight:bold}
+  .na-v{color:#888;font-weight:bold}
+  .footer{margin-top:6px;font-size:8pt;color:#555;border-top:1px solid #ccc;padding-top:4px}
+  @media print{
+    .page{padding:6mm 8mm}
+    @page{size:A4;margin:0}
+  }
+  </style>`;
+}
+
+function printVS(){
+  if(!cur){toast('Seleziona un dispositivo','warn');return;}
+  const cod=cur.c;
+  const rec=_pRec(cod);
+  const dev=_pDev(cod);
+  const v=_pVal, e=_pEsito;
+  const giuCls=rec.giu==='NEGATIVO'?'giu-neg':'giu-pos';
+  const dataStr=rec.data||new Date().toISOString().split('T')[0];
+
+  const html=`<!DOCTYPE html><html lang="it"><head><meta charset="UTF-8">
+  <title>${cod}_VS_${dataStr}</title>${_pStyle()}</head><body>
+  <!-- PAGINA 1 -->
+  <div class="page">
+    <div class="hdr">
+      <div>
+        <div class="hdr-title">VERIFICA DI SICUREZZA ELETTRICA</div>
+        <div class="hdr-sub">MTE/SOL GROUP — ASL Benevento</div>
+      </div>
+      <div class="hdr-cod">${cod}</div>
+    </div>
+
+    <div class="sec-hdr">Identificazione apparecchiatura</div>
+    <table><tbody>
+      <tr><td class="lbl">Tipologia apparecchio</td><td class="val" colspan="3">${v(dev.n)}</td></tr>
+      <tr>
+        <td class="lbl">Costruttore</td><td class="val">${v(dev.b)}</td>
+        <td class="lbl2">Modello</td><td class="val2">${v(dev.m)}</td>
+      </tr>
+      <tr>
+        <td class="lbl">N° di serie / Matricola</td><td class="val">${v(dev.mat)}</td>
+        <td class="lbl2">Reparto</td><td class="val2">${v(dev.rep)}</td>
+      </tr>
+      <tr>
+        <td class="lbl">Presidio</td><td class="val">${v(dev.loc)}</td>
+        <td class="lbl2">Data verifica</td><td class="val2">${v(dataStr)}</td>
+      </tr>
+    </tbody></table>
+
+    <div class="sec-hdr">Dati di targa</div>
+    <table><tbody>
+      <tr>
+        <td class="lbl">Tensione (V)</td><td class="val">${v(rec.ten)} <small>${v(rec.tdp)}</small></td>
+        <td class="lbl2">Frequenza (Hz)</td><td class="val2">${v(rec.frq)} <small>${v(rec.fdp)}</small></td>
+      </tr>
+      <tr>
+        <td class="lbl">Potenza (W)</td><td class="val">${v(rec.pot)} <small>${v(rec.pdp)}</small></td>
+        <td class="lbl2">Marchio CE</td><td class="val2">${v(rec.mar)}</td>
+      </tr>
+      <tr>
+        <td class="lbl">Fusibili dichiarati</td><td class="val">${v(rec.fud)}</td>
+        <td class="lbl2">Fusibili riscontrati</td><td class="val2">${v(rec.fur)}</td>
+      </tr>
+      <tr>
+        <td class="lbl">Classe</td><td class="val">${v(rec.cls)} <small>${v(rec.cdp)}</small></td>
+        <td class="lbl2">PA Tipo</td><td class="val2">${v(rec.pat)} <small>${v(rec.pad)}</small></td>
+      </tr>
+      <tr>
+        <td class="lbl">Funzionamento</td><td class="val">${v(rec.fnz)}</td>
+        <td class="lbl2">Prot. defibrillatore</td><td class="val2">${v(rec.def)}</td>
+      </tr>
+    </tbody></table>
+
+    <div class="sec-hdr">Esito verifica</div>
+    <div class="giu-wrap">
+      <div class="giu-box ${giuCls}">${rec.giu||'POSITIVO'}</div>
+    </div>
+    <table style="margin-top:4px"><tbody>
+      <tr>
+        <td class="lbl">Valori terra</td><td class="val">${v(rec.vt)}</td>
+        <td class="lbl2">Valori dispersione</td><td class="val2">${v(rec.vd)}</td>
+      </tr>
+      ${rec.mot?`<tr><td class="lbl">Motivi non conformità</td><td class="val" colspan="3">${rec.mot}</td></tr>`:''}
+    </tbody></table>
+
+    <div class="sec-hdr">Strumentazione e verificatore</div>
+    <table><tbody>
+      <tr>
+        <td class="lbl">Strumento di misura</td><td class="val">${v(rec.str)}</td>
+        <td class="lbl2">N° serie strumento</td><td class="val2">${v(rec.nrs)}</td>
+      </tr>
+      <tr>
+        <td class="lbl">Verificatore</td><td class="val">${v(rec.ver)}</td>
+        <td class="lbl2">VERIFICATO</td><td class="val2">${v(rec.vrc)}</td>
+      </tr>
+      <tr>
+        <td class="lbl">Scadenza taratura</td><td class="val">${v(rec.sct)}</td>
+        <td class="lbl2">Note</td><td class="val2">${v(rec.note)}</td>
+      </tr>
+    </tbody></table>
+  </div>
+
+  <!-- PAGINA 2 -->
+  <div class="page">
+    <div class="hdr">
+      <div>
+        <div class="hdr-title">VERIFICA DI SICUREZZA ELETTRICA — pag. 2</div>
+        <div class="hdr-sub">${v(dev.n)} | ${cod}</div>
+      </div>
+      <div class="hdr-cod">${dataStr}</div>
+    </div>
+
+    <div class="sec-hdr">Ispezione visiva</div>
+    <table><tbody>
+      <tr>
+        <td class="lbl">Tipo spina</td><td class="val">${v(rec.spi)}</td>
+        <td class="lbl2">Spina pressofusa/smontabile</td><td class="val2">${v(rec.smo)}</td>
+      </tr>
+      <tr>
+        <td class="lbl">Marchio spina</td><td class="val">${v(rec.msp)}</td>
+        <td class="lbl2">Cavo alimentazione</td><td class="val2">${v(rec.cav)}</td>
+      </tr>
+      <tr>
+        <td class="lbl">Integrità cavo</td><td class="val">${v(rec.icv)}</td>
+        <td class="lbl2">Integrità spina</td><td class="val2">${v(rec.isp)}</td>
+      </tr>
+      <tr>
+        <td class="lbl">Interruttore rete</td><td class="val">${v(rec.int)}</td>
+        <td class="lbl2">Parte applicata (descr.)</td><td class="val2">${v(rec.pdc)}</td>
+      </tr>
+      <tr>
+        <td class="lbl">Integrità connettori</td><td class="val">${v(rec.icn)}</td>
+        <td class="lbl2">Protezione conduttori</td><td class="val2">${v(rec.prc)}</td>
+      </tr>
+      <tr>
+        <td class="lbl">Integrità conduttori</td><td class="val">${v(rec.icd)}</td>
+        <td class="lbl2">Manuale uso</td><td class="val2">${v(rec.mus)}</td>
+      </tr>
+      <tr>
+        <td class="lbl">Manuale servizio</td><td class="val">${v(rec.mse)}</td>
+        <td class="lbl2">Note aggiuntive</td><td class="val2">${v(rec.nag)}</td>
+      </tr>
+    </tbody></table>
+
+    <div class="sec-hdr">Prove strumentali</div>
+    <table>
+      <thead><tr class="th-row">
+        <th style="width:38%">Prova</th>
+        <th>Limite</th>
+        <th>Misurato</th>
+        <th style="width:32px">Esito</th>
+      </tr></thead>
+      <tbody>
+        <tr>
+          <td class="lbl2">Classe misura</td>
+          <td colspan="2">${v(rec.clm)}</td><td></td>
+        </tr>
+        <tr>
+          <td class="lbl2">Tensione misurata (V)</td>
+          <td>—</td><td>${v(rec.tms)}</td><td></td>
+        </tr>
+        <tr>
+          <td class="lbl2">Corrente assorbita (A)</td>
+          <td>—</td><td>${v(rec.cor)}</td><td></td>
+        </tr>
+        ${rec.trm?`<tr>
+          <td class="lbl2">Resistenza PE — Terra (mΩ)</td>
+          <td>${v(rec.trl)}</td><td>${v(rec.trm)}</td>
+          <td style="text-align:center">${e(rec.trm,rec.trl)}</td>
+        </tr>`:''}
+        ${rec.ris_inv?`<tr>
+          <td class="lbl2">R. isolamento Rete/Involucro (MΩ)</td>
+          <td>≥ 1</td><td>${v(rec.ris_inv)}</td>
+          <td style="text-align:center">${e(1,rec.ris_inv)||''}</td>
+        </tr>`:''}
+        ${rec.ris_pa?`<tr>
+          <td class="lbl2">R. isolamento PA/Massa (MΩ)</td>
+          <td>≥ 1</td><td>${v(rec.ris_pa)}</td>
+          <td style="text-align:center">${e(1,rec.ris_pa)||''}</td>
+        </tr>`:''}
+        ${rec.pnm?`<tr>
+          <td class="lbl2">Disp. involucro PN (µA)</td>
+          <td>${v(rec.pnl)}</td><td>${v(rec.pnm)}</td>
+          <td style="text-align:center">${e(rec.pnm,rec.pnl)}</td>
+        </tr>`:''}
+        ${rec.pim?`<tr>
+          <td class="lbl2">Disp. involucro PI (µA)</td>
+          <td>${v(rec.pil)}</td><td>${v(rec.pim)}</td>
+          <td style="text-align:center">${e(rec.pim,rec.pil)}</td>
+        </tr>`:''}
+        ${rec.pbm?`<tr>
+          <td class="lbl2">Disp. PA BF PN (µA)</td>
+          <td>${v(rec.pbl)}</td><td>${v(rec.pbm)}</td>
+          <td style="text-align:center">${e(rec.pbm,rec.pbl)}</td>
+        </tr>`:''}
+        ${rec.ibm?`<tr>
+          <td class="lbl2">Disp. PA BF PI (µA)</td>
+          <td>${v(rec.ibl)}</td><td>${v(rec.ibm)}</td>
+          <td style="text-align:center">${e(rec.ibm,rec.ibl)}</td>
+        </tr>`:''}
+        ${rec.pcm?`<tr>
+          <td class="lbl2">Disp. PA CF PN (µA)</td>
+          <td>${v(rec.pcl)}</td><td>${v(rec.pcm)}</td>
+          <td style="text-align:center">${e(rec.pcm,rec.pcl)}</td>
+        </tr>`:''}
+        ${rec.icm?`<tr>
+          <td class="lbl2">Disp. PA CF PI (µA)</td>
+          <td>${v(rec.icl)}</td><td>${v(rec.icm)}</td>
+          <td style="text-align:center">${e(rec.icm,rec.icl)}</td>
+        </tr>`:''}
+      </tbody>
+    </table>
+
+    <div class="footer">
+      Generato da AppWitch-Mobile — ${new Date().toLocaleDateString('it-IT')}
+    </div>
+  </div>
+  </body></html>`;
+
+  const w=window.open('','_blank','width=900,height=700');
+  w.document.write(html);
+  w.document.close();
+  setTimeout(()=>w.print(),600);
+}
+
+function printMP(){
+  if(!cur){toast('Seleziona un dispositivo','warn');return;}
+  const cod=cur.c;
+  const rec=_pRec(cod);
+  const dev=_pDev(cod);
+  const v=_pVal;
+  const dataStr=rec.mp_data||new Date().toISOString().split('T')[0];
+
+  const rows=MP_POINTS.map(p=>{
+    const val=rec['mp'+p.n]||'';
+    return `<tr>
+      <td class="mp-n">${p.n}</td>
+      <td class="mp-titolo">${p.t}</td>
+      <td class="mp-desc">${p.d}</td>
+      <td class="mp-ok">${val==='OK'?'<span class="ok-v">OK</span>':''}</td>
+      <td class="mp-ko">${val==='KO'?'<span class="ko-v">KO</span>':''}</td>
+      <td class="mp-na">${val==='NA'?'<span class="na-v">NA</span>':''}</td>
+    </tr>`;
+  }).join('');
+
+  const html=`<!DOCTYPE html><html lang="it"><head><meta charset="UTF-8">
+  <title>${cod}_MP_${dataStr}</title>${_pStyle()}</head><body>
+  <div class="page">
+    <div class="hdr">
+      <div>
+        <div class="hdr-title">MANUTENZIONE PREVENTIVA</div>
+        <div class="hdr-sub">${v(dev.n)} — ${v(dev.b)} ${v(dev.m)}</div>
+      </div>
+      <div class="hdr-cod">${cod}</div>
+    </div>
+
+    <div class="sec-hdr">Dati generali</div>
+    <table><tbody>
+      <tr>
+        <td class="lbl">Presidio</td><td class="val">${v(dev.loc)}</td>
+        <td class="lbl2">Reparto</td><td class="val2">${v(dev.rep)}</td>
+      </tr>
+      <tr>
+        <td class="lbl">N° di serie / Matricola</td><td class="val">${v(dev.mat)}</td>
+        <td class="lbl2">Data verifica</td><td class="val2">${v(dataStr)}</td>
+      </tr>
+    </tbody></table>
+
+    <div class="sec-hdr">Punti di manutenzione</div>
+    <table>
+      <thead><tr class="th-row">
+        <th style="width:22px">N°</th>
+        <th style="width:30%">Punto</th>
+        <th>Descrizione</th>
+        <th style="width:24px">OK</th>
+        <th style="width:24px">KO</th>
+        <th style="width:24px">NA</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+
+    <div class="sec-hdr" style="margin-top:6px">Firma e note</div>
+    <table><tbody>
+      <tr>
+        <td class="lbl">Tecnico esecutore</td><td class="val">${v(rec.mp_tecnico)}</td>
+        <td class="lbl2">Data</td><td class="val2">${v(rec.mp_data2||dataStr)}</td>
+      </tr>
+      <tr>
+        <td class="lbl">Note</td><td class="val" colspan="3">${v(rec.mp_note)}</td>
+      </tr>
+    </tbody></table>
+
+    <div class="footer">
+      Generato da AppWitch-Mobile — ${new Date().toLocaleDateString('it-IT')}
+    </div>
+  </div>
+  </body></html>`;
+
+  const w=window.open('','_blank','width=900,height=700');
+  w.document.write(html);
+  w.document.close();
+  setTimeout(()=>w.print(),600);
+}
+// ── FINE STAMPA SCHEDE ────────────────────────────────────────
 
 </script>
 </body>
