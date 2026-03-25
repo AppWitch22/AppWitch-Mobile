@@ -880,7 +880,7 @@ const sv=(id,v)=>{const e=document.getElementById(id);if(e&&v!=null)e.value=v;};
 const sr=(g,v)=>{document.querySelectorAll('#'+g+' .rb').forEach(b=>b.classList.toggle('sel',b.dataset.v===v));};
 const gr=(g)=>{const s=document.querySelector('#'+g+' .rb.sel');return s?s.dataset.v:'';};
 const gv=(id)=>{const e=document.getElementById(id);return e?e.value:'';};
-const lv=(id)=>document.getElementById(id).textContent;
+const lv=(id)=>{const e=document.getElementById(id);return e?e.textContent:'';};
 const sl=(id,v)=>{if(v)document.getElementById(id).textContent=v;};
 
 function fillVSE(d){
@@ -1204,7 +1204,7 @@ function exportXLSX(){
   const NUMERIC_VSE=new Set([33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49]);
   const vseKeys=keys.filter(k=>saved[k].vse_saved);
   if(vseKeys.length){
-    const rows=vseKeys.map(k=>{const r=saved[k];return FVSE.map((f,i)=>{const v=r[f]||'';if(NUMERIC_VSE.has(i)&&v!==''){const n=parseFloat(v);return isNaN(n)?v:n;}return v;});});
+    const rows=vseKeys.map(k=>{const r=saved[k];if(!r)return[];return FVSE.map((f,i)=>{const v=r[f]||'';if(NUMERIC_VSE.has(i)&&v!==''){const n=parseFloat(v);return isNaN(n)?v:n;}return v;});});
     const ws=XLSX.utils.aoa_to_sheet([HVSE,...rows]);
     ws['!cols']=HVSE.map(()=>({wch:16}));
     XLSX.utils.book_append_sheet(wb,ws,'Inserimento_VSE');
@@ -1904,20 +1904,26 @@ async function doLogin() {
 }
 
 async function onLogin(user) {
-  const { data: profile } = await supa.from('profiles').select('*').eq('id', user.id).single();
+  const { data: profile, error: profileErr } = await supa.from('profiles').select('*').eq('id', user.id).single();
+  if (profileErr || !profile) {
+    const err = document.getElementById('login-err');
+    if (err) { err.textContent = 'Profilo utente non trovato. Contatta un amministratore.'; err.style.display = 'block'; }
+    return;
+  }
   currentUser = { ...user, profile };
   localStorage.setItem('aw_session', JSON.stringify({ user, profile }));
-  showApp();
+  await showApp();
 }
 
-function showApp() {
-  const p = currentUser.profile;
-  document.getElementById('u-name').textContent = p.full_name;
-  document.getElementById('u-role').textContent = ' · ' + p.role;
+async function showApp() {
+  const p = currentUser?.profile;
+  if (!p) { console.error('showApp: profilo non disponibile'); return; }
+  document.getElementById('u-name').textContent = p.full_name || '—';
+  document.getElementById('u-role').textContent = ' · ' + (p.role || '');
   document.getElementById('user-bar').style.display = 'flex';
   if (p.role === 'admin') document.getElementById('btn-admin').style.display = '';
   document.getElementById('login-screen').style.display = 'none';
-  initDB();
+  await initDB();
 }
 
 async function doLogout() {
@@ -1938,9 +1944,11 @@ async function checkSession() {
   if (saved) {
     try {
       const { user, profile } = JSON.parse(saved);
-      currentUser = { ...user, profile };
-      showApp();
-      return;
+      if (user && profile) {
+        currentUser = { ...user, profile };
+        await showApp();
+        return;
+      }
     } catch(e) {}
   }
 }
@@ -1950,7 +1958,7 @@ checkSession();
 buildMPPoints();
 // ── PANNELLO ADMIN ──────────────────────────────────────────
 async function openAdmin() {
-  if (!currentUser || currentUser.profile.role !== 'admin') return;
+  if (!currentUser || currentUser.profile?.role !== 'admin') return;
   let modal = document.getElementById('admin-modal');
   if (!modal) {
     document.body.insertAdjacentHTML('beforeend', `
@@ -2183,11 +2191,12 @@ async function syncScheda(codice) {
     cq_type:     rec.cq_type  || null,
   };
 
-  await fetch(`${SUPA_URL}/rest/v1/sessione_schede`, {
+  const resp = await fetch(`${SUPA_URL}/rest/v1/sessione_schede`, {
     method: 'POST',
     headers: { ...supaHdrs(token), 'Prefer': 'resolution=merge-duplicates,return=minimal' },
     body: JSON.stringify(payload)
   });
+  if (!resp.ok) console.error('syncScheda fallita:', resp.status, resp.statusText);
 }
 
 // ── Sync completa della sessione ─────────────────────────────
@@ -2201,11 +2210,12 @@ async function syncSessionNow() {
   }
   // Aggiorna data_aggiornamento della sessione
   const token = await supaToken();
-  await fetch(`${SUPA_URL}/rest/v1/sessioni?id=eq.${currentSessionId}`, {
+  const patchResp = await fetch(`${SUPA_URL}/rest/v1/sessioni?id=eq.${currentSessionId}`, {
     method: 'PATCH',
     headers: { ...supaHdrs(token), 'Prefer': 'return=minimal' },
     body: JSON.stringify({ data_aggiornamento: new Date().toISOString() })
   });
+  if (!patchResp.ok) console.error('syncSessionNow PATCH fallita:', patchResp.status, patchResp.statusText);
   updateSyncBar(null, true);
 }
 
@@ -2230,7 +2240,7 @@ function collectVSPFromRec(rec) {
 }
 function collectCQFromRec(rec) {
   return Object.fromEntries(
-    Object.entries(rec).filter(([k,v]) => (k.startsWith('cq_') || k.startsWith('cq-')) && v != null && v !== '')
+    Object.entries(rec).filter(([k,v]) => k.startsWith('cq_') && v != null && v !== '')
   );
 }
 
@@ -2296,37 +2306,45 @@ async function loadSessList() {
     list.innerHTML = '<div style="font-size:13px;color:var(--text3);padding:8px">Nessuna sessione. Creane una nuova.</div>';
     return;
   }
+  const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   list.innerHTML = sessioni.map(s => {
     const isActive = s.id === currentSessionId;
     const data = s.data_aggiornamento
       ? new Date(s.data_aggiornamento).toLocaleDateString('it-IT', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})
       : '—';
-    return `<div class="sess-item${isActive?' active-sess':''}" onclick="activateSession('${s.id}','${s.titolo.replace(/'/g,"\\'")}')">
+    return `<div class="sess-item${isActive?' active-sess':''}" data-sid="${esc(s.id)}" data-titolo="${esc(s.titolo)}">
       <div class="sess-item-info">
-        <div class="sess-item-title">${s.titolo}</div>
+        <div class="sess-item-title">${esc(s.titolo)}</div>
         <div class="sess-item-meta">Aggiornata: ${data}</div>
       </div>
       <div class="sess-item-btns">
         ${isActive ? '<span style="font-size:11px;color:var(--info);font-weight:600">ATTIVA</span>' : ''}
-        <button class="btn-sess danger" onclick="event.stopPropagation();deleteSession('${s.id}','${s.titolo.replace(/'/g,"\\'")}')">✕</button>
+        <button class="btn-sess danger" data-del="1">✕</button>
       </div>
     </div>`;
   }).join('');
+  list.querySelectorAll('.sess-item').forEach(el => {
+    el.addEventListener('click', () => activateSession(el.dataset.sid, el.dataset.titolo));
+    const delBtn = el.querySelector('[data-del]');
+    if (delBtn) delBtn.addEventListener('click', e => { e.stopPropagation(); deleteSession(el.dataset.sid, el.dataset.titolo); });
+  });
 }
 
 async function deleteSession(id, titolo) {
   if (!confirm(`Eliminare la sessione "${titolo}"?\nTutti i dati verranno persi.`)) return;
   const token = await supaToken();
   // Elimina prima le schede
-  await fetch(`${SUPA_URL}/rest/v1/sessione_schede?sessione_id=eq.${id}`, {
+  const delSchede = await fetch(`${SUPA_URL}/rest/v1/sessione_schede?sessione_id=eq.${id}`, {
     method: 'DELETE',
     headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + token }
   });
+  if (!delSchede.ok) console.error('Eliminazione schede fallita:', delSchede.status, delSchede.statusText);
   // Poi la sessione
-  await fetch(`${SUPA_URL}/rest/v1/sessioni?id=eq.${id}`, {
+  const delSess = await fetch(`${SUPA_URL}/rest/v1/sessioni?id=eq.${id}`, {
     method: 'DELETE',
     headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + token }
   });
+  if (!delSess.ok) console.error('Eliminazione sessione fallita:', delSess.status, delSess.statusText);
   if (currentSessionId === id) {
     currentSessionId = null;
     Object.keys(saved).forEach(k => delete saved[k]);
