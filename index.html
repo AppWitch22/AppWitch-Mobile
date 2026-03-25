@@ -244,6 +244,8 @@ h1{font-size:18px;font-weight:600;margin-bottom:4px}
         <button class="btn-sm" id="btn-sess-open" onclick="openSessModal()">📋 Sessioni</button>
         <button class="btn-sm" onclick="exportJSON()">⬇ JSON</button>
         <button class="btn-xlsx" id="btn-xlsx" onclick="exportXLSX()" disabled>⬇ Excel</button>
+        <button class="btn-sm" onclick="saveSessionAsPresets()" title="Salva i dati della sessione come preset">💾 Preset</button>
+        <label class="btn-sm" style="cursor:pointer" title="Importa preset da file Excel (stesso formato export)">📥 Preset<input type="file" accept=".xlsx,.xls" onchange="importPresetsFromExcel(this)" style="display:none"></label>
       </div>
     </div>
     <div id="sess-sync-bar" style="display:none;font-size:11px;color:var(--text3);margin-bottom:6px;display:flex;align-items:center;gap:6px">
@@ -2504,6 +2506,160 @@ async function deleteSession(id, titolo) {
   await loadSessList();
   toast('Sessione eliminata', 'warn');
 }
+// ── PRESET: Salva sessione corrente come preset ───────────────
+const VSE_PRESET_FIELDS = new Set(['ten','tdp','frq','fdp','pot','pdp','mar','fud','fur','cls','cdp','pat','pad','fnz','def','spi','smo','msp','cav','icv','isp','int','pdc','icn','prc','icd','mus','mse','nag','clm','tms','cor','trm','pnm','pim','pbm','ibm','pcm','icm','giu','vt','vd','mot','str','nrs','ver','vrc','sct']);
+
+async function saveSessionAsPresets() {
+  const keys = Object.keys(saved).filter(k => saved[k].vse_saved || saved[k].mp_saved || saved[k].vsp_saved || saved[k].cq_saved);
+  if (!keys.length) { toast('Nessun dispositivo compilato nella sessione', 'warn'); return; }
+  const asl = currentUser?.profile?.asl || 'ASL Benevento';
+  const aslKey = asl.toLowerCase().replace('asl ','');
+  const token = await supaToken();
+  toast(`Salvataggio preset per ${keys.length} dispositivi...`, 'warn');
+  let count = 0;
+  for (const cod of keys) {
+    const rec = saved[cod];
+    const ops = [];
+    // VSE
+    if (rec.vse_saved) {
+      const dati = {};
+      VSE_PRESET_FIELDS.forEach(f => { if (rec[f] != null && rec[f] !== '') dati[f] = rec[f]; });
+      if (Object.keys(dati).length) ops.push(fetch(`${SUPA_URL}/rest/v1/preset_vse_${aslKey}`, {
+        method:'POST', headers:{...supaHdrs(token),'Prefer':'resolution=merge-duplicates,return=minimal'},
+        body:JSON.stringify({codice:cod, dati})
+      }));
+    }
+    // MP
+    if (rec.mp_saved) {
+      const dati = {};
+      for (let i=1;i<=19;i++) {
+        const v=rec['mp'+i];
+        if (v==='OK') dati['mp'+i+'_ok']=true;
+        else if (v==='KO') dati['mp'+i+'_ko']=true;
+        else if (v==='NA') dati['mp'+i+'_na']=true;
+      }
+      if (rec.mp_tecnico) dati.mp_tecnico=rec.mp_tecnico;
+      if (Object.keys(dati).length) ops.push(fetch(`${SUPA_URL}/rest/v1/preset_mp_${aslKey}`, {
+        method:'POST', headers:{...supaHdrs(token),'Prefer':'resolution=merge-duplicates,return=minimal'},
+        body:JSON.stringify({codice:cod, dati})
+      }));
+    }
+    // VSP
+    if (rec.vsp_saved && rec.vsp_type) {
+      const tipo=rec.vsp_type, pts=VSP_POINTS[tipo]||[];
+      const dati = {};
+      pts.forEach(p => {
+        const v=rec['vsp_'+p.l], opts=p.opts||['OK','KO','NA'];
+        opts.forEach(o => { if (v===o) dati['vsp_'+p.l+'_'+o.toLowerCase()]=true; });
+      });
+      if (rec.vsp_tecnico) dati.vsp_tecnico=rec.vsp_tecnico;
+      if (Object.keys(dati).length) ops.push(fetch(`${SUPA_URL}/rest/v1/preset_vsp_${aslKey}`, {
+        method:'POST', headers:{...supaHdrs(token),'Prefer':'resolution=merge-duplicates,return=minimal'},
+        body:JSON.stringify({codice:cod, tipo, dati})
+      }));
+    }
+    // CQ
+    if (rec.cq_saved && rec.cq_type) {
+      const tipo=rec.cq_type, visPoints=CQ_VIS[tipo]||[];
+      const dati = {};
+      visPoints.forEach(p => {
+        const pid=p.replace('.','_'), v=rec['cq_vis_'+pid];
+        if (v==='OK') dati['cq_vis_'+pid+'_ok']=true;
+        else if (v==='KO') dati['cq_vis_'+pid+'_ko']=true;
+        else if (v==='NA') dati['cq_vis_'+pid+'_na']=true;
+      });
+      (CQ_PROVA[tipo]||[]).forEach(sec=>sec.fields.forEach(f=>{ if(rec[f.id]) dati[f.id]=rec[f.id]; }));
+      ['cq_strum','cq_strum_mod','cq_strum_ser','cq_strum_cert','cq_strum_scad','cq_tecnico'].forEach(f=>{ if(rec[f]) dati[f]=rec[f]; });
+      if (Object.keys(dati).length) ops.push(fetch(`${SUPA_URL}/rest/v1/preset_cq_${aslKey}`, {
+        method:'POST', headers:{...supaHdrs(token),'Prefer':'resolution=merge-duplicates,return=minimal'},
+        body:JSON.stringify({codice:cod, tipo, dati})
+      }));
+    }
+    if (ops.length) { await Promise.all(ops); count++; }
+  }
+  await loadPresets();
+  toast(`Preset aggiornati per ${count} dispositivi`, 'ok');
+}
+
+// ── PRESET: Importa da file Excel (stesso formato export) ─────
+async function importPresetsFromExcel(input) {
+  const file = input.files[0]; if (!file) return;
+  input.value = '';
+  if (typeof XLSX === 'undefined') {
+    toast('Caricamento libreria Excel...','warn');
+    await new Promise(res => { const s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js'; s.onload=res; document.head.appendChild(s); });
+  }
+  const wb = XLSX.read(await file.arrayBuffer(), {type:'array'});
+  const asl = currentUser?.profile?.asl || 'ASL Benevento';
+  const aslKey = asl.toLowerCase().replace('asl ','');
+  const token = await supaToken();
+  const norm = c => String(c||'').trim().replace(/\D/g,'').padStart(7,'0');
+  let total = 0;
+
+  // VSE
+  const vseWs = wb.Sheets['Inserimento_VSE'];
+  if (vseWs) {
+    const FVSE=['codice','data','note','ten','tdp','frq','fdp','pot','pdp','mar','fud','fur','cls','cdp','pat','pad','fnz','def','spi','smo','msp','cav','icv','isp','int','pdc','icn','prc','icd','mus','mse','nag','clm','tms','cor','trl','trm','pnl','pnm','pil','pim','pbl','pbm','ibl','ibm','pcl','pcm','icl','icm','giu','vt','vd','mot','str','nrs','ver','data2','vrc','sct'];
+    const rows = XLSX.utils.sheet_to_json(vseWs,{header:1,defval:''});
+    const payload = rows.slice(1).map(row => {
+      const codice=norm(row[0]); if(!DB[codice]) return null;
+      const dati={};
+      FVSE.forEach((f,i)=>{ if(VSE_PRESET_FIELDS.has(f)&&row[i]!=null&&row[i]!=='') dati[f]=String(row[i]); });
+      return Object.keys(dati).length ? {codice,dati} : null;
+    }).filter(Boolean);
+    if (payload.length) { await fetch(`${SUPA_URL}/rest/v1/preset_vse_${aslKey}`,{method:'POST',headers:{...supaHdrs(token),'Prefer':'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(payload)}); total+=payload.length; }
+  }
+
+  // MP
+  const mpWs = wb.Sheets['Inserimento_MP'];
+  if (mpWs) {
+    const rows = XLSX.utils.sheet_to_json(mpWs,{header:1,defval:''});
+    const payload = rows.slice(2).map(row => {
+      const codice=norm(row[0]); if(!DB[codice]) return null;
+      const dati={};
+      for(let i=1;i<=19;i++){const b=3+(i-1)*3; if(row[b]) dati['mp'+i+'_ok']=true; if(row[b+1]) dati['mp'+i+'_ko']=true; if(row[b+2]) dati['mp'+i+'_na']=true;}
+      if(row[3+19*3]) dati.mp_tecnico=String(row[3+19*3]);
+      return Object.keys(dati).length ? {codice,dati} : null;
+    }).filter(Boolean);
+    if (payload.length) { await fetch(`${SUPA_URL}/rest/v1/preset_mp_${aslKey}`,{method:'POST',headers:{...supaHdrs(token),'Prefer':'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(payload)}); total+=payload.length; }
+  }
+
+  // VSP
+  for (const tipo of Object.keys(VSP_POINTS)) {
+    const ws = wb.Sheets[tipo.replace('VSP_','Inserimento_VSP_')]; if(!ws) continue;
+    const rows = XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+    const def = VSP_POINTS[tipo];
+    const payload = rows.slice(3).map(row => {
+      const codice=norm(row[0]); if(!DB[codice]) return null;
+      const dati={}; let ci=3;
+      def.forEach(p=>{ const opts=p.opts||['OK','KO','NA']; opts.forEach(o=>{ if(row[ci]) dati['vsp_'+p.l+'_'+o.toLowerCase()]=true; ci++; }); });
+      if(row[ci]) dati.vsp_tecnico=String(row[ci]);
+      return Object.keys(dati).length ? {codice,tipo,dati} : null;
+    }).filter(Boolean);
+    if (payload.length) { await fetch(`${SUPA_URL}/rest/v1/preset_vsp_${aslKey}`,{method:'POST',headers:{...supaHdrs(token),'Prefer':'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(payload)}); total+=payload.length; }
+  }
+
+  // CQ
+  for (const tipo of [...new Set([...Object.keys(CQ_VIS),...Object.keys(CQ_PROVA)])]) {
+    const ws = wb.Sheets['Inserimento_'+tipo]; if(!ws) continue;
+    const rows = XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+    const visPoints=CQ_VIS[tipo]||[];
+    const provaFields=[]; (CQ_PROVA[tipo]||[]).forEach(sec=>sec.fields.forEach(f=>provaFields.push(f)));
+    const payload = rows.slice(2).map(row => {
+      const codice=norm(row[0]); if(!DB[codice]) return null;
+      const dati={}; if(row[3]) dati.cq_tecnico=String(row[3]);
+      let ci=4;
+      visPoints.forEach(p=>{ const pid=p.replace('.','_'); if(row[ci]) dati['cq_vis_'+pid+'_ok']=true; if(row[ci+1]) dati['cq_vis_'+pid+'_ko']=true; if(row[ci+2]) dati['cq_vis_'+pid+'_na']=true; ci+=3; });
+      provaFields.forEach(f=>{ if(row[ci]!=null&&row[ci]!=='') dati[f.id]=String(row[ci]); ci++; });
+      return Object.keys(dati).length ? {codice,tipo,dati} : null;
+    }).filter(Boolean);
+    if (payload.length) { await fetch(`${SUPA_URL}/rest/v1/preset_cq_${aslKey}`,{method:'POST',headers:{...supaHdrs(token),'Prefer':'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(payload)}); total+=payload.length; }
+  }
+
+  await loadPresets();
+  toast(total ? `Importati ${total} preset da Excel` : 'Nessun preset trovato nel file', total?'ok':'warn');
+}
+
 // ── FINE PERSISTENZA SESSIONI ─────────────────────────────────
 
 </script>
