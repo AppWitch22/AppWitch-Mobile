@@ -2215,7 +2215,7 @@ async function createSession() {
   const resp  = await fetch(`${SUPA_URL}/rest/v1/sessioni`, {
     method: 'POST',
     headers: supaHdrs(token),
-    body: JSON.stringify({ titolo: title, utente_id: currentUser.id, asl: asl, dati: {} })
+    body: JSON.stringify({ titolo: title, utente_id: currentUser.id, asl: asl })
   });
   if (!resp.ok) { toast('Errore creazione sessione', 'warn'); return; }
   const rows = await resp.json();
@@ -2247,17 +2247,20 @@ async function activateSession(id, titolo) {
   cur = null; curVerif = null;
   document.getElementById('form-area').style.display = 'none';
   currentSessionId = id;
-  // Carica schede e metadati sessione in parallelo
+  // Carica schede (include la scheda speciale __attesi__ per i dispositivi attesi)
   const token = await supaToken();
-  const [schedeResp, sessResp] = await Promise.all([
-    fetch(`${SUPA_URL}/rest/v1/sessione_schede?sessione_id=eq.${id}&select=*`,
-      { headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + token } }),
-    fetch(`${SUPA_URL}/rest/v1/sessioni?id=eq.${id}&select=dati`,
-      { headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + token } })
-  ]);
+  const schedeResp = await fetch(
+    `${SUPA_URL}/rest/v1/sessione_schede?sessione_id=eq.${id}&select=*`,
+    { headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + token } }
+  );
   if (schedeResp.ok) {
     const schede = await schedeResp.json();
     schede.forEach(s => {
+      if (s.codice === '__attesi__') {
+        // Scheda speciale: contiene la lista dispositivi attesi
+        (s.dati_vse?.lista || []).forEach(c => attesi.add(c));
+        return;
+      }
       const rec = {
         codice: s.codice,
         ...(s.dati_vse || {}),
@@ -2273,11 +2276,6 @@ async function activateSession(id, titolo) {
       };
       saved[s.codice] = rec;
     });
-  }
-  if (sessResp.ok) {
-    const sessRows = await sessResp.json();
-    const dati = sessRows[0]?.dati || {};
-    (dati.dispositivi_attesi || []).forEach(c => attesi.add(c));
   }
   updateSyncBar(titolo, true);
   renderSession();
@@ -2326,16 +2324,26 @@ async function syncSessionNow() {
   for (const cod of codici) {
     await syncScheda(cod);
   }
-  // Aggiorna data_aggiornamento e dispositivi_attesi della sessione
+  // Aggiorna data_aggiornamento della sessione
   const token = await supaToken();
   const patchResp = await fetch(`${SUPA_URL}/rest/v1/sessioni?id=eq.${currentSessionId}`, {
     method: 'PATCH',
     headers: { ...supaHdrs(token), 'Prefer': 'return=minimal' },
-    body: JSON.stringify({
-      data_aggiornamento: new Date().toISOString(),
-      dati: { dispositivi_attesi: [...attesi] }
-    })
+    body: JSON.stringify({ data_aggiornamento: new Date().toISOString() })
   });
+  // Salva lista attesi come scheda speciale __attesi__
+  if (attesi.size > 0) {
+    await fetch(`${SUPA_URL}/rest/v1/sessione_schede`, {
+      method: 'POST',
+      headers: { ...supaHdrs(token), 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+      body: JSON.stringify({
+        sessione_id: currentSessionId,
+        codice: '__attesi__',
+        dati_vse: { lista: [...attesi] },
+        dati_mp: null, dati_vsp: null, dati_cq: null
+      })
+    });
+  }
   if (!patchResp.ok) console.error('syncSessionNow PATCH fallita:', patchResp.status, patchResp.statusText);
   updateSyncBar(null, true);
 }
