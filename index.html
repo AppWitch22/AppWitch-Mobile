@@ -110,6 +110,10 @@ h1{font-size:18px;font-weight:600;margin-bottom:4px}
 .top-btns button{padding:8px 14px;font-size:13px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text);cursor:pointer;-webkit-tap-highlight-color:transparent}
 .btn-salva{background:var(--info)!important;color:#fff!important;border-color:var(--info)!important;font-weight:600}
 .btn-stampa{background:#1a9e8f!important;color:#fff!important;border-color:#1a9e8f!important;font-weight:600;padding:8px 10px!important;font-size:12px!important}
+.btn-export{background:#1A4F8C!important;color:#fff!important;border-color:#1A4F8C!important;font-weight:600;padding:8px 10px!important;font-size:12px!important}
+.btn-export:disabled{background:#7a9bbf!important;border-color:#7a9bbf!important;cursor:not-allowed!important;opacity:0.7}
+.form-actions{display:flex;flex-direction:column;gap:6px;align-items:flex-start}
+.form-actions-row{display:flex;gap:6px;flex-wrap:wrap}
 .prog-bar{height:3px;background:var(--border);border-radius:2px;margin-bottom:12px}
 .prog-fill{height:100%;background:var(--info);border-radius:2px;transition:width .3s}
 
@@ -272,12 +276,20 @@ h1{font-size:18px;font-weight:600;margin-bottom:4px}
         <div class="dev-sub" id="dev-inf"></div>
         <div id="dev-loc" style="display:none" class="dev-loc-badge"></div>
       </div>
-      <div class="top-btns">
-        <button onclick="resetCur()">↺</button>
-        <button class="btn-salva" onclick="saveAll()">Salva</button>
-        <button class="btn-stampa" onclick="printVS()">🖨 VS</button>
-        <button class="btn-stampa" onclick="printMP()">🖨 MP</button>
-        <button class="btn-stampa" onclick="exportSchedaXLSX(cur&&cur.c)" title="Esporta scheda compilata come XLSX (prima volta: seleziona App_Witch_2_SCHEDE.xlsm)">📥 XLSX</button>
+      <div class="form-actions">
+        <div class="form-actions-row">
+          <button onclick="resetCur()">↺</button>
+          <button class="btn-salva" onclick="saveAll()">Salva</button>
+          <button class="btn-stampa" onclick="printVS()">🖨 VS</button>
+          <button class="btn-stampa" onclick="printMP()">🖨 MP</button>
+        </div>
+        <div class="form-actions-row">
+          <button class="btn-export" onclick="exportVS(cur&&cur.c)" title="Esporta scheda VSE in Excel">📥 VS</button>
+          <button class="btn-export" onclick="exportMP(cur&&cur.c)" title="Esporta scheda MP in Excel">📥 MP</button>
+          <button class="btn-export" id="btn-exp-vsp" onclick="exportVSP(cur&&cur.c)" title="Esporta scheda VSP in Excel" style="display:none" disabled>📥 VSP</button>
+          <button class="btn-export" id="btn-exp-cq" onclick="exportCQ(cur&&cur.c)" title="Esporta scheda CQ in Excel" style="display:none" disabled>📥 CQ</button>
+          <button class="btn-export" id="btn-exp-tutti" onclick="exportTutti(cur&&cur.c)" title="Esporta tutte le schede in Excel">📥 Tutti</button>
+        </div>
       </div>
     </div>
     <div class="prog-bar"><div class="prog-fill" id="prog" style="width:0%"></div></div>
@@ -889,6 +901,11 @@ function updateTabs(){
     ${hasVSP?`<button class="tab" id="tab-vsp" onclick="switchTab('vsp')">${vspFoglio||'VSP'}</button>`:''}
     ${hasCQ?`<button class="tab" id="tab-cq" onclick="switchTab('cq')">${cqFoglio||'CQ'}</button>`:''}
   `;
+  // Mostra/nascondi bottoni export VSP e CQ
+  const bVsp=document.getElementById('btn-exp-vsp');
+  const bCq=document.getElementById('btn-exp-cq');
+  if(bVsp){bVsp.style.display=hasVSP?'':'none';bVsp.textContent='📥 '+(vspFoglio||'VSP');}
+  if(bCq){bCq.style.display=hasCQ?'':'none';bCq.textContent='📥 '+(cqFoglio||'CQ');}
 }
 
 function fillMPHeader(d){
@@ -3176,71 +3193,103 @@ function _fillMPSheet(xml,rec,dev,asl){
   return xml;
 }
 
-async function exportSchedaXLSX(cod){
-  if(!cod){toast('Seleziona un dispositivo','warn');return;}
+// Helper: risolve il percorso di un foglio nel template
+async function _resolveSheetPath(zip, name){
+  const wbXml=await zip.file('xl/workbook.xml').async('string');
+  const relsXml=await zip.file('xl/_rels/workbook.xml.rels').async('string');
+  const m=wbXml.match(new RegExp('<sheet[^>]+name="'+name+'"[^>]*/?>'));
+  if(!m)return null;
+  const rid=m[0].match(/r:id="([^"]+)"/)?.[1];if(!rid)return null;
+  const rel=relsXml.match(new RegExp('Id="'+rid+'"[^>]+Target="([^"]+)"'));
+  return rel?'xl/'+rel[1]:null;
+}
+
+// Helper: clona template, compila un foglio, scarica come xlsx
+async function _downloadSheetXLSX(buf, cod, tipo, fillFn, sheetName, fileDate, activeTab){
+  await _loadJSZip();
+  const z=await JSZip.loadAsync(buf);
+  const shPath=await _resolveSheetPath(z, sheetName);
+  if(!shPath){toast('Foglio '+sheetName+' non trovato nel template','warn');return null;}
+  z.file(shPath, fillFn(await z.file(shPath).async('string')));
+  // Imposta foglio attivo
+  if(activeTab>0){
+    let wb=await z.file('xl/workbook.xml').async('string');
+    wb=wb.replace(/activeTab="\d+"/,'activeTab="'+activeTab+'"');
+    if(!wb.includes('activeTab'))wb=wb.replace(/<workbookView /,'<workbookView activeTab="'+activeTab+'" ');
+    z.file('xl/workbook.xml',wb);
+  }
+  // Converti in xlsx
+  z.remove('xl/vbaProject.bin');
+  const ct=await z.file('[Content_Types].xml').async('string');
+  z.file('[Content_Types].xml',ct
+    .replace(/<Override[^>]*vbaProject[^>]*\/>/g,'')
+    .replace('application/vnd.ms-excel.sheet.macroEnabled.main+xml',
+             'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml')
+  );
+  const rels=await z.file('xl/_rels/workbook.xml.rels').async('string');
+  z.file('xl/_rels/workbook.xml.rels',rels.replace(/<Relationship[^>]*vbaProject[^>]*\/>/g,''));
+  const fname=cod+'_'+tipo+'_'+_fmtDD_MM_YY(fileDate)+'.xlsx';
+  const blob=await z.generateAsync({type:'blob',compression:'DEFLATE'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download=fname;a.click();
+  URL.revokeObjectURL(url);
+  return fname;
+}
+
+function _exportGuard(cod, tipoLabel){
+  if(!cod){toast('Seleziona un dispositivo','warn');return false;}
   const rec=saved[cod];
-  if(!rec?.vse_saved){toast('Prima salva la scheda VSE','warn');return;}
-  const dev=DB[cod];
-  if(!dev){toast('Dispositivo non trovato in DB','warn');return;}
-  toast('Preparazione XLSX...','warn');
+  if(!rec?.vse_saved){toast('Prima salva la scheda ('+tipoLabel+')','warn');return false;}
+  if(!DB[cod]){toast('Dispositivo non trovato in DB','warn');return false;}
+  return true;
+}
+
+async function exportVS(cod){
+  if(!_exportGuard(cod,'VS'))return;
+  const rec=saved[cod],dev=DB[cod];
   try{
-    const buf=await _getSchedeTemplate();
-    if(!buf){toast('Template non selezionato','warn');return;}
-    await _loadJSZip();
-    const zip=await JSZip.loadAsync(buf);
-    const wbXml=await zip.file('xl/workbook.xml').async('string');
-    const relsXml=await zip.file('xl/_rels/workbook.xml.rels').async('string');
+    const buf=await _getSchedeTemplate();if(!buf)return;
+    const fname=await _downloadSheetXLSX(buf,cod,'VS',xml=>_fillVSSheet(xml,rec,dev),'VS_GEN',rec.data||new Date().toISOString().slice(0,10),0);
+    if(fname)toast('Scaricato: '+fname,'ok');
+  }catch(e){console.error(e);toast('Errore export VS: '+e.message,'warn');}
+}
 
-    function sheetPath(name){
-      const m=wbXml.match(new RegExp('<sheet[^>]+name="'+name+'"[^>]*/?>'));
-      if(!m)return null;
-      const rid=m[0].match(/r:id="([^"]+)"/)?.[1];if(!rid)return null;
-      const rel=relsXml.match(new RegExp('Id="'+rid+'"[^>]+Target="([^"]+)"'));
-      return rel?'xl/'+rel[1]:null;
-    }
-    const vsPath=sheetPath('VS_GEN'),mpPath=sheetPath('MP_GEN');
-    if(!vsPath||!mpPath){toast('Fogli VS_GEN/MP_GEN non trovati nel template','warn');return;}
+async function exportMP(cod){
+  if(!_exportGuard(cod,'MP'))return;
+  const rec=saved[cod],dev=DB[cod];
+  const asl=currentUser?.profile?.asl||'ASL Benevento';
+  try{
+    const buf=await _getSchedeTemplate();if(!buf)return;
+    const date=rec.mp_data||rec.data||new Date().toISOString().slice(0,10);
+    const fname=await _downloadSheetXLSX(buf,cod,'MP',xml=>_fillMPSheet(xml,rec,dev,asl),'MP_GEN',date,1);
+    if(fname)toast('Scaricato: '+fname,'ok');
+  }catch(e){console.error(e);toast('Errore export MP: '+e.message,'warn');}
+}
 
-    const asl=currentUser?.profile?.asl||'ASL Benevento';
+async function exportVSP(cod){
+  toast('Export VSP non ancora disponibile','warn');
+}
+
+async function exportCQ(cod){
+  toast('Export CQ non ancora disponibile','warn');
+}
+
+async function exportTutti(cod){
+  if(!_exportGuard(cod,'Tutti'))return;
+  const rec=saved[cod],dev=DB[cod];
+  const asl=currentUser?.profile?.asl||'ASL Benevento';
+  try{
+    const buf=await _getSchedeTemplate();if(!buf)return;
     const date=rec.data||new Date().toISOString().slice(0,10);
     const dateMP=rec.mp_data||date;
-
-    // Helper: clona zip, compila un foglio, scarica
-    async function _downloadSheet(tipo, fillFn, sheetPath, fileDate, activeTab){
-      const z=await JSZip.loadAsync(buf);
-      let wb2=await z.file('xl/workbook.xml').async('string');
-      const rels2=await z.file('xl/_rels/workbook.xml.rels').async('string');
-      z.file(sheetPath, fillFn(await z.file(sheetPath).async('string')));
-      // Imposta il foglio attivo corretto
-      if(activeTab>0){
-        wb2=wb2.replace(/activeTab="\d+"/,'activeTab="'+activeTab+'"');
-        if(!wb2.includes('activeTab'))wb2=wb2.replace(/<workbookView /,'<workbookView activeTab="'+activeTab+'" ');
-        z.file('xl/workbook.xml',wb2);
-      }
-      z.remove('xl/vbaProject.bin');
-      const ct2=await z.file('[Content_Types].xml').async('string');
-      z.file('[Content_Types].xml', ct2
-        .replace(/<Override[^>]*vbaProject[^>]*\/>/g,'')
-        .replace('application/vnd.ms-excel.sheet.macroEnabled.main+xml',
-                 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml')
-      );
-      z.file('xl/_rels/workbook.xml.rels', rels2.replace(/<Relationship[^>]*vbaProject[^>]*\/>/g,''));
-      const fname=cod+'_'+tipo+'_'+_fmtDD_MM_YY(fileDate)+'.xlsx';
-      const blob=await z.generateAsync({type:'blob',compression:'DEFLATE'});
-      const url=URL.createObjectURL(blob);
-      const a=document.createElement('a');a.href=url;a.download=fname;a.click();
-      URL.revokeObjectURL(url);
-      return fname;
-    }
-
-    const fnVS=await _downloadSheet('VS', xml=>_fillVSSheet(xml,rec,dev), vsPath, date, 0);
+    toast('Esportazione in corso...','warn');
+    const fnVS=await _downloadSheetXLSX(buf,cod,'VS',xml=>_fillVSSheet(xml,rec,dev),'VS_GEN',date,0);
     await new Promise(r=>setTimeout(r,400));
-    const fnMP=await _downloadSheet('MP', xml=>_fillMPSheet(xml,rec,dev,asl), mpPath, dateMP, 1);
-    toast('Scaricati: '+fnVS+' e '+fnMP,'ok');
-  }catch(e){
-    console.error('exportSchedaXLSX:',e);
-    toast('Errore export: '+e.message,'warn');
-  }
+    const fnMP=await _downloadSheetXLSX(buf,cod,'MP',xml=>_fillMPSheet(xml,rec,dev,asl),'MP_GEN',dateMP,1);
+    // VSP e CQ: da implementare quando i template saranno disponibili
+    const nomi=[fnVS,fnMP].filter(Boolean);
+    toast('Scaricati: '+nomi.join(', '),'ok');
+  }catch(e){console.error(e);toast('Errore export: '+e.message,'warn');}
 }
 
 // ── FINE EXPORT XLSX ──────────────────────────────────────────
