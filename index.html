@@ -2738,25 +2738,22 @@ async function _idbSet(k,v){
   return new Promise((res,rej)=>{const t=db.transaction('blobs','readwrite');const r=t.objectStore('blobs').put(v,k);r.onsuccess=()=>res();r.onerror=rej;});
 }
 
-let _tmplBuf=null;
-async function _getSchedeTemplate(){
-  if(_tmplBuf)return _tmplBuf;
-  _tmplBuf=await _idbGet('schedeTemplate');
-  if(_tmplBuf)return _tmplBuf;
-  toast('Seleziona App_Witch_2_SCHEDE.xlsm','warn');
-  _tmplBuf=await new Promise(res=>{
-    const inp=document.createElement('input');
-    inp.type='file';inp.accept='.xlsm,.xlsx';
-    inp.onchange=async e=>{const f=e.target.files[0];res(f?await f.arrayBuffer():null);};
-    inp.click();
-  });
-  if(_tmplBuf)await _idbSet('schedeTemplate',_tmplBuf);
-  return _tmplBuf;
+const _tplCache={};
+async function _getTemplate(idbKey,filename){
+  if(_tplCache[idbKey])return _tplCache[idbKey];
+  _tplCache[idbKey]=await _idbGet(idbKey);
+  if(_tplCache[idbKey])return _tplCache[idbKey];
+  toast('Scaricamento template '+filename+'...','warn');
+  const{data,error}=await supa.storage.from('templates').download(filename);
+  if(error||!data){toast('Errore download template: '+(error?.message||'sconosciuto'),'warn');return null;}
+  _tplCache[idbKey]=await data.arrayBuffer();
+  await _idbSet(idbKey,_tplCache[idbKey]);
+  return _tplCache[idbKey];
 }
-async function resetSchedeTemplate(){
-  _tmplBuf=null;
-  try{const db=await _openIDB();db.transaction('blobs','readwrite').objectStore('blobs').delete('schedeTemplate');}catch(e){}
-  toast('Template rimosso — riselezionalo al prossimo export','ok');
+async function resetTemplates(){
+  delete _tplCache.tpl_vse;delete _tplCache.tpl_mp;
+  try{const db=await _openIDB();const t=db.transaction('blobs','readwrite');t.objectStore('blobs').delete('tpl_vse');t.objectStore('blobs').delete('tpl_mp');}catch(e){}
+  toast('Cache template rimossa','ok');
 }
 
 async function _loadJSZip(){
@@ -2804,7 +2801,6 @@ function _fillVSSheet(xml,rec,dev){
   const ds=_toExcelDate(date);
   const toN=v=>{const n=parseFloat(v);return isNaN(n)?null:n;};
 
-  s('V1',dev.c);s('V4',ds,true);s('V6',dev.c+'_VS_'+_fmtDD_MM_YY(date));
   s('A10',dev.c);s('K10',dev.n||'');
   s('D13',dev.b||'');s('N13',dev.rep||'');s('D14',dev.m||'');
   s('N14','');s('D15',dev.mat||'');s('N15',dev.loc||'');s('D16','');
@@ -2840,7 +2836,6 @@ function _fillMPSheet(xml,rec,dev,asl){
   const date=rec.mp_data||new Date().toISOString().slice(0,10);
   const ds=_toExcelDate(date);
 
-  s('V1',dev.c);s('V4',ds,true);s('V6',dev.c+'_MP_'+_fmtDD_MM_YY(date));
   s('N6',dev.c);
   s('D11',(asl||'ASL BENEVENTO').toUpperCase());
   s('D12',dev.rep||'');s('N12',dev.loc||'');
@@ -2865,30 +2860,29 @@ async function _resolveSheetPath(zip, name){
   return rel?'xl/'+rel[1]:null;
 }
 
-// Helper: clona template, compila un foglio, scarica come xlsx
-async function _downloadSheetXLSX(buf, cod, tipo, fillFn, sheetName, fileDate, activeTab){
+// Helper: clona template, compila il foglio Foglio1, scarica come xlsx
+async function _downloadSheetXLSX(buf, cod, tipo, fillFn, fileDate){
   await _loadJSZip();
   const z=await JSZip.loadAsync(buf);
-  const shPath=await _resolveSheetPath(z, sheetName);
-  if(!shPath){toast('Foglio '+sheetName+' non trovato nel template','warn');return null;}
+  const shPath=await _resolveSheetPath(z,'Foglio1');
+  if(!shPath){toast('Foglio Foglio1 non trovato nel template','warn');return null;}
   z.file(shPath, fillFn(await z.file(shPath).async('string')));
-  // Imposta foglio attivo
-  if(activeTab>0){
-    let wb=await z.file('xl/workbook.xml').async('string');
-    wb=wb.replace(/activeTab="\d+"/,'activeTab="'+activeTab+'"');
-    if(!wb.includes('activeTab'))wb=wb.replace(/<workbookView /,'<workbookView activeTab="'+activeTab+'" ');
-    z.file('xl/workbook.xml',wb);
-  }
-  // Converti in xlsx
+  // Rimuovi external links (evita prompt "aggiorna link" in Excel)
+  z.remove('xl/externalLinks/externalLink1.xml');
+  z.remove('xl/externalLinks/_rels/externalLink1.xml.rels');
+  z.remove('xl/calcChain.xml');
   z.remove('xl/vbaProject.bin');
-  const ct=await z.file('[Content_Types].xml').async('string');
-  z.file('[Content_Types].xml',ct
-    .replace(/<Override[^>]*vbaProject[^>]*\/>/g,'')
-    .replace('application/vnd.ms-excel.sheet.macroEnabled.main+xml',
-             'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml')
-  );
-  const rels=await z.file('xl/_rels/workbook.xml.rels').async('string');
-  z.file('xl/_rels/workbook.xml.rels',rels.replace(/<Relationship[^>]*vbaProject[^>]*\/>/g,''));
+  let ct=await z.file('[Content_Types].xml').async('string');
+  ct=ct.replace(/<Override[^>]*externalLink[^>]*\/>/g,'')
+       .replace(/<Override[^>]*calcChain[^>]*\/>/g,'')
+       .replace(/<Override[^>]*vbaProject[^>]*\/>/g,'')
+       .replace('application/vnd.ms-excel.sheet.macroEnabled.main+xml',
+                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml');
+  z.file('[Content_Types].xml',ct);
+  let rels=await z.file('xl/_rels/workbook.xml.rels').async('string');
+  rels=rels.replace(/<Relationship[^>]*externalLink[^>]*\/>/g,'')
+           .replace(/<Relationship[^>]*vbaProject[^>]*\/>/g,'');
+  z.file('xl/_rels/workbook.xml.rels',rels);
   const fname=cod+'_'+tipo+'_'+_fmtDD_MM_YY(fileDate)+'.xlsx';
   const blob=await z.generateAsync({type:'blob',compression:'DEFLATE'});
   const url=URL.createObjectURL(blob);
@@ -2909,8 +2903,8 @@ async function exportVS(cod){
   if(!_exportGuard(cod,'VS'))return;
   const rec=saved[cod],dev=DB[cod];
   try{
-    const buf=await _getSchedeTemplate();if(!buf)return;
-    const fname=await _downloadSheetXLSX(buf,cod,'VS',xml=>_fillVSSheet(xml,rec,dev),'VS_GEN',rec.data||new Date().toISOString().slice(0,10),0);
+    const buf=await _getTemplate('tpl_vse','Template_VSE.xlsx');if(!buf)return;
+    const fname=await _downloadSheetXLSX(buf,cod,'VS',xml=>_fillVSSheet(xml,rec,dev),rec.data||new Date().toISOString().slice(0,10));
     if(fname)toast('Scaricato: '+fname,'ok');
   }catch(e){console.error(e);toast('Errore export VS: '+e.message,'warn');}
 }
@@ -2920,9 +2914,9 @@ async function exportMP(cod){
   const rec=saved[cod],dev=DB[cod];
   const asl=currentUser?.profile?.asl||'ASL Benevento';
   try{
-    const buf=await _getSchedeTemplate();if(!buf)return;
+    const buf=await _getTemplate('tpl_mp','Template_MP.xlsx');if(!buf)return;
     const date=rec.mp_data||rec.data||new Date().toISOString().slice(0,10);
-    const fname=await _downloadSheetXLSX(buf,cod,'MP',xml=>_fillMPSheet(xml,rec,dev,asl),'MP_GEN',date,1);
+    const fname=await _downloadSheetXLSX(buf,cod,'MP',xml=>_fillMPSheet(xml,rec,dev,asl),date);
     if(fname)toast('Scaricato: '+fname,'ok');
   }catch(e){console.error(e);toast('Errore export MP: '+e.message,'warn');}
 }
@@ -2940,14 +2934,17 @@ async function exportTutti(cod){
   const rec=saved[cod],dev=DB[cod];
   const asl=currentUser?.profile?.asl||'ASL Benevento';
   try{
-    const buf=await _getSchedeTemplate();if(!buf)return;
+    const [bufVS,bufMP]=await Promise.all([
+      _getTemplate('tpl_vse','Template_VSE.xlsx'),
+      _getTemplate('tpl_mp','Template_MP.xlsx')
+    ]);
+    if(!bufVS||!bufMP)return;
     const date=rec.data||new Date().toISOString().slice(0,10);
     const dateMP=rec.mp_data||date;
     toast('Esportazione in corso...','warn');
-    const fnVS=await _downloadSheetXLSX(buf,cod,'VS',xml=>_fillVSSheet(xml,rec,dev),'VS_GEN',date,0);
+    const fnVS=await _downloadSheetXLSX(bufVS,cod,'VS',xml=>_fillVSSheet(xml,rec,dev),date);
     await new Promise(r=>setTimeout(r,400));
-    const fnMP=await _downloadSheetXLSX(buf,cod,'MP',xml=>_fillMPSheet(xml,rec,dev,asl),'MP_GEN',dateMP,1);
-    // VSP e CQ: da implementare quando i template saranno disponibili
+    const fnMP=await _downloadSheetXLSX(bufMP,cod,'MP',xml=>_fillMPSheet(xml,rec,dev,asl),dateMP);
     const nomi=[fnVS,fnMP].filter(Boolean);
     toast('Scaricati: '+nomi.join(', '),'ok');
   }catch(e){console.error(e);toast('Errore export: '+e.message,'warn');}
