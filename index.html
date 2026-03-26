@@ -3206,11 +3206,17 @@ async function exportSchedaXLSX(cod){
     const dateMP=rec.mp_data||date;
 
     // Helper: clona zip, compila un foglio, scarica
-    async function _downloadSheet(tipo, fillFn, sheetPath, fileDate){
+    async function _downloadSheet(tipo, fillFn, sheetPath, fileDate, activeTab){
       const z=await JSZip.loadAsync(buf);
-      const wb2=await z.file('xl/workbook.xml').async('string');
+      let wb2=await z.file('xl/workbook.xml').async('string');
       const rels2=await z.file('xl/_rels/workbook.xml.rels').async('string');
       z.file(sheetPath, fillFn(await z.file(sheetPath).async('string')));
+      // Imposta il foglio attivo corretto
+      if(activeTab>0){
+        wb2=wb2.replace(/activeTab="\d+"/,'activeTab="'+activeTab+'"');
+        if(!wb2.includes('activeTab'))wb2=wb2.replace(/<workbookView /,'<workbookView activeTab="'+activeTab+'" ');
+        z.file('xl/workbook.xml',wb2);
+      }
       z.remove('xl/vbaProject.bin');
       const ct2=await z.file('[Content_Types].xml').async('string');
       z.file('[Content_Types].xml', ct2
@@ -3227,9 +3233,9 @@ async function exportSchedaXLSX(cod){
       return fname;
     }
 
-    const fnVS=await _downloadSheet('VS', xml=>_fillVSSheet(xml,rec,dev), vsPath, date);
-    await new Promise(r=>setTimeout(r,400)); // piccola pausa tra i download
-    const fnMP=await _downloadSheet('MP', xml=>_fillMPSheet(xml,rec,dev,asl), mpPath, dateMP);
+    const fnVS=await _downloadSheet('VS', xml=>_fillVSSheet(xml,rec,dev), vsPath, date, 0);
+    await new Promise(r=>setTimeout(r,400));
+    const fnMP=await _downloadSheet('MP', xml=>_fillMPSheet(xml,rec,dev,asl), mpPath, dateMP, 1);
     toast('Scaricati: '+fnVS+' e '+fnMP,'ok');
   }catch(e){
     console.error('exportSchedaXLSX:',e);
