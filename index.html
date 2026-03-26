@@ -3100,28 +3100,28 @@ function _fmtDD_MM_YY(dateStr){
   const[y,m,d]=dateStr.split('-');return d+'-'+m+'-'+y.slice(2);
 }
 
-function _cellMapXML(doc){
-  const m={};for(const c of doc.getElementsByTagName('c'))m[c.getAttribute('r')]=c;return m;
-}
-function _setCell(m,doc,addr,val,isNum){
-  const c=m[addr];if(!c)return;
-  const NS=doc.documentElement.namespaceURI||'http://schemas.openxmlformats.org/spreadsheetml/2006/main';
-  for(const tag of['f','v','is']){const el=c.getElementsByTagName(tag)[0];if(el)c.removeChild(el);}
-  if(val===''||val===null||val===undefined){c.removeAttribute('t');return;}
-  if(isNum){
-    c.removeAttribute('t');
-    const v=doc.createElementNS(NS,'v');v.textContent=String(val);c.appendChild(v);
+// Modifica celle via string manipulation (evita corruzione namespace XML)
+function _patchCell(xml, addr, val, isNum){
+  const start=xml.indexOf('<c r="'+addr+'"');
+  if(start===-1)return xml;
+  const end=xml.indexOf('</c>',start)+4;
+  const cellXml=xml.slice(start,end);
+  const sMatch=cellXml.match(/\bs="(\d+)"/);
+  const sAttr=sMatch?' s="'+sMatch[1]+'"':'';
+  let newCell;
+  if(val===''||val===null||val===undefined){
+    newCell='<c r="'+addr+'"'+sAttr+'></c>';
+  }else if(isNum){
+    newCell='<c r="'+addr+'"'+sAttr+'><v>'+val+'</v></c>';
   }else{
-    c.setAttribute('t','inlineStr');
-    const is=doc.createElementNS(NS,'is');
-    const t=doc.createElementNS(NS,'t');t.textContent=String(val);
-    is.appendChild(t);c.appendChild(is);
+    const esc=String(val).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    newCell='<c r="'+addr+'"'+sAttr+' t="inlineStr"><is><t>'+esc+'</t></is></c>';
   }
+  return xml.slice(0,start)+newCell+xml.slice(end);
 }
 
-function _fillVSSheet(doc,rec,dev){
-  const m=_cellMapXML(doc);
-  const s=(a,v,n)=>_setCell(m,doc,a,v,n);
+function _fillVSSheet(xml,rec,dev){
+  const s=(a,v,n)=>{xml=_patchCell(xml,a,v,n);};
   const date=rec.data||new Date().toISOString().slice(0,10);
   const ds=_toExcelDate(date);
   const toN=v=>{const n=parseFloat(v);return isNaN(n)?null:n;};
@@ -3153,12 +3153,12 @@ function _fillVSSheet(doc,rec,dev){
   s('D109',rec.str||'');s('L109',rec.nrs||'');
   if(rec.sct){const n=/^\d{4}-\d{2}-\d{2}$/.test(rec.sct)?_toExcelDate(rec.sct):toN(rec.sct);if(n)s('D111',n,true);else s('D111',rec.sct);}
   s('Q115',ds,true);
+  return xml;
 }
 
 const _MP_ROWS=[21,25,27,30,35,38,41,44,46,49,73,76,78,80,83,85,88,90,92];
-function _fillMPSheet(doc,rec,dev,asl){
-  const m=_cellMapXML(doc);
-  const s=(a,v,n)=>_setCell(m,doc,a,v,n);
+function _fillMPSheet(xml,rec,dev,asl){
+  const s=(a,v,n)=>{xml=_patchCell(xml,a,v,n);};
   const date=rec.mp_data||new Date().toISOString().slice(0,10);
   const ds=_toExcelDate(date);
 
@@ -3173,6 +3173,7 @@ function _fillMPSheet(doc,rec,dev,asl){
     s('R'+row,val==='OK'?'X':'');s('S'+row,val==='KO'?'X':'');s('T'+row,val==='NA'?'X':'');
   });
   s('A102',rec.mp_note||'');s('D113',rec.mp_tecnico||'');s('Q54',ds,true);
+  return xml;
 }
 
 async function exportSchedaXLSX(cod){
@@ -3200,21 +3201,20 @@ async function exportSchedaXLSX(cod){
     const vsPath=sheetPath('VS_GEN'),mpPath=sheetPath('MP_GEN');
     if(!vsPath||!mpPath){toast('Fogli VS_GEN/MP_GEN non trovati nel template','warn');return;}
 
-    const parser=new DOMParser(),ser=new XMLSerializer();
     const asl=currentUser?.profile?.asl||'ASL Benevento';
 
-    const vsDoc=parser.parseFromString(await zip.file(vsPath).async('string'),'application/xml');
-    _fillVSSheet(vsDoc,rec,dev);
-    zip.file(vsPath,ser.serializeToString(vsDoc));
+    // Modifica celle via string (preserva XML intatto, nessun namespace issue)
+    zip.file(vsPath, _fillVSSheet(await zip.file(vsPath).async('string'), rec, dev));
+    zip.file(mpPath, _fillMPSheet(await zip.file(mpPath).async('string'), rec, dev, asl));
 
-    const mpDoc=parser.parseFromString(await zip.file(mpPath).async('string'),'application/xml');
-    _fillMPSheet(mpDoc,rec,dev,asl);
-    zip.file(mpPath,ser.serializeToString(mpDoc));
-
-    // Converti in xlsx: rimuovi VBA
+    // Converti in xlsx: rimuovi VBA e aggiorna content-type
     zip.remove('xl/vbaProject.bin');
     const ct=await zip.file('[Content_Types].xml').async('string');
-    zip.file('[Content_Types].xml',ct.replace(/<Override[^>]*vbaProject[^>]*\/>/g,''));
+    zip.file('[Content_Types].xml', ct
+      .replace(/<Override[^>]*vbaProject[^>]*\/>/g,'')
+      .replace('application/vnd.ms-excel.sheet.macroEnabled.main+xml',
+               'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml')
+    );
     zip.file('xl/_rels/workbook.xml.rels',relsXml.replace(/<Relationship[^>]*vbaProject[^>]*\/>/g,''));
 
     const date=rec.data||new Date().toISOString().slice(0,10);
