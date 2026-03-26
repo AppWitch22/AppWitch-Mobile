@@ -3202,28 +3202,35 @@ async function exportSchedaXLSX(cod){
     if(!vsPath||!mpPath){toast('Fogli VS_GEN/MP_GEN non trovati nel template','warn');return;}
 
     const asl=currentUser?.profile?.asl||'ASL Benevento';
-
-    // Modifica celle via string (preserva XML intatto, nessun namespace issue)
-    zip.file(vsPath, _fillVSSheet(await zip.file(vsPath).async('string'), rec, dev));
-    zip.file(mpPath, _fillMPSheet(await zip.file(mpPath).async('string'), rec, dev, asl));
-
-    // Converti in xlsx: rimuovi VBA e aggiorna content-type
-    zip.remove('xl/vbaProject.bin');
-    const ct=await zip.file('[Content_Types].xml').async('string');
-    zip.file('[Content_Types].xml', ct
-      .replace(/<Override[^>]*vbaProject[^>]*\/>/g,'')
-      .replace('application/vnd.ms-excel.sheet.macroEnabled.main+xml',
-               'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml')
-    );
-    zip.file('xl/_rels/workbook.xml.rels',relsXml.replace(/<Relationship[^>]*vbaProject[^>]*\/>/g,''));
-
     const date=rec.data||new Date().toISOString().slice(0,10);
-    const fname=cod+'_VS+MP_'+_fmtDD_MM_YY(date)+'.xlsx';
-    const blob=await zip.generateAsync({type:'blob',compression:'DEFLATE'});
-    const url=URL.createObjectURL(blob);
-    const a=document.createElement('a');a.href=url;a.download=fname;a.click();
-    URL.revokeObjectURL(url);
-    toast('Scaricato: '+fname,'ok');
+    const dateMP=rec.mp_data||date;
+
+    // Helper: clona zip, compila un foglio, scarica
+    async function _downloadSheet(tipo, fillFn, sheetPath, fileDate){
+      const z=await JSZip.loadAsync(buf);
+      const wb2=await z.file('xl/workbook.xml').async('string');
+      const rels2=await z.file('xl/_rels/workbook.xml.rels').async('string');
+      z.file(sheetPath, fillFn(await z.file(sheetPath).async('string')));
+      z.remove('xl/vbaProject.bin');
+      const ct2=await z.file('[Content_Types].xml').async('string');
+      z.file('[Content_Types].xml', ct2
+        .replace(/<Override[^>]*vbaProject[^>]*\/>/g,'')
+        .replace('application/vnd.ms-excel.sheet.macroEnabled.main+xml',
+                 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml')
+      );
+      z.file('xl/_rels/workbook.xml.rels', rels2.replace(/<Relationship[^>]*vbaProject[^>]*\/>/g,''));
+      const fname=cod+'_'+tipo+'_'+_fmtDD_MM_YY(fileDate)+'.xlsx';
+      const blob=await z.generateAsync({type:'blob',compression:'DEFLATE'});
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement('a');a.href=url;a.download=fname;a.click();
+      URL.revokeObjectURL(url);
+      return fname;
+    }
+
+    const fnVS=await _downloadSheet('VS', xml=>_fillVSSheet(xml,rec,dev), vsPath, date);
+    await new Promise(r=>setTimeout(r,400)); // piccola pausa tra i download
+    const fnMP=await _downloadSheet('MP', xml=>_fillMPSheet(xml,rec,dev,asl), mpPath, dateMP);
+    toast('Scaricati: '+fnVS+' e '+fnMP,'ok');
   }catch(e){
     console.error('exportSchedaXLSX:',e);
     toast('Errore export: '+e.message,'warn');
