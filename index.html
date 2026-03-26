@@ -2776,16 +2776,25 @@ function _fmtDD_MM_YY(dateStr){
 }
 
 // Modifica celle via string manipulation (evita corruzione namespace XML)
+// Gestisce sia celle self-closing (<c r="X" s="1"/>) che celle con chiusura (</c>)
 function _patchCell(xml, addr, val, isNum){
   const start=xml.indexOf('<c r="'+addr+'"');
   if(start===-1)return xml;
-  const end=xml.indexOf('</c>',start)+4;
+  // Determina fine cella: self-closing "/>" oppure tag chiusura "</c>"
+  const selfClose=xml.indexOf('/>',start);
+  const fullClose=xml.indexOf('</c>',start);
+  let end;
+  if(selfClose!==-1&&(fullClose===-1||selfClose<fullClose)){
+    end=selfClose+2; // dopo "/>"
+  }else{
+    end=fullClose+4; // dopo "</c>"
+  }
   const cellXml=xml.slice(start,end);
   const sMatch=cellXml.match(/\bs="(\d+)"/);
   const sAttr=sMatch?' s="'+sMatch[1]+'"':'';
   let newCell;
   if(val===''||val===null||val===undefined){
-    newCell='<c r="'+addr+'"'+sAttr+'></c>';
+    newCell='<c r="'+addr+'"'+sAttr+'/>';
   }else if(isNum){
     newCell='<c r="'+addr+'"'+sAttr+'><v>'+val+'</v></c>';
   }else{
