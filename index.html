@@ -277,6 +277,7 @@ h1{font-size:18px;font-weight:600;margin-bottom:4px}
         <button class="btn-salva" onclick="saveAll()">Salva</button>
         <button class="btn-stampa" onclick="printVS()">🖨 VS</button>
         <button class="btn-stampa" onclick="printMP()">🖨 MP</button>
+        <button class="btn-stampa" onclick="exportSchedaXLSX(cur&&cur.c)" title="Esporta scheda compilata come XLSX (prima volta: seleziona App_Witch_2_SCHEDE.xlsm)">📥 XLSX</button>
       </div>
     </div>
     <div class="prog-bar"><div class="prog-fill" id="prog" style="width:0%"></div></div>
@@ -3040,6 +3041,196 @@ function printMP(){
 }
 
 // ── FINE STAMPA SCHEDE ────────────────────────────────────────
+
+// ── ESPORTAZIONE SCHEDA XLSX ──────────────────────────────────
+
+function _openIDB(){
+  return new Promise((res,rej)=>{
+    const r=indexedDB.open('AppWitchCache',1);
+    r.onupgradeneeded=e=>e.target.result.createObjectStore('blobs');
+    r.onsuccess=e=>res(e.target.result);r.onerror=e=>rej(e);
+  });
+}
+async function _idbGet(k){
+  const db=await _openIDB();
+  return new Promise((res,rej)=>{const t=db.transaction('blobs','readonly');const r=t.objectStore('blobs').get(k);r.onsuccess=e=>res(e.target.result);r.onerror=rej;});
+}
+async function _idbSet(k,v){
+  const db=await _openIDB();
+  return new Promise((res,rej)=>{const t=db.transaction('blobs','readwrite');const r=t.objectStore('blobs').put(v,k);r.onsuccess=()=>res();r.onerror=rej;});
+}
+
+let _tmplBuf=null;
+async function _getSchedeTemplate(){
+  if(_tmplBuf)return _tmplBuf;
+  _tmplBuf=await _idbGet('schedeTemplate');
+  if(_tmplBuf)return _tmplBuf;
+  toast('Seleziona App_Witch_2_SCHEDE.xlsm','warn');
+  _tmplBuf=await new Promise(res=>{
+    const inp=document.createElement('input');
+    inp.type='file';inp.accept='.xlsm,.xlsx';
+    inp.onchange=async e=>{const f=e.target.files[0];res(f?await f.arrayBuffer():null);};
+    inp.click();
+  });
+  if(_tmplBuf)await _idbSet('schedeTemplate',_tmplBuf);
+  return _tmplBuf;
+}
+async function resetSchedeTemplate(){
+  _tmplBuf=null;
+  try{const db=await _openIDB();db.transaction('blobs','readwrite').objectStore('blobs').delete('schedeTemplate');}catch(e){}
+  toast('Template rimosso — riselezionalo al prossimo export','ok');
+}
+
+async function _loadJSZip(){
+  if(window.JSZip)return;
+  await new Promise((res,rej)=>{
+    const s=document.createElement('script');
+    s.src='https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js';
+    s.onload=res;s.onerror=rej;document.head.appendChild(s);
+  });
+}
+
+function _toExcelDate(dateStr){
+  if(!dateStr)return 0;
+  const d=new Date(dateStr+'T00:00:00');
+  return Math.round((d-new Date(1899,11,30))/86400000);
+}
+function _fmtDD_MM_YY(dateStr){
+  if(!dateStr)return '';
+  const[y,m,d]=dateStr.split('-');return d+'-'+m+'-'+y.slice(2);
+}
+
+function _cellMapXML(doc){
+  const m={};for(const c of doc.getElementsByTagName('c'))m[c.getAttribute('r')]=c;return m;
+}
+function _setCell(m,doc,addr,val,isNum){
+  const c=m[addr];if(!c)return;
+  const NS=doc.documentElement.namespaceURI||'http://schemas.openxmlformats.org/spreadsheetml/2006/main';
+  for(const tag of['f','v','is']){const el=c.getElementsByTagName(tag)[0];if(el)c.removeChild(el);}
+  if(val===''||val===null||val===undefined){c.removeAttribute('t');return;}
+  if(isNum){
+    c.removeAttribute('t');
+    const v=doc.createElementNS(NS,'v');v.textContent=String(val);c.appendChild(v);
+  }else{
+    c.setAttribute('t','inlineStr');
+    const is=doc.createElementNS(NS,'is');
+    const t=doc.createElementNS(NS,'t');t.textContent=String(val);
+    is.appendChild(t);c.appendChild(is);
+  }
+}
+
+function _fillVSSheet(doc,rec,dev){
+  const m=_cellMapXML(doc);
+  const s=(a,v,n)=>_setCell(m,doc,a,v,n);
+  const date=rec.data||new Date().toISOString().slice(0,10);
+  const ds=_toExcelDate(date);
+  const toN=v=>{const n=parseFloat(v);return isNaN(n)?null:n;};
+
+  s('V1',dev.c);s('V4',ds,true);s('V6',dev.c+'_VS_'+_fmtDD_MM_YY(date));
+  s('A10',dev.c);s('K10',dev.n||'');
+  s('D13',dev.b||'');s('N13',dev.rep||'');s('D14',dev.m||'');
+  s('N14','');s('D15',dev.mat||'');s('N15',dev.loc||'');s('D16','');
+  s('E18',rec.ten||'');s('E19',rec.frq||'');s('O19',rec.cls||'');
+  s('E20',rec.pot||'');s('O20',rec.pat||'');
+  s('E21',rec.mar||'');s('K21',rec.def||'');s('Q21',rec.fnz||'');
+  s('A25',rec.giu||'POSITIVO');
+  s('A32',(rec.trm||'')+'mohm');s('K32',(rec.pnm||'')+'\u03bcA');
+  s('D47',rec.ver||'');s('Q54',ds,true);s('P63',dev.c);
+  s('B67',rec.spi||'');s('K67',rec.msp||'');
+  s('E70',rec.cav||'');s('I71',rec.icv||'');
+  s('F80',rec.icn||'');s('N80',rec.icd||'');
+  s('F81',rec.prc||'');s('N81',rec.pdc||'');
+  s('B85',rec.mus||'');s('H85',rec.mse||'');
+  s('B89',rec.clm||'');
+  const tmsN=toN(rec.tms);if(tmsN!=null)s('K89',tmsN,true);else s('K89',rec.tms||'');
+  s('R89',rec.cor||'');
+  const trl=toN(rec.trl);if(trl!=null)s('I93',trl,true);
+  const trm=toN(rec.trm);if(trm!=null)s('L93',trm,true);
+  [['pnl','J99'],['pnm','L99'],['pil','P99'],['pim','R99'],
+   ['pbl','J100'],['pbm','L100'],['ibl','P100'],['ibm','R100'],
+   ['pcl','J101'],['pcm','L101'],['icl','P101'],['icm','R101']
+  ].forEach(([k,a])=>{const n=toN(rec[k]);if(n!=null)s(a,n,true);});
+  s('D109',rec.str||'');s('L109',rec.nrs||'');
+  if(rec.sct){const n=/^\d{4}-\d{2}-\d{2}$/.test(rec.sct)?_toExcelDate(rec.sct):toN(rec.sct);if(n)s('D111',n,true);else s('D111',rec.sct);}
+  s('Q115',ds,true);
+}
+
+const _MP_ROWS=[21,25,27,30,35,38,41,44,46,49,73,76,78,80,83,85,88,90,92];
+function _fillMPSheet(doc,rec,dev,asl){
+  const m=_cellMapXML(doc);
+  const s=(a,v,n)=>_setCell(m,doc,a,v,n);
+  const date=rec.mp_data||new Date().toISOString().slice(0,10);
+  const ds=_toExcelDate(date);
+
+  s('V1',dev.c);s('V4',ds,true);s('V6',dev.c+'_MP_'+_fmtDD_MM_YY(date));
+  s('N6',dev.c);
+  s('D11',(asl||'ASL BENEVENTO').toUpperCase());
+  s('D12',dev.rep||'');s('N12',dev.loc||'');
+  s('D15',dev.n||'');s('D16',dev.b||'');s('D17',dev.m||'');
+  s('N17',dev.mat||'');s('D18','');
+  _MP_ROWS.forEach((row,i)=>{
+    const val=(rec['mp'+(i+1)]||'').toUpperCase();
+    s('R'+row,val==='OK'?'X':'');s('S'+row,val==='KO'?'X':'');s('T'+row,val==='NA'?'X':'');
+  });
+  s('A102',rec.mp_note||'');s('D113',rec.mp_tecnico||'');s('Q54',ds,true);
+}
+
+async function exportSchedaXLSX(cod){
+  if(!cod){toast('Seleziona un dispositivo','warn');return;}
+  const rec=saved[cod];
+  if(!rec?.vse_saved){toast('Prima salva la scheda VSE','warn');return;}
+  const dev=DB[cod];
+  if(!dev){toast('Dispositivo non trovato in DB','warn');return;}
+  toast('Preparazione XLSX...','warn');
+  try{
+    const buf=await _getSchedeTemplate();
+    if(!buf){toast('Template non selezionato','warn');return;}
+    await _loadJSZip();
+    const zip=await JSZip.loadAsync(buf);
+    const wbXml=await zip.file('xl/workbook.xml').async('string');
+    const relsXml=await zip.file('xl/_rels/workbook.xml.rels').async('string');
+
+    function sheetPath(name){
+      const m=wbXml.match(new RegExp('<sheet[^>]+name="'+name+'"[^>]*/?>'));
+      if(!m)return null;
+      const rid=m[0].match(/r:id="([^"]+)"/)?.[1];if(!rid)return null;
+      const rel=relsXml.match(new RegExp('Id="'+rid+'"[^>]+Target="([^"]+)"'));
+      return rel?'xl/'+rel[1]:null;
+    }
+    const vsPath=sheetPath('VS_GEN'),mpPath=sheetPath('MP_GEN');
+    if(!vsPath||!mpPath){toast('Fogli VS_GEN/MP_GEN non trovati nel template','warn');return;}
+
+    const parser=new DOMParser(),ser=new XMLSerializer();
+    const asl=currentUser?.profile?.asl||'ASL Benevento';
+
+    const vsDoc=parser.parseFromString(await zip.file(vsPath).async('string'),'application/xml');
+    _fillVSSheet(vsDoc,rec,dev);
+    zip.file(vsPath,ser.serializeToString(vsDoc));
+
+    const mpDoc=parser.parseFromString(await zip.file(mpPath).async('string'),'application/xml');
+    _fillMPSheet(mpDoc,rec,dev,asl);
+    zip.file(mpPath,ser.serializeToString(mpDoc));
+
+    // Converti in xlsx: rimuovi VBA
+    zip.remove('xl/vbaProject.bin');
+    const ct=await zip.file('[Content_Types].xml').async('string');
+    zip.file('[Content_Types].xml',ct.replace(/<Override[^>]*vbaProject[^>]*\/>/g,''));
+    zip.file('xl/_rels/workbook.xml.rels',relsXml.replace(/<Relationship[^>]*vbaProject[^>]*\/>/g,''));
+
+    const date=rec.data||new Date().toISOString().slice(0,10);
+    const fname=cod+'_VS+MP_'+_fmtDD_MM_YY(date)+'.xlsx';
+    const blob=await zip.generateAsync({type:'blob',compression:'DEFLATE'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');a.href=url;a.download=fname;a.click();
+    URL.revokeObjectURL(url);
+    toast('Scaricato: '+fname,'ok');
+  }catch(e){
+    console.error('exportSchedaXLSX:',e);
+    toast('Errore export: '+e.message,'warn');
+  }
+}
+
+// ── FINE EXPORT XLSX ──────────────────────────────────────────
 
 </script>
 </body>
