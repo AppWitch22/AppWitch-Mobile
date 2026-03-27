@@ -900,8 +900,8 @@ function updateTabs(){
   // Mostra/nascondi bottoni export VSP e CQ
   const bVsp=document.getElementById('btn-exp-vsp');
   const bCq=document.getElementById('btn-exp-cq');
-  if(bVsp){bVsp.style.display=hasVSP?'':'none';bVsp.textContent='📥 '+(vspFoglio||'VSP');}
-  if(bCq){bCq.style.display=hasCQ?'':'none';bCq.textContent='📥 '+(cqFoglio||'CQ');}
+  if(bVsp){bVsp.style.display=hasVSP?'':'none';bVsp.disabled=false;bVsp.textContent='📥 '+(vspFoglio||'VSP');}
+  if(bCq){bCq.style.display=hasCQ?'':'none';bCq.disabled=false;bCq.textContent='📥 '+(cqFoglio||'CQ');}
 }
 
 function fillMPHeader(d){
@@ -1735,14 +1735,19 @@ const CQ_PROVA={
   ],
   'CQ_ECT':[
     {sec:'Identificazione sonde',fields:[
-      {id:'cq_ect_s1',l:'Sonda 1'},{id:'cq_ect_s2',l:'Sonda 2'},{id:'cq_ect_s3',l:'Sonda 3'},{id:'cq_ect_s4',l:'Sonda 4'},
+      {id:'cq_ect_s1',l:'Sonda 1 (inventario)'},{id:'cq_ect_s2',l:'Sonda 2 (inventario)'},
+      {id:'cq_ect_s3',l:'Sonda 3 (inventario)'},{id:'cq_ect_s4',l:'Sonda 4 (inventario)'},
     ]},
-    {sec:'Misure per sonda',fields:[
-      {id:'cq_ect_m1s1',l:'1) Uniformità S1'},{id:'cq_ect_m1s2',l:'1) Uniformità S2'},
-      {id:'cq_ect_m2s1',l:'2a) Acc.orizz. S1'},{id:'cq_ect_m2s2',l:'2a) Acc.orizz. S2'},
-      {id:'cq_ect_m3s1',l:'2b) Acc.vert. S1'},{id:'cq_ect_m3s2',l:'2b) Acc.vert. S2'},
-      {id:'cq_ect_m4s1',l:'3a) Ris.ass. S1'},{id:'cq_ect_m4s2',l:'3a) Ris.ass. S2'},
-      {id:'cq_ect_m5s1',l:'3b) Ris.lat. S1'},{id:'cq_ect_m5s2',l:'3b) Ris.lat. S2'},
+    {sec:'Misure — Sonda 1/2/3/4',fields:[
+      {id:'cq_ect_m1s1',l:'1) Uniformità S1'},{id:'cq_ect_m1s2',l:'1) Uniformità S2'},{id:'cq_ect_m1s3',l:'1) Uniformità S3'},{id:'cq_ect_m1s4',l:'1) Uniformità S4'},
+      {id:'cq_ect_m2as1',l:'2a) Orizz. S1'},{id:'cq_ect_m2as2',l:'2a) Orizz. S2'},{id:'cq_ect_m2as3',l:'2a) Orizz. S3'},{id:'cq_ect_m2as4',l:'2a) Orizz. S4'},
+      {id:'cq_ect_m2bs1',l:'2b) Vert. S1'},{id:'cq_ect_m2bs2',l:'2b) Vert. S2'},{id:'cq_ect_m2bs3',l:'2b) Vert. S3'},{id:'cq_ect_m2bs4',l:'2b) Vert. S4'},
+      {id:'cq_ect_m3as1',l:'3a) Ris.ass. S1'},{id:'cq_ect_m3as2',l:'3a) Ris.ass. S2'},{id:'cq_ect_m3as3',l:'3a) Ris.ass. S3'},{id:'cq_ect_m3as4',l:'3a) Ris.ass. S4'},
+      {id:'cq_ect_m3bs1',l:'3b) Ris.lat. S1'},{id:'cq_ect_m3bs2',l:'3b) Ris.lat. S2'},{id:'cq_ect_m3bs3',l:'3b) Ris.lat. S3'},{id:'cq_ect_m3bs4',l:'3b) Ris.lat. S4'},
+      {id:'cq_ect_m4as1',l:'4a) Pseudocisti S1'},{id:'cq_ect_m4as2',l:'4a) Pseudocisti S2'},{id:'cq_ect_m4as3',l:'4a) Pseudocisti S3'},{id:'cq_ect_m4as4',l:'4a) Pseudocisti S4'},
+      {id:'cq_ect_m4bs1',l:'4b) Pseudotum. S1'},{id:'cq_ect_m4bs2',l:'4b) Pseudotum. S2'},{id:'cq_ect_m4bs3',l:'4b) Pseudotum. S3'},{id:'cq_ect_m4bs4',l:'4b) Pseudotum. S4'},
+      {id:'cq_ect_m5s1',l:'5) Zona morta S1'},{id:'cq_ect_m5s2',l:'5) Zona morta S2'},{id:'cq_ect_m5s3',l:'5) Zona morta S3'},{id:'cq_ect_m5s4',l:'5) Zona morta S4'},
+      {id:'cq_ect_m6s1',l:'6) Profondità S1'},{id:'cq_ect_m6s2',l:'6) Profondità S2'},{id:'cq_ect_m6s3',l:'6) Profondità S3'},{id:'cq_ect_m6s4',l:'6) Profondità S4'},
     ]},
   ],
   'CQ_MON':[
@@ -3035,11 +3040,15 @@ function _fillCQSheet(xml,rec,dev,asl){
   }
   else if(tipo==='CQ_ECT'){
     s('A42',rec.cq_ect_s1||''); s('A43',rec.cq_ect_s2||''); s('A44',rec.cq_ect_s3||''); s('A45',rec.cq_ect_s4||'');
-    s('M69',rec.cq_ect_m1s1||''); s('O69',rec.cq_ect_m1s2||'');
-    s('M70',rec.cq_ect_m2s1||''); s('O70',rec.cq_ect_m2s2||'');
-    s('M72',rec.cq_ect_m3s1||''); s('O72',rec.cq_ect_m3s2||'');
-    s('M76',rec.cq_ect_m4s1||''); s('O76',rec.cq_ect_m4s2||'');
-    s('M80',rec.cq_ect_m5s1||''); s('O80',rec.cq_ect_m5s2||'');
+    s('M69',rec.cq_ect_m1s1||''); s('O69',rec.cq_ect_m1s2||''); s('Q69',rec.cq_ect_m1s3||''); s('S69',rec.cq_ect_m1s4||'');
+    s('M70',rec.cq_ect_m2as1||''); s('O70',rec.cq_ect_m2as2||''); s('Q70',rec.cq_ect_m2as3||''); s('S70',rec.cq_ect_m2as4||'');
+    s('M72',rec.cq_ect_m2bs1||''); s('O72',rec.cq_ect_m2bs2||''); s('Q72',rec.cq_ect_m2bs3||''); s('S72',rec.cq_ect_m2bs4||'');
+    s('M76',rec.cq_ect_m3as1||''); s('O76',rec.cq_ect_m3as2||''); s('Q76',rec.cq_ect_m3as3||''); s('S76',rec.cq_ect_m3as4||'');
+    s('M80',rec.cq_ect_m3bs1||''); s('O80',rec.cq_ect_m3bs2||''); s('Q80',rec.cq_ect_m3bs3||''); s('S80',rec.cq_ect_m3bs4||'');
+    s('M82',rec.cq_ect_m4as1||''); s('O82',rec.cq_ect_m4as2||''); s('Q82',rec.cq_ect_m4as3||''); s('S82',rec.cq_ect_m4as4||'');
+    s('M86',rec.cq_ect_m4bs1||''); s('O86',rec.cq_ect_m4bs2||''); s('Q86',rec.cq_ect_m4bs3||''); s('S86',rec.cq_ect_m4bs4||'');
+    s('M90',rec.cq_ect_m5s1||''); s('O90',rec.cq_ect_m5s2||''); s('Q90',rec.cq_ect_m5s3||''); s('S90',rec.cq_ect_m5s4||'');
+    s('M91',rec.cq_ect_m6s1||''); s('O91',rec.cq_ect_m6s2||''); s('Q91',rec.cq_ect_m6s3||''); s('S91',rec.cq_ect_m6s4||'');
   }
   return xml;
 }
