@@ -403,12 +403,12 @@ h1{font-size:18px;font-weight:600;margin-bottom:4px}
         <div class="mblk" id="blk-disp-inv">
           <div class="msub" id="msub-disp-inv">Corrente dispersione apparecchio — Involucro</div>
           <div class="mrow">
-            <div class="field"><label>PN Limite (µA)</label><div class="mlim" id="lim-pn">100</div></div>
+            <div class="field"><label>PN Limite (µA)</label><div class="mlim" id="lim-pn">500</div></div>
             <div class="field"><label>PN Misurata (µA)</label><input type="number" id="f-pnm" inputmode="decimal" oninput="cv('f-pnm','lim-pn','e-pn');aG()"></div>
             <div class="esito" id="e-pn"></div>
           </div>
           <div class="mrow">
-            <div class="field"><label>PI Limite (µA)</label><div class="mlim" id="lim-pi">100</div></div>
+            <div class="field"><label>PI Limite (µA)</label><div class="mlim" id="lim-pi">500</div></div>
             <div class="field"><label>PI Misurata (µA)</label><input type="number" id="f-pim" inputmode="decimal" oninput="cv('f-pim','lim-pi','e-pi');aG()"></div>
             <div class="esito" id="e-pi"></div>
           </div>
@@ -416,14 +416,14 @@ h1{font-size:18px;font-weight:600;margin-bottom:4px}
 
         <!-- DISPERSIONE PA BF (solo se PA = BF) -->
         <div class="mblk" id="blk-pa-bf" style="display:none">
-          <div class="msub">Corrente dispersione PA — Tipo BF (limite ≤ 100 µA)</div>
+          <div class="msub">Corrente dispersione PA — Tipo BF (limite ≤ 5000 µA)</div>
           <div class="mrow">
-            <div class="field"><label>PN Limite (µA)</label><div class="mlim" id="lim-pnbf">100</div></div>
+            <div class="field"><label>PN Limite (µA)</label><div class="mlim" id="lim-pnbf">5000</div></div>
             <div class="field"><label>PN Misurata (µA)</label><input type="number" id="f-pbm" inputmode="decimal" oninput="cv('f-pbm','lim-pnbf','e-pnbf');aG()"></div>
             <div class="esito" id="e-pnbf"></div>
           </div>
           <div class="mrow">
-            <div class="field"><label>PI Limite (µA)</label><div class="mlim" id="lim-pibf">100</div></div>
+            <div class="field"><label>PI Limite (µA)</label><div class="mlim" id="lim-pibf">5000</div></div>
             <div class="field"><label>PI Misurata (µA)</label><input type="number" id="f-ibm" inputmode="decimal" oninput="cv('f-ibm','lim-pibf','e-pibf');aG()"></div>
             <div class="esito" id="e-pibf"></div>
           </div>
@@ -431,14 +431,14 @@ h1{font-size:18px;font-weight:600;margin-bottom:4px}
 
         <!-- DISPERSIONE PA CF (solo se PA = CF) -->
         <div class="mblk" id="blk-pa-cf" style="display:none">
-          <div class="msub">Corrente dispersione PA — Tipo CF (limite ≤ 10 µA)</div>
+          <div class="msub">Corrente dispersione PA — Tipo CF (limite ≤ 50 µA)</div>
           <div class="mrow">
-            <div class="field"><label>PN Limite (µA)</label><div class="mlim" id="lim-pncf">10</div></div>
+            <div class="field"><label>PN Limite (µA)</label><div class="mlim" id="lim-pncf">50</div></div>
             <div class="field"><label>PN Misurata (µA)</label><input type="number" id="f-pcm" inputmode="decimal" oninput="cv('f-pcm','lim-pncf','e-pncf');aG()"></div>
             <div class="esito" id="e-pncf"></div>
           </div>
           <div class="mrow">
-            <div class="field"><label>PI Limite (µA)</label><div class="mlim" id="lim-picf">10</div></div>
+            <div class="field"><label>PI Limite (µA)</label><div class="mlim" id="lim-picf">50</div></div>
             <div class="field"><label>PI Misurata (µA)</label><input type="number" id="f-icm" inputmode="decimal" oninput="cv('f-icm','lim-picf','e-picf');aG()"></div>
             <div class="esito" id="e-picf"></div>
           </div>
@@ -1030,7 +1030,7 @@ function uM(){
   // Limite: 100 µA (62353/60601), 3500 µA (61010)
   const blkDispInv = document.getElementById('blk-disp-inv');
   if(blkDispInv) blkDispInv.style.display = (isFisso || isAI) ? 'none' : 'block';
-  const limInv = is61010 ? 3500 : 100;
+  const limInv = is61010 ? 3500 : (isCls1 ? 500 : 100);
   const limPN  = document.getElementById('lim-pn');
   const limPI  = document.getElementById('lim-pi');
   if(limPN) limPN.textContent = limInv;
@@ -1038,7 +1038,9 @@ function uM(){
   const msubInv = document.getElementById('msub-disp-inv');
   if(msubInv) msubInv.textContent = is61010
     ? 'Corrente dispersione apparecchio — Involucro (IEC 61010, lim. 3500 µA)'
-    : 'Corrente dispersione apparecchio — Involucro';
+    : isCls1
+      ? 'Corrente dispersione apparecchio — Involucro (Cl.I, lim. 500 µA)'
+      : 'Corrente dispersione apparecchio — Involucro (Cl.II, lim. 100 µA)';
   const inpPnm = document.getElementById('f-pnm');
   const inpPim = document.getElementById('f-pim');
   if(inpPnm){ inpPnm.disabled=isFisso||isAI; if(isFisso||isAI){inpPnm.value='';inpPnm.placeholder='N/A';}else inpPnm.placeholder=''; }
@@ -1049,16 +1051,16 @@ function uM(){
   if(blkPABF) blkPABF.style.display = (isBF && !is61010) ? 'block' : 'none';
   const limPnBF = document.getElementById('lim-pnbf');
   const limPiBF = document.getElementById('lim-pibf');
-  if(limPnBF) limPnBF.textContent = '100';
-  if(limPiBF) limPiBF.textContent = '100';
+  if(limPnBF) limPnBF.textContent = '5000';
+  if(limPiBF) limPiBF.textContent = '5000';
 
   // DISPERSIONE PA CF — solo se PA=CF e norma≠61010
   const blkPACF = document.getElementById('blk-pa-cf');
   if(blkPACF) blkPACF.style.display = (isCF && !is61010) ? 'block' : 'none';
   const limPnCF = document.getElementById('lim-pncf');
   const limPiCF = document.getElementById('lim-picf');
-  if(limPnCF) limPnCF.textContent = '10';
-  if(limPiCF) limPiCF.textContent = '10';
+  if(limPnCF) limPnCF.textContent = '50';
+  if(limPiCF) limPiCF.textContent = '50';
 
   // Ricalcola esiti
   cv('f-trm','lim-tr','e-tr');
