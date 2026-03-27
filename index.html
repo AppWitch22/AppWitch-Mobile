@@ -3168,18 +3168,37 @@ async function exportTutti(cod){
   const rec=saved[cod],dev=DB[cod];
   const asl=currentUser?.profile?.asl||'ASL Benevento';
   try{
-    const [bufVS,bufMP]=await Promise.all([
+    // Carica sempre VS e MP; VSP e CQ solo se presenti nel record
+    const vspTipo=rec.vsp_type||null;
+    const cqTipo=rec.cq_type||null;
+    const vspTplFile=vspTipo?(vspTipo==='VSP_ECG'?'Template_VSP_EGG.xlsx':'Template_'+vspTipo+'.xlsx'):null;
+    const cqTplFile=cqTipo?'Template_'+cqTipo+'.xlsx':null;
+
+    const [bufVS,bufMP,bufVSP,bufCQ]=await Promise.all([
       _getTemplate('tpl_vse','Template_VSE.xlsx'),
-      _getTemplate('tpl_mp','Template_MP.xlsx')
+      _getTemplate('tpl_mp','Template_MP.xlsx'),
+      vspTplFile?_getTemplate('tpl_'+vspTipo.toLowerCase(),vspTplFile):Promise.resolve(null),
+      cqTplFile?_getTemplate('tpl_'+cqTipo.toLowerCase(),cqTplFile):Promise.resolve(null),
     ]);
     if(!bufVS||!bufMP)return;
     const date=rec.data||new Date().toISOString().slice(0,10);
     const dateMP=rec.mp_data||date;
+    const dateVSP=rec.vsp_data||date;
+    const dateCQ=rec.cq_data||date;
     toast('Esportazione in corso...','warn');
     const fnVS=await _downloadSheetXLSX(bufVS,cod,'VS',xml=>_fillVSSheet(xml,rec,dev),date);
     await new Promise(r=>setTimeout(r,400));
     const fnMP=await _downloadSheetXLSX(bufMP,cod,'MP',xml=>_fillMPSheet(xml,rec,dev,asl),dateMP);
-    const nomi=[fnVS,fnMP].filter(Boolean);
+    let fnVSP=null,fnCQ=null;
+    if(bufVSP&&vspTipo){
+      await new Promise(r=>setTimeout(r,400));
+      fnVSP=await _downloadSheetXLSX(bufVSP,cod,'VSP',xml=>_fillVSPSheet(xml,rec,dev),dateVSP,vspTipo);
+    }
+    if(bufCQ&&cqTipo){
+      await new Promise(r=>setTimeout(r,400));
+      fnCQ=await _downloadSheetXLSX(bufCQ,cod,'CQ',xml=>_fillCQSheet(xml,rec,dev,asl),dateCQ,cqTipo);
+    }
+    const nomi=[fnVS,fnMP,fnVSP,fnCQ].filter(Boolean);
     toast('Scaricati: '+nomi.join(', '),'ok');
   }catch(e){console.error(e);toast('Errore export: '+e.message,'warn');}
 }
