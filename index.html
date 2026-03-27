@@ -2751,8 +2751,10 @@ async function _getTemplate(idbKey,filename){
   return _tplCache[idbKey];
 }
 async function resetTemplates(){
-  delete _tplCache.tpl_vse;delete _tplCache.tpl_mp;
-  try{const db=await _openIDB();const t=db.transaction('blobs','readwrite');t.objectStore('blobs').delete('tpl_vse');t.objectStore('blobs').delete('tpl_mp');}catch(e){}
+  const keys=['tpl_vse','tpl_mp','tpl_vsp_cen','tpl_vsp_def','tpl_vsp_ecg','tpl_vsp_elb',
+    'tpl_cq_ans','tpl_cq_cen','tpl_cq_def','tpl_cq_ecg','tpl_cq_ect','tpl_cq_elb','tpl_cq_fbi','tpl_cq_mon','tpl_cq_vpo'];
+  keys.forEach(k=>delete _tplCache[k]);
+  try{const db=await _openIDB();const t=db.transaction('blobs','readwrite');keys.forEach(k=>t.objectStore('blobs').delete(k));}catch(e){}
   toast('Cache template rimossa','ok');
 }
 
@@ -2798,6 +2800,19 @@ function _patchCell(xml, addr, val, isNum){
     newCell='<c r="'+addr+'"'+sAttr+' t="inlineStr"><is><t>'+esc+'</t></is></c>';
   }
   return xml.slice(0,start)+newCell+xml.slice(end);
+}
+
+// _sc: patch cella se esiste, altrimenti inserisce nella riga esistente
+function _sc(xml,addr,val,isNum){
+  if(val===''||val===null||val===undefined)return xml;
+  if(xml.indexOf('<c r="'+addr+'"')!==-1)return _patchCell(xml,addr,val,isNum);
+  const m=addr.match(/^([A-Z]+)(\d+)$/);if(!m)return xml;
+  const ri=xml.indexOf('<row r="'+m[2]+'"');if(ri===-1)return xml;
+  const re=xml.indexOf('</row>',ri);if(re===-1)return xml;
+  let nc;
+  if(isNum){nc='<c r="'+addr+'"><v>'+val+'</v></c>';}
+  else{const e=String(val).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');nc='<c r="'+addr+'" t="inlineStr"><is><t>'+e+'</t></is></c>';}
+  return xml.slice(0,re)+nc+xml.slice(re);
 }
 
 function _fillVSSheet(xml,rec,dev){
@@ -2854,6 +2869,181 @@ function _fillMPSheet(xml,rec,dev,asl){
   return xml;
 }
 
+// ── VSP / CQ FILL FUNCTIONS ──────────────────────────────────
+const _VSP_START={VSP_CEN:21,VSP_DEF:21,VSP_ECG:21,VSP_ELB:26};
+
+const _CQ_CK_ROWS={
+  CQ_ANS:{'1_1':16,'1_2':18,'1_3':20,'1_4':22,'1_5':39},
+  CQ_CEN:{'1_1':16,'1_2':18,'1_3':20,'1_4':22,'1_5':24},
+  CQ_DEF:{'1_1':20,'1_2':22,'1_3':25,'1_4':27,'1_5':30,'1_6':32,'1_7':34},
+  CQ_ECG:{'1_1':16,'1_2':18,'1_3':20,'1_4':22,'1_5':24,'1_6':26,'1_7':28},
+  CQ_ECT:{'1_1':17,'1_2':19,'1_3':21,'1_4':23,'1_5':25,'1_6':27,'1_7':29,'1_8':31},
+  CQ_ELB:{'1_1':19,'1_2':21,'1_3':23,'1_4':25,'1_5':27,'1_6':29,'1_7':31,'1_8':33,'1_9':35,'1_10':37},
+  CQ_FBI:{'1_1':16,'1_2':18},
+  CQ_MON:{'1_1':17,'1_2':19,'1_3':21},
+  CQ_VPO:{'1_1':16,'1_2':18,'1_3':20,'1_4':22,'1_5':39},
+};
+
+function _fillVSPSheet(xml,rec,dev){
+  const s=(a,v,n)=>{xml=_sc(xml,a,v,n);};
+  const tipo=rec.vsp_type;
+  const date=rec.vsp_data||new Date().toISOString().slice(0,10);
+  const ds=_toExcelDate(date);
+
+  // Numero inventario
+  s('L11',dev.c);
+
+  // Checkpoints: colonne R/S/T mappate su opts[] del punto
+  const start=_VSP_START[tipo]||21;
+  (VSP_POINTS[tipo]||[]).forEach(p=>{
+    const row=start+(p.l.charCodeAt(0)-65);
+    const val=(rec['vsp_'+p.l]||'').toUpperCase();
+    const opts=p.opts||[];
+    if(tipo==='VSP_ECG'&&p.l==='D'){
+      // 4 opzioni: K/M/O/Q
+      s('K'+row,val===opts[0]?'X':'');s('M'+row,val===opts[1]?'X':'');
+      s('O'+row,val===opts[2]?'X':'');s('Q'+row,val===opts[3]?'X':'');
+    } else if(opts.length===2){
+      // 2 opzioni: S=opts[0], T=opts[1], R non usata
+      s('S'+row,val===opts[0]?'X':'');s('T'+row,val===opts[1]?'X':'');
+    } else {
+      // 3 opzioni: R=opts[0], S=opts[1], T=opts[2]
+      s('R'+row,val===opts[0]?'X':'');s('S'+row,val===opts[1]?'X':'');s('T'+row,val===opts[2]?'X':'');
+    }
+  });
+
+  // Date p1 e p2
+  if(ds){ s('Q54',ds,true); if(tipo==='VSP_DEF'||tipo==='VSP_ELB') s('Q115',ds,true); }
+
+  // Tecnico
+  const tec=rec.vsp_tecnico||'';
+  if(tipo==='VSP_DEF'||tipo==='VSP_ELB') s('D113',tec); else s('D43',tec);
+
+  // Campi extra per DEF
+  if(tipo==='VSP_DEF'){
+    const r=rec;
+    // 5 energie: F/I/L/O/R righe 69 (impostato) e 70 (misurato)
+    ['F','I','L','O','R'].forEach((c,i)=>{s(c+'69',r['def_e'+(i+1)+'i']);s(c+'70',r['def_e'+(i+1)+'m']);});
+    s('F72',r.def_dae_mis);
+    s('N79',r.def_tc_ar); s('P79',r.def_tc_ab);
+    s('N80',r.def_tc_br); s('P80',r.def_tc_bb);
+    s('N81',r.def_tc_cr); s('P81',r.def_tc_cb);
+    s('N83',r.def_tc_dr); s('P83',r.def_tc_db);
+    s('O90',r.def_tr_ar); s('Q90',r.def_tr_am);
+    s('O91',r.def_tr_br); s('Q91',r.def_tr_bm);
+    s('O92',r.def_tr_cr); s('Q92',r.def_tr_cm);
+    s('A105',r.def_strum); s('E105',r.def_mod); s('I105',r.def_ser); s('M105',r.def_cert);
+    if(r.def_scad){const nd=/^\d{4}-\d{2}-\d{2}$/.test(r.def_scad)?_toExcelDate(r.def_scad):parseFloat(r.def_scad);if(!isNaN(nd))s('Q105',nd,true);else s('Q105',r.def_scad);}
+  }
+  // Campi extra per ELB
+  if(tipo==='VSP_ELB'){
+    const r=rec;
+    s('G20',r.elb_pbip); s('K20',r.elb_cbip); s('Q20',r.elb_fkhz); s('S20',r.elb_fmhz);
+    s('G21',r.elb_pmono); s('K21',r.elb_cmono); s('Q21',r.elb_fkhz2); s('S21',r.elb_fmhz2);
+    s('K22',r.elb_pa);
+    s('G39',r.elb_ct_t); s('J39',r.elb_ct_m); s('M39',r.elb_ct_c);
+    s('G40',r.elb_at_t); s('J40',r.elb_at_m); s('M40',r.elb_at_c);
+    s('G41',r.elb_en_t); s('J41',r.elb_en_m); s('M41',r.elb_en_c);
+    s('G42',r.elb_ea_t); s('J42',r.elb_ea_m); s('M42',r.elb_ea_c);
+    s('G46',r.elb_iso1n); s('L46',r.elb_iso1t);
+    s('G47',r.elb_iso2n); s('L47',r.elb_iso2t);
+    s('A110',r.elb_strum); s('E110',r.elb_mod); s('I110',r.elb_ser); s('M110',r.elb_cert);
+    if(r.elb_scad){const nd=/^\d{4}-\d{2}-\d{2}$/.test(r.elb_scad)?_toExcelDate(r.elb_scad):parseFloat(r.elb_scad);if(!isNaN(nd))s('Q110',nd,true);else s('Q110',r.elb_scad);}
+  }
+  return xml;
+}
+
+function _fillCQSheet(xml,rec,dev,asl){
+  const s=(a,v,n)=>{xml=_sc(xml,a,v,n);};
+  const tipo=rec.cq_type;
+  const date=rec.cq_data||new Date().toISOString().slice(0,10);
+  const ds=_toExcelDate(date);
+  const twoPage=['CQ_DEF','CQ_ELB','CQ_ECT','CQ_MON'].includes(tipo);
+  const toN=v=>{const n=parseFloat(v);return isNaN(n)?null:n;};
+
+  // Anagrafica
+  s('N6',dev.c);
+  s('D11',(asl||'ASL BENEVENTO').toUpperCase());
+  s('N11',dev.rep||'');
+  s('D12',dev.b||'');
+  s('D13',dev.m||'');
+  s('N13',dev.mat||'');
+
+  // Checkpoints: R=OK, S=KO, T=NA (celle esistono come label statiche)
+  const ckRows=_CQ_CK_ROWS[tipo]||{};
+  Object.entries(ckRows).forEach(([pid,row])=>{
+    const val=(rec['cq_vis_'+pid]||'').toUpperCase();
+    xml=_patchCell(xml,'R'+row,val==='OK'?'X':'');
+    xml=_patchCell(xml,'S'+row,val==='KO'?'X':'');
+    xml=_patchCell(xml,'T'+row,val==='NA'?'X':'');
+  });
+
+  // Date
+  if(ds){s('Q54',ds,true);if(twoPage)s('Q115',ds,true);}
+
+  // Tecnico
+  const tecRow={CQ_ANS:51,CQ_CEN:51,CQ_DEF:105,CQ_ECG:51,CQ_ECT:112,CQ_ELB:113,CQ_FBI:51,CQ_MON:112,CQ_VPO:51}[tipo]||51;
+  s('D'+tecRow,rec.cq_tecnico||'');
+
+  // Strumentazione
+  const strRow={CQ_ANS:43,CQ_CEN:43,CQ_DEF:85,CQ_ECG:43,CQ_ECT:104,CQ_ELB:96,CQ_FBI:43,CQ_MON:104,CQ_VPO:43}[tipo]||43;
+  s('A'+strRow,rec.cq_strum||''); s('E'+strRow,rec.cq_strum_mod||'');
+  s('I'+strRow,rec.cq_strum_ser||''); s('M'+strRow,rec.cq_strum_cert||'');
+  if(rec.cq_strum_scad){const nd=/^\d{4}-\d{2}-\d{2}$/.test(rec.cq_strum_scad)?_toExcelDate(rec.cq_strum_scad):toN(rec.cq_strum_scad);if(nd!=null)s('Q'+strRow,nd,true);else s('Q'+strRow,rec.cq_strum_scad);}
+
+  // Misure per tipo
+  if(tipo==='CQ_DEF'){
+    for(let i=1;i<=6;i++){s('A'+(72+i),rec['cq_def_e'+i+'i']||'');s('I'+(72+i),rec['cq_def_e'+i+'m']||'');}
+    const tm=rec.cq_def_tipo_man,td=rec.cq_def_tipo_dae;
+    if(tm)xml=_sc(xml,'K15',tm==='X'?'X':'');
+    if(td)xml=_sc(xml,'P15',td==='X'?'X':'');
+    const op=rec.cq_def_opt_pac,on=rec.cq_def_opt_nibp,os=rec.cq_def_opt_spo2;
+    if(op)xml=_sc(xml,'F18',op==='X'?'X':'');
+    if(on)xml=_sc(xml,'K18',on==='X'?'X':'');
+    if(os)xml=_sc(xml,'P18',os==='X'?'X':'');
+  }
+  else if(tipo==='CQ_ECG'){
+    for(let i=1;i<=5;i++){s('A'+(35+i),rec['cq_ecg_v'+i+'i']||'');s('G'+(35+i),rec['cq_ecg_v'+i+'ind']||'');s('M'+(35+i),rec['cq_ecg_v'+i+'lim']||'');}
+  }
+  else if(tipo==='CQ_CEN'){
+    for(let i=1;i<=3;i++){s('A'+(33+i),rec['cq_cen_g'+i+'i']||'');s('E'+(33+i),rec['cq_cen_g'+i+'m']||'');s('M'+(33+i),rec['cq_cen_t'+i+'i']||'');s('Q'+(33+i),rec['cq_cen_t'+i+'m']||'');}
+  }
+  else if(tipo==='CQ_ANS'||tipo==='CQ_VPO'){
+    s('E30',rec.cq_ans_comp||''); s('I30',rec.cq_ans_res||''); s('M30',rec.cq_ans_ie||'');
+    s('E33',rec.cq_ans_fri||''); s('I33',rec.cq_ans_frv||''); s('M33',rec.cq_ans_frm||''); s('Q33',rec.cq_ans_frl||'');
+    s('E35',rec.cq_ans_vii||''); s('I35',rec.cq_ans_viv||''); s('M35',rec.cq_ans_vim||''); s('Q35',rec.cq_ans_vil||'');
+  }
+  else if(tipo==='CQ_MON'){
+    for(let i=1;i<=5;i++){s('A'+(29+i),rec['cq_mon_e'+i+'i']||'');s('G'+(29+i),rec['cq_mon_e'+i+'ind']||'');s('M'+(29+i),rec['cq_mon_e'+i+'lim']||'');}
+    // SPO2: s1-s3 = % (A/D/G), s4-s6 = bpm (K/N/Q) su righe 41-43
+    for(let i=0;i<3;i++){
+      xml=_patchCell(xml,'A'+(41+i),rec['cq_mon_s'+(i+1)+'i']||''); xml=_patchCell(xml,'D'+(41+i),rec['cq_mon_s'+(i+1)+'ind']||''); xml=_patchCell(xml,'G'+(41+i),rec['cq_mon_s'+(i+1)+'lim']||'');
+      xml=_patchCell(xml,'K'+(41+i),rec['cq_mon_s'+(i+4)+'i']||''); xml=_patchCell(xml,'N'+(41+i),rec['cq_mon_s'+(i+4)+'ind']||''); xml=_patchCell(xml,'Q'+(41+i),rec['cq_mon_s'+(i+4)+'lim']||'');
+    }
+    for(let i=1;i<=3;i++){s('A'+(69+i),rec['cq_mon_n'+i+'i']||'');s('G'+(69+i),rec['cq_mon_n'+i+'ind']||'');s('M'+(69+i),rec['cq_mon_n'+i+'lim']||'');}
+  }
+  else if(tipo==='CQ_FBI'){
+    for(let i=1;i<=4;i++){s('A'+(23+i),rec['cq_fbi_r'+i+'label']||'');s('D'+(23+i),rec['cq_fbi_r'+i+'i']||'');s('G'+(23+i),rec['cq_fbi_r'+i+'ind']||'');s('J'+(23+i),rec['cq_fbi_r'+i+'it']||'');s('M'+(23+i),rec['cq_fbi_r'+i+'m']||'');s('Q'+(23+i),rec['cq_fbi_r'+i+'l']||'');}
+  }
+  else if(tipo==='CQ_ELB'){
+    s('E47',rec.cq_elb_ct_t||''); s('I47',rec.cq_elb_at_t||''); s('M47',rec.cq_elb_fn_t||''); s('Q47',rec.cq_elb_en_t||'');
+    s('E48',rec.cq_elb_ct_c||''); s('I48',rec.cq_elb_at_c||''); s('M48',rec.cq_elb_fn_c||''); s('Q48',rec.cq_elb_en_c||'');
+    s('E72',rec.cq_elb_iso1||''); s('M72',rec.cq_elb_iso2||'');
+    s('B79',rec.cq_elb_pt1d||''); s('E79',rec.cq_elb_pt1r||'');
+    s('H79',rec.cq_elb_pc1d||''); s('K79',rec.cq_elb_pc1r||'');
+    s('N79',rec.cq_elb_pb1d||''); s('R79',rec.cq_elb_pb1r||'');
+  }
+  else if(tipo==='CQ_ECT'){
+    s('A42',rec.cq_ect_s1||''); s('A43',rec.cq_ect_s2||''); s('A44',rec.cq_ect_s3||''); s('A45',rec.cq_ect_s4||'');
+    s('M69',rec.cq_ect_m1s1||''); s('O69',rec.cq_ect_m1s2||'');
+    s('M70',rec.cq_ect_m2s1||''); s('O70',rec.cq_ect_m2s2||'');
+    s('M72',rec.cq_ect_m3s1||''); s('O72',rec.cq_ect_m3s2||'');
+    s('M76',rec.cq_ect_m4s1||''); s('O76',rec.cq_ect_m4s2||'');
+    s('M80',rec.cq_ect_m5s1||''); s('O80',rec.cq_ect_m5s2||'');
+  }
+  return xml;
+}
+
 // Helper: risolve il percorso di un foglio nel template
 async function _resolveSheetPath(zip, name){
   const wbXml=await zip.file('xl/workbook.xml').async('string');
@@ -2865,12 +3055,12 @@ async function _resolveSheetPath(zip, name){
   return rel?'xl/'+rel[1]:null;
 }
 
-// Helper: clona template, compila il foglio Foglio1, scarica come xlsx
-async function _downloadSheetXLSX(buf, cod, tipo, fillFn, fileDate){
+// Helper: clona template, compila il foglio indicato, scarica come xlsx
+async function _downloadSheetXLSX(buf, cod, tipo, fillFn, fileDate, sheetName='Foglio1'){
   await _loadJSZip();
   const z=await JSZip.loadAsync(buf);
-  const shPath=await _resolveSheetPath(z,'Foglio1');
-  if(!shPath){toast('Foglio Foglio1 non trovato nel template','warn');return null;}
+  const shPath=await _resolveSheetPath(z,sheetName);
+  if(!shPath){toast('Foglio '+sheetName+' non trovato nel template','warn');return null;}
   z.file(shPath, fillFn(await z.file(shPath).async('string')));
   // Rimuovi external links (evita prompt "aggiorna link" in Excel)
   z.remove('xl/externalLinks/externalLink1.xml');
@@ -2927,11 +3117,39 @@ async function exportMP(cod){
 }
 
 async function exportVSP(cod){
-  toast('Export VSP non ancora disponibile','warn');
+  if(!cod){toast('Seleziona un dispositivo','warn');return;}
+  const rec=saved[cod];
+  if(!rec?.vsp_type){toast('Scheda VSP non compilata','warn');return;}
+  if(!DB[cod]){toast('Dispositivo non trovato','warn');return;}
+  const tipo=rec.vsp_type; // es. VSP_ECG
+  // Template_VSP_EGG.xlsx ha sheet VSP_ECG (nome file diverso dal tipo)
+  const tplFile=tipo==='VSP_ECG'?'Template_VSP_EGG.xlsx':'Template_'+tipo+'.xlsx';
+  const cacheKey='tpl_'+tipo.toLowerCase().replace('vsp_','vsp_');
+  try{
+    const buf=await _getTemplate(cacheKey,tplFile);if(!buf)return;
+    const dev=DB[cod];
+    const date=rec.vsp_data||new Date().toISOString().slice(0,10);
+    const fname=await _downloadSheetXLSX(buf,cod,'VSP',xml=>_fillVSPSheet(xml,rec,dev),date,tipo);
+    if(fname)toast('Scaricato: '+fname,'ok');
+  }catch(e){console.error(e);toast('Errore export VSP: '+e.message,'warn');}
 }
 
 async function exportCQ(cod){
-  toast('Export CQ non ancora disponibile','warn');
+  if(!cod){toast('Seleziona un dispositivo','warn');return;}
+  const rec=saved[cod];
+  if(!rec?.cq_type){toast('Scheda CQ non compilata','warn');return;}
+  if(!DB[cod]){toast('Dispositivo non trovato','warn');return;}
+  const tipo=rec.cq_type; // es. CQ_DEF
+  const tplFile='Template_'+tipo+'.xlsx';
+  const cacheKey='tpl_'+tipo.toLowerCase().replace('cq_','cq_');
+  const asl=currentUser?.profile?.asl||'ASL Benevento';
+  try{
+    const buf=await _getTemplate(cacheKey,tplFile);if(!buf)return;
+    const dev=DB[cod];
+    const date=rec.cq_data||new Date().toISOString().slice(0,10);
+    const fname=await _downloadSheetXLSX(buf,cod,'CQ',xml=>_fillCQSheet(xml,rec,dev,asl),date,tipo);
+    if(fname)toast('Scaricato: '+fname,'ok');
+  }catch(e){console.error(e);toast('Errore export CQ: '+e.message,'warn');}
 }
 
 async function exportTutti(cod){
