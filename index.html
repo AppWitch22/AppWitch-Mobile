@@ -709,10 +709,6 @@ function switchTab(tab){
   document.getElementById('panel-mp').classList.toggle('active',tab==='mp');
   document.getElementById('panel-vsp').classList.toggle('active',tab==='vsp');
   document.getElementById('panel-cq').classList.toggle('active',tab==='cq');
-  // CQ placeholder
-  let ph=document.getElementById('panel-placeholder');
-  if(!ph){ph=document.createElement('div');ph.id='panel-placeholder';ph.className='tab-panel';document.getElementById('form-area').appendChild(ph);}
-  if(ph) ph.classList.remove('active');
 }
 
 // MAIN APP
