@@ -2647,7 +2647,7 @@ async function saveSessionAsPresets() {
   else toast(`Preset aggiornati per ${count} dispositivi`, 'ok');
 }
 
-// ── PRESET: Importa da file Excel (stesso formato export) ─────
+// ── PRESET: Importa da file Excel (formato AppWitch_2_INSERIMENTO) ─────
 async function importPresetsFromExcel(input) {
   const file = input.files[0]; if (!file) return;
   input.value = '';
@@ -2662,24 +2662,26 @@ async function importPresetsFromExcel(input) {
   const norm = c => String(c||'').trim().replace(/\D/g,'').padStart(7,'0');
   let total = 0;
 
-  // Helper: delete existing then insert batch
   async function importBatch(table, payload) {
-    if (!payload.length) return;
+    if (!payload.length) return 0;
     const codici = [...new Set(payload.map(r=>r.codice))];
     const tipo = payload[0].tipo;
-    const filter = tipo
-      ? `?codice=in.(${codici.join(',')})&tipo=eq.${tipo}`
-      : `?codice=in.(${codici.join(',')})`;
+    const filter = tipo ? `?codice=in.(${codici.join(',')})&tipo=eq.${tipo}` : `?codice=in.(${codici.join(',')})`;
     await fetch(`${SUPA_URL}/rest/v1/${table}${filter}`, {method:'DELETE',headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+token}});
     const r = await fetch(`${SUPA_URL}/rest/v1/${table}`, {method:'POST',headers:{...supaHdrs(token),'Prefer':'return=minimal'},body:JSON.stringify(payload)});
     if (!r.ok) { const t=await r.text(); toast(`Errore import ${table}: ${t.slice(0,80)}`, 'warn'); return 0; }
     return payload.length;
   }
+  // Helper: read cell as string or null
+  const _rc = (row,c) => (row[c]!=null&&row[c]!=='') ? String(row[c]) : null;
+  // Helper: set multiple explicit [field, colIndex] pairs
+  const _fm = (row,map,dati) => map.forEach(([f,c])=>{ const v=_rc(row,c); if(v) dati[f]=v; });
 
-  // VSE
+  // ── VSE (60 col, 1 header row, col 53 = "Colonna vuota") ──
   const vseWs = wb.Sheets['Inserimento_VSE'];
   if (vseWs) {
-    const FVSE=['codice','data','note','ten','tdp','frq','fdp','pot','pdp','mar','fud','fur','cls','cdp','pat','pad','fnz','def','spi','smo','msp','cav','icv','isp','int','pdc','icn','prc','icd','mus','mse','nag','clm','tms','cor','trl','trm','pnl','pnm','pil','pim','pbl','pbm','ibl','ibm','pcl','pcm','icl','icm','giu','vt','vd','mot','str','nrs','ver','data2','vrc','sct'];
+    // '' at index 53 skips the empty column; dat2 (not data2) matches the correct field name
+    const FVSE=['codice','data','note','ten','tdp','frq','fdp','pot','pdp','mar','fud','fur','cls','cdp','pat','pad','fnz','def','spi','smo','msp','cav','icv','isp','int','pdc','icn','prc','icd','mus','mse','nag','clm','tms','cor','trl','trm','pnl','pnm','pil','pim','pbl','pbm','ibl','ibm','pcl','pcm','icl','icm','giu','vt','vd','mot','','str','nrs','ver','dat2','vrc','sct'];
     const rows = XLSX.utils.sheet_to_json(vseWs,{header:1,defval:''});
     const payload = rows.slice(1).map(row => {
       const codice=norm(row[0]); if(!DB[codice]) return null;
@@ -2688,7 +2690,8 @@ async function importPresetsFromExcel(input) {
     }).filter(Boolean);
     total += await importBatch(`preset_vse_${aslKey}`, payload);
   }
-  // MP
+
+  // ── MP (61 col, 2 header rows, tecnico col 60) ──
   const mpWs = wb.Sheets['Inserimento_MP'];
   if (mpWs) {
     const rows = XLSX.utils.sheet_to_json(mpWs,{header:1,defval:''});
@@ -2696,37 +2699,128 @@ async function importPresetsFromExcel(input) {
       const codice=norm(row[0]); if(!DB[codice]) return null;
       const dati={};
       for(let i=1;i<=19;i++){const b=3+(i-1)*3; if(row[b]) dati['mp'+i+'_ok']=true; if(row[b+1]) dati['mp'+i+'_ko']=true; if(row[b+2]) dati['mp'+i+'_na']=true;}
-      if(row[3+19*3]) dati.mp_tecnico=String(row[3+19*3]);
+      if(row[60]) dati.mp_tecnico=String(row[60]);
       return Object.keys(dati).length ? {codice,dati} : null;
     }).filter(Boolean);
     total += await importBatch(`preset_mp_${aslKey}`, payload);
   }
-  // VSP
+
+  // ── VSP (3 header rows) ──
   for (const tipo of Object.keys(VSP_POINTS)) {
-    const ws = wb.Sheets[tipo.replace('VSP_','Inserimento_VSP_')]; if(!ws) continue;
+    const ws = wb.Sheets['Inserimento_VSP_'+tipo.replace('VSP_','')]; if(!ws) continue;
     const rows = XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
     const def = VSP_POINTS[tipo];
     const payload = rows.slice(3).map(row => {
       const codice=norm(row[0]); if(!DB[codice]) return null;
-      const dati={}; let ci=3;
-      def.forEach(p=>{ const opts=p.opts||['OK','KO','NA']; opts.forEach(o=>{ if(row[ci]) dati['vsp_'+p.l+'_'+o.toLowerCase()]=true; ci++; }); });
-      if(row[ci]) dati.vsp_tecnico=String(row[ci]);
+      const dati={};
+      if(tipo==='VSP_ELB'){
+        // Dati targa at explicit cols (skipping merged/empty header cols)
+        _fm(row,[['elb_pbip',3],['elb_cbip',4],['elb_fkhz',6],['elb_fmhz',7],['elb_pmono',8],['elb_cmono',9],['elb_fkhz2',11],['elb_fmhz2',12],['elb_pa',15]],dati);
+        // Checkboxes A-F start at col 18
+        let ci=18; def.forEach(p=>{ const opts=p.opts||['OK','KO','NA']; opts.forEach(o=>{ if(row[ci]) dati['vsp_'+p.l+'_'+o.toLowerCase()]=true; ci++; }); });
+        // Corrente dispersione (col 36-48, col 45 empty/skip) + uscita isolata (col 52-55)
+        _fm(row,[['elb_ct_t',36],['elb_ct_m',37],['elb_ct_c',38],['elb_at_t',39],['elb_at_m',40],['elb_at_c',41],['elb_en_t',42],['elb_en_m',43],['elb_en_c',44],['elb_ea_t',46],['elb_ea_m',47],['elb_ea_c',48],['elb_iso1n',52],['elb_iso1t',53],['elb_iso2n',54],['elb_iso2t',55]],dati);
+        // Strumentazione col 100-104, tecnico col 105
+        ['elb_strum','elb_mod','elb_ser','elb_cert','elb_scad'].forEach((f,i)=>{ const v=_rc(row,100+i); if(v) dati[f]=v; });
+        if(row[105]) dati.vsp_tecnico=String(row[105]);
+      } else {
+        // CEN, ECG, DEF: checkboxes start at col 3
+        let ci=3; def.forEach(p=>{ const opts=p.opts||['OK','KO','NA']; opts.forEach(o=>{ if(row[ci]) dati['vsp_'+p.l+'_'+o.toLowerCase()]=true; ci++; }); });
+        if(tipo==='VSP_DEF'){
+          // ci=50 here; energy manuale col 50-59, DAE col 60, skip 61-63
+          ['def_e1i','def_e1m','def_e2i','def_e2m','def_e3i','def_e3m','def_e4i','def_e4m','def_e5i','def_e5m'].forEach((f,i)=>{ const v=_rc(row,50+i); if(v) dati[f]=v; });
+          const dae=_rc(row,60); if(dae) dati['def_dae_mis']=dae;
+          // Tempi carica col 64-75 (skip 61-63), tempi ritardo col 79-88 (with gaps)
+          ['def_tc_ar','def_tc_ab','def_tc_am','def_tc_br','def_tc_bb','def_tc_bm','def_tc_cr','def_tc_cb','def_tc_cm','def_tc_dr','def_tc_db','def_tc_dm'].forEach((f,i)=>{ const v=_rc(row,64+i); if(v) dati[f]=v; });
+          _fm(row,[['def_tr_ar',79],['def_tr_am',80],['def_tr_br',83],['def_tr_bm',84],['def_tr_cr',87],['def_tr_cm',88]],dati);
+          // Strumentazione col 91-95, tecnico col 96
+          ['def_strum','def_mod','def_ser','def_cert','def_scad'].forEach((f,i)=>{ const v=_rc(row,91+i); if(v) dati[f]=v; });
+          if(row[96]) dati.vsp_tecnico=String(row[96]);
+        } else {
+          // CEN, ECG: tecnico immediately after checkboxes
+          if(row[ci]) dati.vsp_tecnico=String(row[ci]);
+        }
+      }
       return Object.keys(dati).length ? {codice,tipo,dati} : null;
     }).filter(Boolean);
     total += await importBatch(`preset_vsp_${aslKey}`, payload);
   }
-  // CQ
+
+  // ── CQ (3 header rows) ──
+  // Per-type prova field→column mappings (excludes vis checkboxes and strumentazione)
+  const CQ_PMAP = {
+    'CQ_DEF': [['cq_def_tipo_man',3],['cq_def_tipo_dae',4],['cq_def_opt_pac',5],['cq_def_opt_nibp',6],['cq_def_opt_spo2',7],
+               ['cq_def_e1i',29],['cq_def_e1m',30],['cq_def_e2i',33],['cq_def_e2m',34],['cq_def_e3i',37],['cq_def_e3m',38],
+               ['cq_def_e4i',41],['cq_def_e4m',42],['cq_def_e5i',45],['cq_def_e5m',46],['cq_def_e6i',49],['cq_def_e6m',50]],
+    'CQ_ECG': [['cq_ecg_v1i',24],['cq_ecg_v1ind',25],['cq_ecg_v1lim',26],['cq_ecg_v2i',29],['cq_ecg_v2ind',30],['cq_ecg_v2lim',31],
+               ['cq_ecg_v3i',34],['cq_ecg_v3ind',35],['cq_ecg_v3lim',36],['cq_ecg_v4i',39],['cq_ecg_v4ind',40],['cq_ecg_v4lim',41],
+               ['cq_ecg_v5i',44],['cq_ecg_v5ind',45],['cq_ecg_v5lim',46]],
+    'CQ_CEN': [['cq_cen_g1i',18],['cq_cen_g1m',19],['cq_cen_g2i',20],['cq_cen_g2m',21],['cq_cen_g3i',22],['cq_cen_g3m',23],
+               ['cq_cen_t1i',24],['cq_cen_t1m',25],['cq_cen_t2i',26],['cq_cen_t2m',27],['cq_cen_t3i',28],['cq_cen_t3m',29]],
+    'CQ_ELB': [['cq_elb_ct_t',33],['cq_elb_ct_c',34],['cq_elb_at_t',35],['cq_elb_at_c',36],['cq_elb_fn_t',37],['cq_elb_fn_c',38],
+               ['cq_elb_en_t',39],['cq_elb_en_c',40],['cq_elb_iso1',44],['cq_elb_iso2',45],
+               ['cq_elb_pt1d',49],['cq_elb_pt1r',50],['cq_elb_pc1d',51],['cq_elb_pc1r',52],['cq_elb_pb1d',53],['cq_elb_pb1r',54]],
+    'CQ_FBI': [['cq_fbi_r1label',9],['cq_fbi_r1i',10],['cq_fbi_r1ind',11],['cq_fbi_r1it',12],['cq_fbi_r1m',13],['cq_fbi_r1l',14],
+               ['cq_fbi_r2label',15],['cq_fbi_r2i',16],['cq_fbi_r2ind',17],['cq_fbi_r2it',18],['cq_fbi_r2m',19],['cq_fbi_r2l',20],
+               ['cq_fbi_r3label',21],['cq_fbi_r3i',22],['cq_fbi_r3ind',23],['cq_fbi_r3it',24],['cq_fbi_r3m',25],['cq_fbi_r3l',26],
+               ['cq_fbi_r4label',27],['cq_fbi_r4i',28],['cq_fbi_r4ind',29],['cq_fbi_r4it',30],['cq_fbi_r4m',31],['cq_fbi_r4l',32]],
+    'CQ_ECT': [['cq_ect_s1',27],['cq_ect_s2',28],['cq_ect_s3',29],['cq_ect_s4',30],
+               ['cq_ect_m1s1',31],['cq_ect_m1s2',32],['cq_ect_m1s3',33],['cq_ect_m1s4',34],
+               ['cq_ect_m2as1',35],['cq_ect_m2as2',36],['cq_ect_m2as3',37],['cq_ect_m2as4',38],
+               ['cq_ect_m2bs1',39],['cq_ect_m2bs2',40],['cq_ect_m2bs3',41],['cq_ect_m2bs4',42],
+               ['cq_ect_m3as1',43],['cq_ect_m3as2',44],['cq_ect_m3as3',45],['cq_ect_m3as4',46],
+               ['cq_ect_m3bs1',47],['cq_ect_m3bs2',48],['cq_ect_m3bs3',49],['cq_ect_m3bs4',50],
+               ['cq_ect_m4as1',51],['cq_ect_m4as2',52],['cq_ect_m4as3',53],['cq_ect_m4as4',54],
+               ['cq_ect_m4bs1',55],['cq_ect_m4bs2',56],['cq_ect_m4bs3',57],['cq_ect_m4bs4',58],
+               ['cq_ect_m5s1',59],['cq_ect_m5s2',60],['cq_ect_m5s3',61],['cq_ect_m5s4',62],
+               ['cq_ect_m6s1',63],['cq_ect_m6s2',64],['cq_ect_m6s3',65],['cq_ect_m6s4',66]],
+    'CQ_MON': [['cq_mon_e1i',12],['cq_mon_e1ind',13],['cq_mon_e1lim',14],['cq_mon_e2i',17],['cq_mon_e2ind',18],['cq_mon_e2lim',19],
+               ['cq_mon_e3i',22],['cq_mon_e3ind',23],['cq_mon_e3lim',24],['cq_mon_e4i',27],['cq_mon_e4ind',28],['cq_mon_e4lim',29],
+               ['cq_mon_e5i',32],['cq_mon_e5ind',33],['cq_mon_e5lim',34],
+               ['cq_mon_s1i',37],['cq_mon_s1ind',38],['cq_mon_s1lim',39],['cq_mon_s2i',42],['cq_mon_s2ind',43],['cq_mon_s2lim',44],
+               ['cq_mon_s3i',47],['cq_mon_s3ind',48],['cq_mon_s3lim',49],['cq_mon_s4i',52],['cq_mon_s4ind',53],['cq_mon_s4lim',54],
+               ['cq_mon_s5i',57],['cq_mon_s5ind',58],['cq_mon_s5lim',59],['cq_mon_s6i',62],['cq_mon_s6ind',63],['cq_mon_s6lim',64],
+               ['cq_mon_n1i',67],['cq_mon_n1ind',68],['cq_mon_n1lim',69],['cq_mon_n2i',72],['cq_mon_n2ind',73],['cq_mon_n2lim',74],
+               ['cq_mon_n3i',77],['cq_mon_n3ind',78],['cq_mon_n3lim',79]],
+    'CQ_ANS': [['cq_ans_comp',15],['cq_ans_res',16],['cq_ans_ie',17],['cq_ans_fri',18],['cq_ans_frv',19],['cq_ans_frm',20],['cq_ans_frl',21],
+               ['cq_ans_vii',24],['cq_ans_viv',25],['cq_ans_vim',26],['cq_ans_vil',27]],
+    'CQ_SPM': [['cq_spm_v1i',27],['cq_spm_v1m',28],['cq_spm_v2i',29],['cq_spm_v2m',30],['cq_spm_v3i',31],['cq_spm_v3m',32]],
+    'CQ_VPO': [['cq_ans_comp',15],['cq_ans_res',16],['cq_ans_ie',17],['cq_ans_fri',18],['cq_ans_frv',19],['cq_ans_frm',20],['cq_ans_frl',21],
+               ['cq_ans_vii',24],['cq_ans_viv',25],['cq_ans_vim',26],['cq_ans_vil',27]],
+  };
+  // Vis start col (default 3; CQ_DEF starts at 8 because col 3-7 = tipologia)
+  const CQ_VC0 = {'CQ_DEF':8};
+  // Max vis points to import (INSERIMENTO has 4 for ANS/VPO; code has 5 for ANS)
+  const CQ_VN = {'CQ_ANS':4,'CQ_VPO':4};
+  // Strumentazione start col and tecnico col per type
+  const CQ_SC = {'CQ_DEF':53,'CQ_ECG':49,'CQ_CEN':30,'CQ_ELB':76,'CQ_FBI':33,'CQ_ECT':67,'CQ_MON':82,'CQ_ANS':30,'CQ_SPM':33,'CQ_VPO':30};
+  const CQ_TC = {'CQ_DEF':58,'CQ_ECG':54,'CQ_CEN':35,'CQ_ELB':81,'CQ_FBI':38,'CQ_ECT':72,'CQ_MON':87,'CQ_ANS':35,'CQ_SPM':38,'CQ_VPO':35};
+  const cqSf = ['cq_strum','cq_strum_mod','cq_strum_ser','cq_strum_cert','cq_strum_scad'];
+
   for (const tipo of [...new Set([...Object.keys(CQ_VIS),...Object.keys(CQ_PROVA)])]) {
     const ws = wb.Sheets['Inserimento_'+tipo]; if(!ws) continue;
     const rows = XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
-    const visPoints=CQ_VIS[tipo]||[];
-    const provaFields=[]; (CQ_PROVA[tipo]||[]).forEach(sec=>sec.fields.forEach(f=>provaFields.push(f)));
-    const payload = rows.slice(2).map(row => {
+    const c0 = CQ_VC0[tipo]||3;
+    const visAll = CQ_VIS[tipo]||[];
+    const visPoints = visAll.slice(0, CQ_VN[tipo]||visAll.length);
+    const pmap = CQ_PMAP[tipo]||[];
+    const sc = CQ_SC[tipo], tc = CQ_TC[tipo];
+
+    const payload = rows.slice(3).map(row => {
       const codice=norm(row[0]); if(!DB[codice]) return null;
-      const dati={}; if(row[3]) dati.cq_tecnico=String(row[3]);
-      let ci=4;
-      visPoints.forEach(p=>{ const pid=p.replace('.','_'); if(row[ci]) dati['cq_vis_'+pid+'_ok']=true; if(row[ci+1]) dati['cq_vis_'+pid+'_ko']=true; if(row[ci+2]) dati['cq_vis_'+pid+'_na']=true; ci+=3; });
-      provaFields.forEach(f=>{ if(row[ci]!=null&&row[ci]!=='') dati[f.id]=String(row[ci]); ci++; });
+      const dati={};
+      // Vis checkboxes (3 cols each: OK, KO, NA)
+      visPoints.forEach((p,idx)=>{
+        const pid=p.replace('.','_'), c=c0+idx*3;
+        if(row[c]) dati['cq_vis_'+pid+'_ok']=true;
+        else if(row[c+1]) dati['cq_vis_'+pid+'_ko']=true;
+        else if(row[c+2]) dati['cq_vis_'+pid+'_na']=true;
+      });
+      // Prova fields (explicit column positions)
+      _fm(row,pmap,dati);
+      // Strumentazione + tecnico
+      if(sc!=null) cqSf.forEach((f,i)=>{ const v=_rc(row,sc+i); if(v) dati[f]=v; });
+      if(tc!=null&&row[tc]) dati.cq_tecnico=String(row[tc]);
       return Object.keys(dati).length ? {codice,tipo,dati} : null;
     }).filter(Boolean);
     total += await importBatch(`preset_cq_${aslKey}`, payload);
