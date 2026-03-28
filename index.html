@@ -946,7 +946,8 @@ function fillVSE(d){
   sl('lim-picf',d.icl);sv('f-icm',d.icm);
   sG(d.giu||'POSITIVO');sr('rg-vt',d.vt);sr('rg-vd',d.vd);sv('f-mot',d.mot);
   sv('f-str',d.str);sv('f-nrs',d.nrs);sv('f-ver',d.ver);
-  sv('f-dat2',t);sv('f-vrc',d.vrc);sv('f-sct',d.sct?d.sct.toString().split(' ')[0]:d.sct);
+  sv('f-dat2',d.dat2||t);sv('f-vrc',d.vrc);
+  sr('rg-norma',d.norma||'62353');sv('f-sct',d.sct?d.sct.toString().split(' ')[0]:d.sct);
   document.getElementById('dev-cod').textContent=d.c;
   document.getElementById('dev-nom').textContent=d.n.toLowerCase();
   document.getElementById('dev-inf').textContent=d.b+' · '+d.m;
@@ -1136,7 +1137,8 @@ function collectVSE(){
     pcl:lv('lim-pncf'),pcm:gv('f-pcm'),icl:lv('lim-picf'),icm:gv('f-icm'),
     giu:document.getElementById('gp').classList.contains('sel')?'POSITIVO':'NEGATIVO',
     vt:gr('rg-vt'),vd:gr('rg-vd'),mot:gv('f-mot'),
-    str:gv('f-str'),nrs:gv('f-nrs'),ver:gv('f-ver'),vrc:gv('f-vrc'),sct:gv('f-sct'),
+    str:gv('f-str'),nrs:gv('f-nrs'),ver:gv('f-ver'),dat2:gv('f-dat2'),vrc:gv('f-vrc'),sct:gv('f-sct'),
+    norma:gr('rg-norma'),
     ris_inv:gv('f-ris-inv'),ris_pa:gv('f-ris-pa')};
 }
 
@@ -1254,8 +1256,8 @@ function exportXLSX(){
   const date=new Date().toISOString().split('T')[0];
 
   // Sheet VSE
-  const HVSE=['CODICE','DATA','NOTE','Tensione','Tensione D/P','Frequenza','Frequenza D/P','Potenza','Potenza D/P','Marchio Conformita','Fusibili Dichiarati','Fusibili Riscontrati','Classe','Classe D/P','PA Tipo','Tipo D/P','Funzionamento','Protezione Defibrillatore','Tipo Spina','Smontabile/pressofusa','Marchio Spina','Cavo Alimentazione','IntegritaCavo','Integrita Spina','InterruttoreRete','ParteApplicata','IntegritaConnettori','ProtezioneConduttori','IntegritaConduttori','Manuale Uso','Manuale Servizio','Note Aggiuntive','ClasseMisura','Tensione2','CorrenteAssorbitaMA','TerraProtezioneLimite','TerraProtezioneMisurata','PN Limite','PN Misurata','PI Limite','PI Misurata','PN BF Limite','PN BF Misurata','PI BF Limite','PI BF Misurata','PN CF Limite','PN CF Misurata','PI CF Limite','PI CF Misurata','Giudizio','ValoriMessaTerra','ValoriDispersione','MotiviNonConformita','Strumento','NrSerie','Verificatore','Data2','VERIFICATO','Scadenza Taratura'];
-  const FVSE=['codice','data','note','ten','tdp','frq','fdp','pot','pdp','mar','fud','fur','cls','cdp','pat','pad','fnz','def','spi','smo','msp','cav','icv','isp','int','pdc','icn','prc','icd','mus','mse','nag','clm','tms','cor','trl','trm','pnl','pnm','pil','pim','pbl','pbm','ibl','ibm','pcl','pcm','icl','icm','giu','vt','vd','mot','str','nrs','ver','data','vrc','sct'];
+  const HVSE=['CODICE','DATA','NOTE','Tensione','Tensione D/P','Frequenza','Frequenza D/P','Potenza','Potenza D/P','Marchio Conformita','Fusibili Dichiarati','Fusibili Riscontrati','Classe','Classe D/P','PA Tipo','Tipo D/P','Funzionamento','Protezione Defibrillatore','Tipo Spina','Smontabile/pressofusa','Marchio Spina','Cavo Alimentazione','IntegritaCavo','Integrita Spina','InterruttoreRete','ParteApplicata','IntegritaConnettori','ProtezioneConduttori','IntegritaConduttori','Manuale Uso','Manuale Servizio','Note Aggiuntive','ClasseMisura','Tensione2','CorrenteAssorbitaMA','TerraProtezioneLimite','TerraProtezioneMisurata','PN Limite','PN Misurata','PI Limite','PI Misurata','PN BF Limite','PN BF Misurata','PI BF Limite','PI BF Misurata','PN CF Limite','PN CF Misurata','PI CF Limite','PI CF Misurata','Giudizio','ValoriMessaTerra','ValoriDispersione','MotiviNonConformita','Strumento','NrSerie','Verificatore','Data2','VERIFICATO','Scadenza Taratura','Norma'];
+  const FVSE=['codice','data','note','ten','tdp','frq','fdp','pot','pdp','mar','fud','fur','cls','cdp','pat','pad','fnz','def','spi','smo','msp','cav','icv','isp','int','pdc','icn','prc','icd','mus','mse','nag','clm','tms','cor','trl','trm','pnl','pnm','pil','pim','pbl','pbm','ibl','ibm','pcl','pcm','icl','icm','giu','vt','vd','mot','str','nrs','ver','dat2','vrc','sct','norma'];
   const NUMERIC_VSE=new Set([33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49]);
   const vseKeys=keys.filter(k=>saved[k].vse_saved);
   if(vseKeys.length){
