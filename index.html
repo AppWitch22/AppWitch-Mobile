@@ -108,8 +108,8 @@ h1{font-size:18px;font-weight:600;margin-bottom:4px}
 .dev-loc-badge{display:inline-block;font-size:11px;padding:2px 8px;background:var(--warn-bg);color:var(--warn);border-radius:4px;margin-top:4px}
 .top-btns{display:flex;gap:6px;flex-shrink:0}
 .top-btns button{padding:8px 14px;font-size:13px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text);cursor:pointer;-webkit-tap-highlight-color:transparent}
-.btn-salva{padding:6px 10px;font-size:12px;border:1px solid var(--info);border-radius:var(--rad);background:var(--info);color:#fff;cursor:pointer;font-weight:600}
-.btn-salva-bottom{display:block;width:calc(100% - 28px);margin:4px 14px 14px}
+.btn-salva{padding:8px 14px;font-size:13px;border:1px solid var(--info);border-radius:var(--rad);background:var(--info);color:#fff;cursor:pointer;font-weight:600;-webkit-tap-highlight-color:transparent}
+.btn-salva-bottom{display:block;width:calc(100% - 28px);margin:8px 14px 16px;padding:12px;font-size:15px}
 .btn-sm:disabled{opacity:.4;cursor:not-allowed}
 .form-actions{display:flex;flex-direction:column;gap:6px;align-items:flex-start}
 .form-actions-row{display:flex;gap:6px;flex-wrap:wrap}
@@ -464,6 +464,7 @@ h1{font-size:18px;font-weight:600;margin-bottom:4px}
         </div>
       </div>
     </div>
+    <button class="btn-salva btn-salva-bottom" onclick="saveAll()">Salva</button>
 
 
     <!-- TAB VSP_CEN -->
@@ -490,6 +491,7 @@ h1{font-size:18px;font-weight:600;margin-bottom:4px}
         </div>
       </div>
     </div>
+    <button class="btn-salva btn-salva-bottom" onclick="saveAll()">Salva</button>
   </div>
 
   <!-- TAB VSP_CEN -->
@@ -516,6 +518,7 @@ h1{font-size:18px;font-weight:600;margin-bottom:4px}
         <div class="field"><label>Data</label><input type="date" id="vsp-data2"></div>
       </div>
     </div>
+    <button class="btn-salva btn-salva-bottom" onclick="saveAll()">Salva</button>
   </div>
 
   <!-- TAB CQ -->
@@ -552,6 +555,7 @@ h1{font-size:18px;font-weight:600;margin-bottom:4px}
         <div class="field"><label>Data</label><input type="date" id="cq-data2"></div>
       </div>
     </div>
+    <button class="btn-salva btn-salva-bottom" onclick="saveAll()">Salva</button>
   </div>
 </div>
 
