@@ -1253,22 +1253,20 @@ function exportXLSX(){
   const wb=XLSX.utils.book_new();
   const date=new Date().toISOString().split('T')[0];
 
-  // Sheet VSE
-  const HVSE=['CODICE','DATA','NOTE','Tensione','Tensione D/P','Frequenza','Frequenza D/P','Potenza','Potenza D/P','Marchio Conformita','Fusibili Dichiarati','Fusibili Riscontrati','Classe','Classe D/P','PA Tipo','Tipo D/P','Funzionamento','Protezione Defibrillatore','Tipo Spina','Smontabile/pressofusa','Marchio Spina','Cavo Alimentazione','IntegritaCavo','Integrita Spina','InterruttoreRete','ParteApplicata','IntegritaConnettori','ProtezioneConduttori','IntegritaConduttori','Manuale Uso','Manuale Servizio','Note Aggiuntive','ClasseMisura','Tensione2','CorrenteAssorbitaMA','TerraProtezioneLimite','TerraProtezioneMisurata','PN Limite','PN Misurata','PI Limite','PI Misurata','PN BF Limite','PN BF Misurata','PI BF Limite','PI BF Misurata','PN CF Limite','PN CF Misurata','PI CF Limite','PI CF Misurata','Giudizio','ValoriMessaTerra','ValoriDispersione','MotiviNonConformita','Strumento','NrSerie','Verificatore','Data2','VERIFICATO','Scadenza Taratura','Norma'];
-  const FVSE=['codice','data','note','ten','tdp','frq','fdp','pot','pdp','mar','fud','fur','cls','cdp','pat','pad','fnz','def','spi','smo','msp','cav','icv','isp','int','pdc','icn','prc','icd','mus','mse','nag','clm','tms','cor','trl','trm','pnl','pnm','pil','pim','pbl','pbm','ibl','ibm','pcl','pcm','icl','icm','giu','vt','vd','mot','str','nrs','ver','dat2','vrc','sct','norma'];
+  // ── VSE (60 col, 1 header row) ──
+  // Col 53 = "Colonna vuota": '' in FVSE aligns str→54, nrs→55, ver→56, dat2→57, vrc→58, sct→59
+  const HVSE=['CODICE','DATA','NOTE','Tensione','Tensione D/P','Frequenza','Frequenza D/P','Potenza','Potenza D/P','Marchio Conformita','Fusibili Dichiarati','Fusibili Riscontrati','Classe','Classe D/P','PA Tipo','Tipo D/P','Funzionamento','Protezione Defibrillatore','Tipo Spina','Smontabile/pressofusa','Marchio Spina','Cavo Alimentazione','IntegritaCavo','Integrita Spina','InterruttoreRete','ParteApplicata','IntegritaConnettori','ProtezioneConduttori','IntegritaConduttori','Manuale Uso','Manuale Servizio','Note Aggiuntive','ClasseMisura','Tensione2','CorrenteAssorbitaMA','TerraProtezioneLimite','TerraProtezioneMisurata','PN Limite','PN Misurata','PI Limite','PI Misurata','PN BF Limite','PN BF Misurata','PI BF Limite','PI BF Misurata','PN CF Limite','PN CF Misurata','PI CF Limite','PI CF Misurata','Giudizio','ValoriMessaTerra','ValoriDispersione','MotiviNonConformita','Colonna vuota','Strumento','NrSerie','Verificatore','Data','VERIFICATO','Scadenza Taratura'];
+  const FVSE=['codice','data','note','ten','tdp','frq','fdp','pot','pdp','mar','fud','fur','cls','cdp','pat','pad','fnz','def','spi','smo','msp','cav','icv','isp','int','pdc','icn','prc','icd','mus','mse','nag','clm','tms','cor','trl','trm','pnl','pnm','pil','pim','pbl','pbm','ibl','ibm','pcl','pcm','icl','icm','giu','vt','vd','mot','','str','nrs','ver','dat2','vrc','sct'];
   const NUMERIC_VSE=new Set([33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49]);
   const vseKeys=keys.filter(k=>saved[k].vse_saved);
   if(vseKeys.length){
-    const rows=vseKeys.map(k=>{const r=saved[k];if(!r)return[];return FVSE.map((f,i)=>{const v=r[f]||'';if(NUMERIC_VSE.has(i)&&v!==''){const n=parseFloat(v);return isNaN(n)?v:n;}return v;});});
+    const rows=vseKeys.map(k=>{const r=saved[k];return FVSE.map((f,i)=>{const v=f?r[f]||'':'';if(NUMERIC_VSE.has(i)&&v!==''){const n=parseFloat(v);return isNaN(n)?v:n;}return v;});});
     const ws=XLSX.utils.aoa_to_sheet([HVSE,...rows]);
     ws['!cols']=HVSE.map(()=>({wch:16}));
     XLSX.utils.book_append_sheet(wb,ws,'Inserimento_VSE');
   }
 
-  // Sheet MP — struttura identica a Inserimento_MP originale
-  // Riga 1: CODICE, DATA, NOTE, 1, null, null, 2, null, null, ... 19, null, null, Tecnico Esecutore
-  // Riga 2: null, null, null, OK, KO, NA, OK, KO, NA, ...
-  // Dati:   valore, data, note, X/null, X/null, X/null, ...
+  // ── MP (61 col, 2 header rows, tecnico col 60) ──
   const mpKeys=keys.filter(k=>saved[k].mp_saved);
   if(mpKeys.length){
     const R1=['CODICE','DATA','NOTE'];
@@ -1288,7 +1286,6 @@ function exportXLSX(){
       return row;
     });
     const ws=XLSX.utils.aoa_to_sheet([R1,R2,...rows]);
-    // Colonne: A=10, B=12, C=20, poi 3 col per ogni punto (5 ciascuna), ultima=20
     const cols=[{wch:10},{wch:12},{wch:20}];
     for(let i=0;i<19;i++)cols.push({wch:5},{wch:5},{wch:5});
     cols.push({wch:20});
@@ -1296,88 +1293,169 @@ function exportXLSX(){
     XLSX.utils.book_append_sheet(wb,ws,'Inserimento_MP');
   }
 
-  // Sheets VSP — one per VSP type found in session
-  const vspTypes = [...new Set(keys.filter(k=>saved[k].vsp_saved).map(k=>saved[k].vsp_type).filter(Boolean))];
+  // ── VSP (3 header rows) ──
+  const vspTypes=[...new Set(keys.filter(k=>saved[k].vsp_saved).map(k=>saved[k].vsp_type).filter(Boolean))];
   vspTypes.forEach(vtype=>{
     const def=VSP_POINTS[vtype];if(!def)return;
     const vspKeys=keys.filter(k=>saved[k].vsp_saved&&saved[k].vsp_type===vtype);
     if(!vspKeys.length)return;
-    // Build header rows matching Inserimento sheet structure
-    // Row1: CODICE, DATA, NOTE, section_title, null..., TECNICO ESECUTORE
-    // Row2: null,null,null, A,null,(null), B,...
-    // Row3: null,null,null, OK,KO,NA, OK,KO,NA,...
-    const R1=['CODICE','DATA','NOTE'];
-    const R2=[null,null,null];
-    const R3=[null,null,null];
-    const FIELDS=['codice','data','note']; // maps to collectVSP keys
-    if(vtype==='VSP_CEN'){
-      R1.push('CONTROLLO VISIVO',...Array(14).fill(null),'TECNICO ESECUTORE');
-      ['A','B','C','D','E'].forEach(l=>{R2.push(l,null,null);R3.push('OK','KO','NA');FIELDS.push('vsp_'+l+'_ok','vsp_'+l+'_ko','vsp_'+l+'_na');});
-      R2.push(null);R3.push(null);
-    } else if(vtype==='VSP_ECG'){
-      R1.push('CONTROLLO VISIVO',...Array(13).fill(null),'TECNICO ESECUTORE');
-      ['A','B','C'].forEach(l=>{R2.push(l,null,null);R3.push('OK','KO','NA');FIELDS.push('vsp_'+l+'_ok','vsp_'+l+'_ko','vsp_'+l+'_na');});
-      R2.push('D',null,null,null);R3.push('B','BF','CF','NA');
-      FIELDS.push('vsp_D_b','vsp_D_bf','vsp_D_cf','vsp_D_na');
-      R2.push(null);R3.push(null);
-    } else {
-      // DEF and ELB: simplified single-value per point
-      R1.push('CONTROLLO VISIVO',...Array(def.length*2-1).fill(null),'TECNICO ESECUTORE');
-      def.forEach(p=>{R2.push(p.l,null);R3.push('OK','KO');FIELDS.push('vsp_'+p.l+'_ok','vsp_'+p.l+'_ko');});
-      R2.push(null);R3.push(null);
-    }
-    // Build data rows
-    const rows=vspKeys.map(k=>{
-      const r=saved[k];
-      const row=[r.vsp_codice||'',r.vsp_data||'',r.vsp_note||''];
-      // For each point write X in the right column
-      def.forEach(p=>{
-        const val=r['vsp_'+p.l]||'';
-        const opts=p.opts||['OK','KO','NA'];
-        opts.forEach(o=>row.push(val===o?'X':null));
+    let R1,R2,R3,rows;
+
+    if(vtype==='VSP_DEF'){
+      // 97 cols: checkboxes col 3-49 (18 pts, mixed opts), extra col 50-95, tecnico col 96
+      const NC=97;
+      R1=Array(NC).fill(null);R2=Array(NC).fill(null);R3=Array(NC).fill(null);
+      R1[0]='CODICE';R1[1]='DATA';R1[2]='NOTE';R1[3]='2 Controlli visivi';
+      R1[50]='3 Energia erogata';R1[64]='4 Tempi carica';R1[79]='5 Tempi ritardo';
+      R1[91]='8 Strumentazione';R1[96]='TECNICO ESECUTORE';
+      let ci=3;def.forEach(p=>{R2[ci]=p.l;ci+=p.opts.length;});
+      ['E1i','E1m','E2i','E2m','E3i','E3m','E4i','E4m','E5i','E5m'].forEach((v,i)=>R3[50+i]=v);
+      R2[60]='DAE';R3[60]='Mis';
+      ['A-r','A-b','A-M','B-r','B-b','B-M','C-r','C-b','C-M','D-r','D-b','D-M'].forEach((v,i)=>R3[64+i]=v);
+      R2[79]='A';R3[79]='Ril';R3[80]='Max';R2[83]='B';R3[83]='Ril';R3[84]='Max';R2[87]='C';R3[87]='Ril';R3[88]='Max';
+      ['Strum','Mod','Serie','Cert','Scad'].forEach((v,i)=>R2[91+i]=v);
+      ci=3;def.forEach(p=>{p.opts.forEach(o=>{R3[ci++]=o;});});
+      rows=vspKeys.map(k=>{
+        const r=saved[k];const row=Array(NC).fill(null);
+        row[0]=r.vsp_codice||'';row[1]=r.vsp_data||'';row[2]=r.vsp_note||'';
+        let ci2=3;def.forEach(p=>{const val=r['vsp_'+p.l]||'';p.opts.forEach(o=>{row[ci2++]=(val===o?'X':null);});});
+        ['def_e1i','def_e1m','def_e2i','def_e2m','def_e3i','def_e3m','def_e4i','def_e4m','def_e5i','def_e5m'].forEach((f,i)=>{const v=r[f];if(v)row[50+i]=v;});
+        if(r['def_dae_mis'])row[60]=r['def_dae_mis'];
+        ['def_tc_ar','def_tc_ab','def_tc_am','def_tc_br','def_tc_bb','def_tc_bm','def_tc_cr','def_tc_cb','def_tc_cm','def_tc_dr','def_tc_db','def_tc_dm'].forEach((f,i)=>{const v=r[f];if(v)row[64+i]=v;});
+        [['def_tr_ar',79],['def_tr_am',80],['def_tr_br',83],['def_tr_bm',84],['def_tr_cr',87],['def_tr_cm',88]].forEach(([f,c])=>{const v=r[f];if(v)row[c]=v;});
+        ['def_strum','def_mod','def_ser','def_cert','def_scad'].forEach((f,i)=>{const v=r[f];if(v)row[91+i]=v;});
+        row[96]=r.vsp_tecnico||'';return row;
       });
-      row.push(r.vsp_tecnico||'');
-      return row;
-    });
+    } else if(vtype==='VSP_ELB'){
+      // 106 cols: targa col 3-17, checkboxes col 18-35, corrente col 36-55, strum col 100-104, tecnico col 105
+      const NC=106;
+      R1=Array(NC).fill(null);R2=Array(NC).fill(null);R3=Array(NC).fill(null);
+      R1[0]='CODICE';R1[1]='DATA';R1[2]='NOTE';R1[3]='1 Dati di targa';R1[18]='3 Controlli visivi';
+      R1[36]='4 Corrente dispersione HF';R1[100]='8 Strumentazione';R1[105]='TECNICO ESECUTORE';
+      [['Pbip',3],['Cbip',4],['fKHz-bip',6],['fMHz-bip',7],['Pmono',8],['Cmono',9],['fKHz-mono',11],['fMHz-mono',12],['PA',15]].forEach(([v,c])=>R2[c]=v);
+      let ci=18;def.forEach(p=>{R2[ci]=p.l;R3[ci]='OK';R3[ci+1]='KO';R3[ci+2]='NA';ci+=3;});
+      [['T',36],['M',37],['C',38],['T',39],['M',40],['C',41],['T',42],['M',43],['C',44],['T',46],['M',47],['C',48]].forEach(([v,c])=>R3[c]=v);
+      R1[36]='4 Corrente disp.';['Carico-el.','','','Att/terra','','','El.neutro','','','','El.attivo','',''].forEach((v,i)=>R2[36+i]=v);
+      ['E1-CN','E2-CN','E1-MT','E2-MT'].forEach((v,i)=>R2[52+i]=v);
+      ['Strum','Mod','Serie','Cert','Scad'].forEach((v,i)=>R2[100+i]=v);
+      rows=vspKeys.map(k=>{
+        const r=saved[k];const row=Array(NC).fill(null);
+        row[0]=r.vsp_codice||'';row[1]=r.vsp_data||'';row[2]=r.vsp_note||'';
+        [['elb_pbip',3],['elb_cbip',4],['elb_fkhz',6],['elb_fmhz',7],['elb_pmono',8],['elb_cmono',9],['elb_fkhz2',11],['elb_fmhz2',12],['elb_pa',15]].forEach(([f,c])=>{const v=r[f];if(v)row[c]=v;});
+        let ci2=18;def.forEach(p=>{const val=r['vsp_'+p.l]||'';p.opts.forEach(o=>{row[ci2++]=(val===o?'X':null);});});
+        [['elb_ct_t',36],['elb_ct_m',37],['elb_ct_c',38],['elb_at_t',39],['elb_at_m',40],['elb_at_c',41],['elb_en_t',42],['elb_en_m',43],['elb_en_c',44],['elb_ea_t',46],['elb_ea_m',47],['elb_ea_c',48],['elb_iso1n',52],['elb_iso1t',53],['elb_iso2n',54],['elb_iso2t',55]].forEach(([f,c])=>{const v=r[f];if(v)row[c]=v;});
+        ['elb_strum','elb_mod','elb_ser','elb_cert','elb_scad'].forEach((f,i)=>{const v=r[f];if(v)row[100+i]=v;});
+        row[105]=r.vsp_tecnico||'';return row;
+      });
+    } else {
+      // CEN (19 col) and ECG (17 col): 3 header rows, checkboxes from col 3, tecnico last
+      const chkCols=def.reduce((s,p)=>s+p.opts.length,0);
+      R1=['CODICE','DATA','NOTE','CONTROLLO VISIVO',...Array(chkCols-1).fill(null),'TECNICO ESECUTORE'];
+      R2=[null,null,null];R3=[null,null,null];
+      def.forEach(p=>{R2.push(p.l,...Array(p.opts.length-1).fill(null));R3.push(...p.opts);});
+      R2.push(null);R3.push(null);
+      rows=vspKeys.map(k=>{
+        const r=saved[k];
+        const row=[r.vsp_codice||'',r.vsp_data||'',r.vsp_note||''];
+        def.forEach(p=>{const val=r['vsp_'+p.l]||'';p.opts.forEach(o=>row.push(val===o?'X':null));});
+        row.push(r.vsp_tecnico||'');return row;
+      });
+    }
     const wsVsp=XLSX.utils.aoa_to_sheet([R1,R2,R3,...rows]);
-    const sheetName=vtype.replace('VSP_','Inserimento_VSP_');
-    XLSX.utils.book_append_sheet(wb,wsVsp,sheetName);
+    XLSX.utils.book_append_sheet(wb,wsVsp,'Inserimento_VSP_'+vtype.replace('VSP_',''));
   });
 
-  // Sheets CQ — one per CQ type found in session
-  const cqTypes = [...new Set(keys.filter(k=>saved[k].cq_saved).map(k=>saved[k].cq_type).filter(Boolean))];
+  // ── CQ (3 header rows, tecnico last, strum before tecnico) ──
+  // Per-type prova field→column mappings (mirror of importPresetsFromExcel)
+  const _CPMAP={
+    'CQ_DEF':[['cq_def_tipo_man',3],['cq_def_tipo_dae',4],['cq_def_opt_pac',5],['cq_def_opt_nibp',6],['cq_def_opt_spo2',7],
+              ['cq_def_e1i',29],['cq_def_e1m',30],['cq_def_e2i',33],['cq_def_e2m',34],['cq_def_e3i',37],['cq_def_e3m',38],
+              ['cq_def_e4i',41],['cq_def_e4m',42],['cq_def_e5i',45],['cq_def_e5m',46],['cq_def_e6i',49],['cq_def_e6m',50]],
+    'CQ_ECG':[['cq_ecg_v1i',24],['cq_ecg_v1ind',25],['cq_ecg_v1lim',26],['cq_ecg_v2i',29],['cq_ecg_v2ind',30],['cq_ecg_v2lim',31],
+              ['cq_ecg_v3i',34],['cq_ecg_v3ind',35],['cq_ecg_v3lim',36],['cq_ecg_v4i',39],['cq_ecg_v4ind',40],['cq_ecg_v4lim',41],
+              ['cq_ecg_v5i',44],['cq_ecg_v5ind',45],['cq_ecg_v5lim',46]],
+    'CQ_CEN':[['cq_cen_g1i',18],['cq_cen_g1m',19],['cq_cen_g2i',20],['cq_cen_g2m',21],['cq_cen_g3i',22],['cq_cen_g3m',23],
+              ['cq_cen_t1i',24],['cq_cen_t1m',25],['cq_cen_t2i',26],['cq_cen_t2m',27],['cq_cen_t3i',28],['cq_cen_t3m',29]],
+    'CQ_ELB':[['cq_elb_ct_t',33],['cq_elb_ct_c',34],['cq_elb_at_t',35],['cq_elb_at_c',36],['cq_elb_fn_t',37],['cq_elb_fn_c',38],
+              ['cq_elb_en_t',39],['cq_elb_en_c',40],['cq_elb_iso1',44],['cq_elb_iso2',45],
+              ['cq_elb_pt1d',49],['cq_elb_pt1r',50],['cq_elb_pc1d',51],['cq_elb_pc1r',52],['cq_elb_pb1d',53],['cq_elb_pb1r',54]],
+    'CQ_FBI':[['cq_fbi_r1label',9],['cq_fbi_r1i',10],['cq_fbi_r1ind',11],['cq_fbi_r1it',12],['cq_fbi_r1m',13],['cq_fbi_r1l',14],
+              ['cq_fbi_r2label',15],['cq_fbi_r2i',16],['cq_fbi_r2ind',17],['cq_fbi_r2it',18],['cq_fbi_r2m',19],['cq_fbi_r2l',20],
+              ['cq_fbi_r3label',21],['cq_fbi_r3i',22],['cq_fbi_r3ind',23],['cq_fbi_r3it',24],['cq_fbi_r3m',25],['cq_fbi_r3l',26],
+              ['cq_fbi_r4label',27],['cq_fbi_r4i',28],['cq_fbi_r4ind',29],['cq_fbi_r4it',30],['cq_fbi_r4m',31],['cq_fbi_r4l',32]],
+    'CQ_ECT':[['cq_ect_s1',27],['cq_ect_s2',28],['cq_ect_s3',29],['cq_ect_s4',30],
+              ['cq_ect_m1s1',31],['cq_ect_m1s2',32],['cq_ect_m1s3',33],['cq_ect_m1s4',34],
+              ['cq_ect_m2as1',35],['cq_ect_m2as2',36],['cq_ect_m2as3',37],['cq_ect_m2as4',38],
+              ['cq_ect_m2bs1',39],['cq_ect_m2bs2',40],['cq_ect_m2bs3',41],['cq_ect_m2bs4',42],
+              ['cq_ect_m3as1',43],['cq_ect_m3as2',44],['cq_ect_m3as3',45],['cq_ect_m3as4',46],
+              ['cq_ect_m3bs1',47],['cq_ect_m3bs2',48],['cq_ect_m3bs3',49],['cq_ect_m3bs4',50],
+              ['cq_ect_m4as1',51],['cq_ect_m4as2',52],['cq_ect_m4as3',53],['cq_ect_m4as4',54],
+              ['cq_ect_m4bs1',55],['cq_ect_m4bs2',56],['cq_ect_m4bs3',57],['cq_ect_m4bs4',58],
+              ['cq_ect_m5s1',59],['cq_ect_m5s2',60],['cq_ect_m5s3',61],['cq_ect_m5s4',62],
+              ['cq_ect_m6s1',63],['cq_ect_m6s2',64],['cq_ect_m6s3',65],['cq_ect_m6s4',66]],
+    'CQ_MON':[['cq_mon_e1i',12],['cq_mon_e1ind',13],['cq_mon_e1lim',14],['cq_mon_e2i',17],['cq_mon_e2ind',18],['cq_mon_e2lim',19],
+              ['cq_mon_e3i',22],['cq_mon_e3ind',23],['cq_mon_e3lim',24],['cq_mon_e4i',27],['cq_mon_e4ind',28],['cq_mon_e4lim',29],
+              ['cq_mon_e5i',32],['cq_mon_e5ind',33],['cq_mon_e5lim',34],
+              ['cq_mon_s1i',37],['cq_mon_s1ind',38],['cq_mon_s1lim',39],['cq_mon_s2i',42],['cq_mon_s2ind',43],['cq_mon_s2lim',44],
+              ['cq_mon_s3i',47],['cq_mon_s3ind',48],['cq_mon_s3lim',49],['cq_mon_s4i',52],['cq_mon_s4ind',53],['cq_mon_s4lim',54],
+              ['cq_mon_s5i',57],['cq_mon_s5ind',58],['cq_mon_s5lim',59],['cq_mon_s6i',62],['cq_mon_s6ind',63],['cq_mon_s6lim',64],
+              ['cq_mon_n1i',67],['cq_mon_n1ind',68],['cq_mon_n1lim',69],['cq_mon_n2i',72],['cq_mon_n2ind',73],['cq_mon_n2lim',74],
+              ['cq_mon_n3i',77],['cq_mon_n3ind',78],['cq_mon_n3lim',79]],
+    'CQ_ANS':[['cq_ans_comp',15],['cq_ans_res',16],['cq_ans_ie',17],['cq_ans_fri',18],['cq_ans_frv',19],['cq_ans_frm',20],['cq_ans_frl',21],
+              ['cq_ans_vii',24],['cq_ans_viv',25],['cq_ans_vim',26],['cq_ans_vil',27]],
+    'CQ_SPM':[['cq_spm_v1i',27],['cq_spm_v1m',28],['cq_spm_v2i',29],['cq_spm_v2m',30],['cq_spm_v3i',31],['cq_spm_v3m',32]],
+    'CQ_VPO':[['cq_ans_comp',15],['cq_ans_res',16],['cq_ans_ie',17],['cq_ans_fri',18],['cq_ans_frv',19],['cq_ans_frm',20],['cq_ans_frl',21],
+              ['cq_ans_vii',24],['cq_ans_viv',25],['cq_ans_vim',26],['cq_ans_vil',27]],
+  };
+  const _CVC0={'CQ_DEF':8};
+  const _CVN={'CQ_ANS':4,'CQ_VPO':4};
+  const _CSC={'CQ_DEF':53,'CQ_ECG':49,'CQ_CEN':30,'CQ_ELB':76,'CQ_FBI':33,'CQ_ECT':67,'CQ_MON':82,'CQ_ANS':30,'CQ_SPM':33,'CQ_VPO':30};
+  const _CTC={'CQ_DEF':58,'CQ_ECG':54,'CQ_CEN':35,'CQ_ELB':81,'CQ_FBI':38,'CQ_ECT':72,'CQ_MON':87,'CQ_ANS':35,'CQ_SPM':38,'CQ_VPO':35};
+
+  const cqTypes=[...new Set(keys.filter(k=>saved[k].cq_saved).map(k=>saved[k].cq_type).filter(Boolean))];
   cqTypes.forEach(ctype=>{
     const cqKeys=keys.filter(k=>saved[k].cq_saved&&saved[k].cq_type===ctype);
     if(!cqKeys.length)return;
-    const visPoints=CQ_VIS[ctype]||[];
-    const provaFields=[];
-    (CQ_PROVA[ctype]||[]).forEach(sec=>sec.fields.forEach(f=>provaFields.push(f)));
-    // Header row
-    const R1=['CODICE','DATA','NOTE','TECNICO'];
-    visPoints.forEach(p=>R1.push(p,'',''));
-    provaFields.forEach(f=>R1.push(f.l));
-    const R2=[null,null,null,null];
-    visPoints.forEach(()=>R2.push('OK','KO','NA'));
-    provaFields.forEach(()=>R2.push(null));
-    // Data rows
+    const c0=_CVC0[ctype]||3;
+    const visAll=CQ_VIS[ctype]||[];
+    const visPoints=visAll.slice(0,_CVN[ctype]||visAll.length);
+    const pmap=_CPMAP[ctype]||[];
+    const sc=_CSC[ctype], tc=_CTC[ctype];
+    if(tc==null)return;
+    const NC=tc+1;
+    // Build 3 header rows
+    const R1=Array(NC).fill(null),R2=Array(NC).fill(null),R3=Array(NC).fill(null);
+    R1[0]='CODICE';R1[1]='DATA';R1[2]='NOTE';
+    if(c0>3)R1[3]='TIPOLOGIA';
+    R1[c0]='CONTROLLO VISIVO';
+    visPoints.forEach((p,idx)=>{const c=c0+idx*3;R2[c]=p;R3[c]='OK';R3[c+1]='KO';R3[c+2]='NA';});
+    // Prova column labels from CQ_PROVA
+    const provaAll=[];(CQ_PROVA[ctype]||[]).forEach(sec=>sec.fields.forEach(f=>provaAll.push(f)));
+    provaAll.forEach(f=>{const pm=pmap.find(([id])=>id===f.id);if(pm)R2[pm[1]]=f.l;});
+    if(pmap.length){const fc=Math.min(...pmap.map(([,c])=>c));if(fc>=c0+visPoints.length*3)R1[fc]='PROVA FUNZIONALE';}
+    if(sc!=null){R1[sc]='STRUMENTAZIONE';['Strumento','Modello','Serie','Certificato N.','Scadenza'].forEach((v,i)=>R2[sc+i]=v);}
+    R1[tc]='TECNICO ESECUTORE';
+    // Build data rows
     const rows=cqKeys.map(k=>{
-      const r=saved[k];
-      const row=[r.cq_codice||'',r.cq_data||'',r.cq_note||'',r.cq_tecnico||''];
-      visPoints.forEach(p=>{
-        const pid=p.replace('.','_');
-        const val=r['cq_vis_'+pid]||'';
-        row.push(val==='OK'?'X':null,val==='KO'?'X':null,val==='NA'?'X':null);
+      const r=saved[k];const row=Array(NC).fill(null);
+      row[0]=r.cq_codice||'';row[1]=r.cq_data||'';row[2]=r.cq_note||'';
+      visPoints.forEach((p,idx)=>{
+        const pid=p.replace('.','_'),c=c0+idx*3,val=r['cq_vis_'+pid]||'';
+        row[c]=(val==='OK'?'X':null);row[c+1]=(val==='KO'?'X':null);row[c+2]=(val==='NA'?'X':null);
       });
-      provaFields.forEach(f=>row.push(r[f.id]||''));
+      pmap.forEach(([f,c])=>{const v=r[f];if(v!=null&&v!=='')row[c]=v;});
+      if(sc!=null){['cq_strum','cq_strum_mod','cq_strum_ser','cq_strum_cert','cq_strum_scad'].forEach((f,i)=>{const v=r[f];if(v)row[sc+i]=v;});}
+      row[tc]=r.cq_tecnico||'';
       return row;
     });
-    const wsCq=XLSX.utils.aoa_to_sheet([R1,R2,...rows]);
-    wsCq['!cols']=[{wch:10},{wch:12},{wch:20},{wch:20},...visPoints.map(()=>({wch:5})),...visPoints.map(()=>({wch:5})),...visPoints.map(()=>({wch:5})),...provaFields.map(()=>({wch:16}))];
-    const sheetName='Inserimento_'+ctype;
-    XLSX.utils.book_append_sheet(wb,wsCq,sheetName);
+    const ws=XLSX.utils.aoa_to_sheet([R1,R2,R3,...rows]);
+    ws['!cols']=Array(NC).fill({wch:14});
+    XLSX.utils.book_append_sheet(wb,ws,'Inserimento_'+ctype);
   });
+
   XLSX.writeFile(wb,'AppWitch_'+date+'.xlsx');
-  toast('Excel scaricato (VSE+MP'+(keys.filter(k=>saved[k].vsp_saved).length>0?'+VSP':'')+')','ok');
+  const hasVsp=keys.some(k=>saved[k].vsp_saved), hasCq=keys.some(k=>saved[k].cq_saved);
+  toast('Excel scaricato (VSE+MP'+(hasVsp?'+VSP':'')+(hasCq?'+CQ':'')+')','ok');
 }
 
 function toast(msg,type){
