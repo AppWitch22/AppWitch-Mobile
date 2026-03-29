@@ -327,6 +327,7 @@ h1{font-size:18px;font-weight:600;margin-bottom:4px}
     <div class="anag-filter-body" id="anag-filter-body">
       <div class="anag-filter-grid">
         <div class="anag-filter-field"><label>Presidio</label><select id="af-presidio" onchange="searchAnagrafica()"><option value="">Tutti</option></select></div>
+        <div class="anag-filter-field"><label>Sede Struttura</label><select id="af-sede" onchange="searchAnagrafica()"><option value="">Tutti</option></select></div>
         <div class="anag-filter-field"><label>Reparto</label><select id="af-reparto" onchange="searchAnagrafica()"><option value="">Tutti</option></select></div>
         <div class="anag-filter-field"><label>Costruttore</label><select id="af-costruttore" onchange="searchAnagrafica()"><option value="">Tutti</option></select></div>
         <div class="anag-filter-field"><label>Tipo VSP</label><select id="af-vsp" onchange="searchAnagrafica()"><option value="">Tutti</option></select></div>
@@ -863,7 +864,7 @@ async function initDB(){
     const {data:{session}}=await supa.auth.getSession();
     const token=session?.access_token;
     const resp=await fetch(
-      `${SUPA_URL}/rest/v1/${tabella}?select=codice,descrizione_classe,costruttore,modello,matricola,presidio,reparto,verifiche&limit=10000`,
+      `${SUPA_URL}/rest/v1/${tabella}?select=codice,descrizione_classe,costruttore,modello,matricola,presidio,reparto,sede_struttura,verifiche&limit=10000`,
       {headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+token}}
     );
     if(!resp.ok)throw new Error('HTTP '+resp.status);
@@ -878,7 +879,8 @@ async function initDB(){
         m:r.modello||'',
         mat:r.matricola||'',
         loc:r.presidio||'',
-        rep:r.reparto||''
+        rep:r.reparto||'',
+        ss:r.sede_struttura||''
       };
       if(r.verifiche){
         const parts=r.verifiche.split(',').map(s=>s.trim());
@@ -3543,72 +3545,94 @@ function toggleAnagFilters() {
   tog.textContent = open ? '▴' : '▾';
 }
 
-function populateAnagFilters() {
-  const all = Object.values(DB);
-  const unique = key => [...new Set(all.map(d => d[key]).filter(Boolean))].sort();
-  const fill = (id, vals) => {
-    const sel = document.getElementById(id);
-    const cur = sel.value;
-    sel.innerHTML = '<option value="">Tutti</option>' + vals.map(v=>`<option value="${_esc(v)}">${_esc(v)}</option>`).join('');
-    if (cur) sel.value = cur;
-  };
-  fill('af-presidio',  unique('loc'));
-  fill('af-reparto',   unique('rep'));
-  fill('af-costruttore', unique('b'));
-  // VSP e CQ tipi da VERIF_MAP
-  const vspTipi = [...new Set(Object.values(VERIF_MAP).map(v=>v.vsp).filter(Boolean))].sort();
-  const cqTipi  = [...new Set(Object.values(VERIF_MAP).map(v=>v.cq).filter(Boolean))].sort();
-  fill('af-vsp', vspTipi);
-  fill('af-cq',  cqTipi);
+// Definizione filtri: id select, chiave su oggetto DB (o 'vsp'/'cq' speciali)
+const ANAG_FILTER_DEFS = [
+  {id:'af-presidio',   dbKey:'loc'},
+  {id:'af-sede',       dbKey:'ss'},
+  {id:'af-reparto',    dbKey:'rep'},
+  {id:'af-costruttore',dbKey:'b'},
+  {id:'af-vsp',        dbKey:'vsp'},
+  {id:'af-cq',         dbKey:'cq'},
+];
+
+function _anagDbVal(d, dbKey) {
+  if (dbKey === 'vsp') return (VERIF_MAP[d.c]||{}).vsp || '';
+  if (dbKey === 'cq')  return (VERIF_MAP[d.c]||{}).cq  || '';
+  return d[dbKey] || '';
 }
 
-function resetAnagFilters() {
-  ['af-presidio','af-reparto','af-costruttore','af-vsp','af-cq'].forEach(id => {
-    document.getElementById(id).value = '';
-  });
-  searchAnagrafica();
+function _matchesQuery(d, q) {
+  return d.c.includes(q) ||
+    (d.n||'').toLowerCase().includes(q) ||
+    (d.b||'').toLowerCase().includes(q) ||
+    (d.m||'').toLowerCase().includes(q) ||
+    (d.mat||'').toLowerCase().includes(q) ||
+    (d.rep||'').toLowerCase().includes(q) ||
+    (d.loc||'').toLowerCase().includes(q) ||
+    (d.ss||'').toLowerCase().includes(q);
 }
 
 function getAnagFilters() {
-  return {
-    presidio:    document.getElementById('af-presidio')?.value    || '',
-    reparto:     document.getElementById('af-reparto')?.value     || '',
-    costruttore: document.getElementById('af-costruttore')?.value || '',
-    vsp:         document.getElementById('af-vsp')?.value         || '',
-    cq:          document.getElementById('af-cq')?.value          || '',
-  };
+  const f = {};
+  ANAG_FILTER_DEFS.forEach(def => { f[def.dbKey] = document.getElementById(def.id)?.value || ''; });
+  return f;
 }
 
 function countActiveFilters(f) {
   return Object.values(f).filter(Boolean).length;
 }
 
+// Aggiorna le opzioni di ogni select mostrando solo valori compatibili
+// con i filtri attivi sugli ALTRI campi (logica cascata stile Excel)
+function updateFilterCascade(q, f) {
+  const all = Object.values(DB);
+  ANAG_FILTER_DEFS.forEach(def => {
+    const sel = document.getElementById(def.id);
+    if (!sel) return;
+    const cur = sel.value;
+    // Filtra il DB escludendo il filtro del campo corrente
+    const subset = all.filter(d => {
+      if (q && !_matchesQuery(d, q)) return false;
+      for (const other of ANAG_FILTER_DEFS) {
+        if (other.id === def.id) continue;
+        const fv = f[other.dbKey];
+        if (fv && _anagDbVal(d, other.dbKey) !== fv) return false;
+      }
+      return true;
+    });
+    const vals = [...new Set(subset.map(d => _anagDbVal(d, def.dbKey)).filter(Boolean))].sort();
+    sel.innerHTML = '<option value="">Tutti</option>' + vals.map(v=>`<option value="${_esc(v)}">${_esc(v)}</option>`).join('');
+    // Ripristina selezione se ancora disponibile, altrimenti reset
+    sel.value = vals.includes(cur) ? cur : '';
+  });
+}
+
+function populateAnagFilters() {
+  updateFilterCascade('', getAnagFilters());
+}
+
+function resetAnagFilters() {
+  ANAG_FILTER_DEFS.forEach(def => { const el = document.getElementById(def.id); if (el) el.value = ''; });
+  searchAnagrafica();
+}
+
 function searchAnagrafica() {
   const q = (document.getElementById('anag-input').value||'').trim().toLowerCase();
   const f = getAnagFilters();
+  // Aggiorna opzioni a cascata
+  updateFilterCascade(q, f);
+  // Ricalcola i filtri dopo eventuale reset cascade
+  const f2 = getAnagFilters();
   anagPage = 0;
   anagResults = Object.values(DB).filter(d => {
-    if (q && !(
-      d.c.includes(q) ||
-      (d.n||'').toLowerCase().includes(q) ||
-      (d.b||'').toLowerCase().includes(q) ||
-      (d.m||'').toLowerCase().includes(q) ||
-      (d.mat||'').toLowerCase().includes(q) ||
-      (d.rep||'').toLowerCase().includes(q) ||
-      (d.loc||'').toLowerCase().includes(q)
-    )) return false;
-    if (f.presidio    && (d.loc||'') !== f.presidio)    return false;
-    if (f.reparto     && (d.rep||'') !== f.reparto)     return false;
-    if (f.costruttore && (d.b||'')   !== f.costruttore) return false;
-    if (f.vsp || f.cq) {
-      const vm = VERIF_MAP[d.c] || {};
-      if (f.vsp && vm.vsp !== f.vsp) return false;
-      if (f.cq  && vm.cq  !== f.cq)  return false;
+    if (q && !_matchesQuery(d, q)) return false;
+    for (const def of ANAG_FILTER_DEFS) {
+      const fv = f2[def.dbKey];
+      if (fv && _anagDbVal(d, def.dbKey) !== fv) return false;
     }
     return true;
   });
-  // Aggiorna badge filtri attivi
-  const n = countActiveFilters(f);
+  const n = countActiveFilters(f2);
   const countEl = document.getElementById('anag-filter-count');
   if (countEl) countEl.textContent = n ? `${n} attivo${n>1?'i':''}` : '';
   renderAnagList();
