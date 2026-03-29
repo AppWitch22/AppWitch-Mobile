@@ -329,7 +329,11 @@ h1{font-size:18px;font-weight:600;margin-bottom:4px}
         <div class="anag-filter-field"><label>Presidio</label><select id="af-presidio" onchange="searchAnagrafica()"><option value="">Tutti</option></select></div>
         <div class="anag-filter-field"><label>Sede Struttura</label><select id="af-sede" onchange="searchAnagrafica()"><option value="">Tutti</option></select></div>
         <div class="anag-filter-field"><label>Reparto</label><select id="af-reparto" onchange="searchAnagrafica()"><option value="">Tutti</option></select></div>
+        <div class="anag-filter-field"><label>Nuova Area</label><select id="af-nuova-area" onchange="searchAnagrafica()"><option value="">Tutte</option></select></div>
+        <div class="anag-filter-field"><label>Codice Padre</label><select id="af-codice-padre" onchange="searchAnagrafica()"><option value="">Tutti</option></select></div>
         <div class="anag-filter-field"><label>Costruttore</label><select id="af-costruttore" onchange="searchAnagrafica()"><option value="">Tutti</option></select></div>
+        <div class="anag-filter-field"><label>Modello</label><select id="af-modello" onchange="searchAnagrafica()"><option value="">Tutti</option></select></div>
+        <div class="anag-filter-field"><label>Presenze Effettive</label><select id="af-presenze" onchange="searchAnagrafica()"><option value="">Tutte</option></select></div>
         <div class="anag-filter-field"><label>Tipo VSP</label><select id="af-vsp" onchange="searchAnagrafica()"><option value="">Tutti</option></select></div>
         <div class="anag-filter-field"><label>Tipo CQ</label><select id="af-cq" onchange="searchAnagrafica()"><option value="">Tutti</option></select></div>
       </div>
@@ -864,7 +868,7 @@ async function initDB(){
     const {data:{session}}=await supa.auth.getSession();
     const token=session?.access_token;
     const resp=await fetch(
-      `${SUPA_URL}/rest/v1/${tabella}?select=codice,descrizione_classe,costruttore,modello,matricola,presidio,reparto,sede_struttura,verifiche&limit=10000`,
+      `${SUPA_URL}/rest/v1/${tabella}?select=codice,descrizione_classe,costruttore,modello,matricola,presidio,reparto,sede_struttura,codice_padre,nuova_area,presenze_effettive,verifiche&limit=10000`,
       {headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+token}}
     );
     if(!resp.ok)throw new Error('HTTP '+resp.status);
@@ -880,7 +884,10 @@ async function initDB(){
         mat:r.matricola||'',
         loc:r.presidio||'',
         rep:r.reparto||'',
-        ss:r.sede_struttura||''
+        ss:r.sede_struttura||'',
+        cp:r.codice_padre||'',
+        na:r.nuova_area||'',
+        pe:r.presenze_effettive||''
       };
       if(r.verifiche){
         const parts=r.verifiche.split(',').map(s=>s.trim());
@@ -3546,13 +3553,18 @@ function toggleAnagFilters() {
 }
 
 // Definizione filtri: id select, chiave su oggetto DB (o 'vsp'/'cq' speciali)
+// fixedVals: se presente usa valori fissi invece di estrarli dal DB
 const ANAG_FILTER_DEFS = [
-  {id:'af-presidio',   dbKey:'loc'},
-  {id:'af-sede',       dbKey:'ss'},
-  {id:'af-reparto',    dbKey:'rep'},
-  {id:'af-costruttore',dbKey:'b'},
-  {id:'af-vsp',        dbKey:'vsp'},
-  {id:'af-cq',         dbKey:'cq'},
+  {id:'af-presidio',    dbKey:'loc'},
+  {id:'af-sede',        dbKey:'ss'},
+  {id:'af-reparto',     dbKey:'rep'},
+  {id:'af-nuova-area',  dbKey:'na'},
+  {id:'af-codice-padre',dbKey:'cp'},
+  {id:'af-costruttore', dbKey:'b'},
+  {id:'af-modello',     dbKey:'m'},
+  {id:'af-presenze',    dbKey:'pe', fixedVals:['1','2','3']},
+  {id:'af-vsp',         dbKey:'vsp'},
+  {id:'af-cq',          dbKey:'cq'},
 ];
 
 function _anagDbVal(d, dbKey) {
@@ -3569,7 +3581,9 @@ function _matchesQuery(d, q) {
     (d.mat||'').toLowerCase().includes(q) ||
     (d.rep||'').toLowerCase().includes(q) ||
     (d.loc||'').toLowerCase().includes(q) ||
-    (d.ss||'').toLowerCase().includes(q);
+    (d.ss||'').toLowerCase().includes(q) ||
+    (d.na||'').toLowerCase().includes(q) ||
+    (d.cp||'').toLowerCase().includes(q);
 }
 
 function getAnagFilters() {
@@ -3600,9 +3614,12 @@ function updateFilterCascade(q, f) {
       }
       return true;
     });
-    const vals = [...new Set(subset.map(d => _anagDbVal(d, def.dbKey)).filter(Boolean))].sort();
+    // Per fixedVals usa valori fissi filtrati per quelli presenti nel subset
+    const presentVals = new Set(subset.map(d => _anagDbVal(d, def.dbKey)).filter(Boolean));
+    const vals = def.fixedVals
+      ? def.fixedVals.filter(v => presentVals.has(v))
+      : [...presentVals].sort();
     sel.innerHTML = '<option value="">Tutti</option>' + vals.map(v=>`<option value="${_esc(v)}">${_esc(v)}</option>`).join('');
-    // Ripristina selezione se ancora disponibile, altrimenti reset
     sel.value = vals.includes(cur) ? cur : '';
   });
 }
