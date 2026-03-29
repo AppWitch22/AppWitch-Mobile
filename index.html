@@ -260,6 +260,17 @@ h1{font-size:18px;font-weight:600;margin-bottom:4px}
 .anag-field textarea{resize:vertical;min-height:58px;font-family:inherit}
 .jolly-lbl-btn{background:none;border:none;padding:0;color:var(--text2);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.03em;cursor:pointer;display:inline-flex;align-items:center;gap:3px}
 .jolly-lbl-btn:hover{color:var(--info)}
+/* FILTRI ANAGRAFICA */
+.anag-filter-hdr{display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:6px 0;font-size:13px;font-weight:600;color:var(--text2);user-select:none;-webkit-tap-highlight-color:transparent;margin-bottom:6px}
+.anag-filter-hdr .anag-filter-count{font-size:12px;font-weight:400;color:var(--info)}
+.anag-filter-body{display:none;background:var(--bg2);border:1px solid var(--border);border-radius:var(--rad);padding:12px;margin-bottom:10px}
+.anag-filter-body.open{display:block}
+.anag-filter-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;margin-bottom:10px}
+.anag-filter-field{display:flex;flex-direction:column;gap:4px}
+.anag-filter-field label{font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.03em}
+.anag-filter-field select{font-size:13px;padding:7px 10px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text);outline:none;-webkit-appearance:none;appearance:none;width:100%}
+.anag-filter-field select:focus{border-color:var(--info)}
+.anag-filter-actions{display:flex;gap:8px}
 </style>
 </head>
 <body>
@@ -308,6 +319,22 @@ h1{font-size:18px;font-weight:600;margin-bottom:4px}
     </div>
     <div class="anag-search-row">
       <input type="text" id="anag-input" placeholder="Codice, nome, costruttore, reparto..." autocomplete="off" oninput="searchAnagrafica()" onkeydown="if(event.key==='Enter')searchAnagrafica()">
+    </div>
+    <div class="anag-filter-hdr" onclick="toggleAnagFilters()">
+      <span>Filtri <span id="anag-filter-toggle">▾</span></span>
+      <span class="anag-filter-count" id="anag-filter-count"></span>
+    </div>
+    <div class="anag-filter-body" id="anag-filter-body">
+      <div class="anag-filter-grid">
+        <div class="anag-filter-field"><label>Presidio</label><select id="af-presidio" onchange="searchAnagrafica()"><option value="">Tutti</option></select></div>
+        <div class="anag-filter-field"><label>Reparto</label><select id="af-reparto" onchange="searchAnagrafica()"><option value="">Tutti</option></select></div>
+        <div class="anag-filter-field"><label>Costruttore</label><select id="af-costruttore" onchange="searchAnagrafica()"><option value="">Tutti</option></select></div>
+        <div class="anag-filter-field"><label>Tipo VSP</label><select id="af-vsp" onchange="searchAnagrafica()"><option value="">Tutti</option></select></div>
+        <div class="anag-filter-field"><label>Tipo CQ</label><select id="af-cq" onchange="searchAnagrafica()"><option value="">Tutti</option></select></div>
+      </div>
+      <div class="anag-filter-actions">
+        <button class="btn-sm" onclick="resetAnagFilters()">✕ Reset filtri</button>
+      </div>
     </div>
     <div id="anag-list"></div>
     <div id="anag-pagination" class="anag-pagination" style="display:none">
@@ -3506,22 +3533,84 @@ function toggleAnagrafica() {
   const sec = document.getElementById('anag-section');
   const visible = sec.style.display !== 'none' && sec.style.display !== '';
   sec.style.display = visible ? 'none' : 'block';
-  if (!visible) { searchAnagrafica(); document.getElementById('anag-input').focus(); }
+  if (!visible) { populateAnagFilters(); searchAnagrafica(); document.getElementById('anag-input').focus(); }
+}
+
+function toggleAnagFilters() {
+  const body = document.getElementById('anag-filter-body');
+  const tog  = document.getElementById('anag-filter-toggle');
+  const open = body.classList.toggle('open');
+  tog.textContent = open ? '▴' : '▾';
+}
+
+function populateAnagFilters() {
+  const all = Object.values(DB);
+  const unique = key => [...new Set(all.map(d => d[key]).filter(Boolean))].sort();
+  const fill = (id, vals) => {
+    const sel = document.getElementById(id);
+    const cur = sel.value;
+    sel.innerHTML = '<option value="">Tutti</option>' + vals.map(v=>`<option value="${_esc(v)}">${_esc(v)}</option>`).join('');
+    if (cur) sel.value = cur;
+  };
+  fill('af-presidio',  unique('loc'));
+  fill('af-reparto',   unique('rep'));
+  fill('af-costruttore', unique('b'));
+  // VSP e CQ tipi da VERIF_MAP
+  const vspTipi = [...new Set(Object.values(VERIF_MAP).map(v=>v.vsp).filter(Boolean))].sort();
+  const cqTipi  = [...new Set(Object.values(VERIF_MAP).map(v=>v.cq).filter(Boolean))].sort();
+  fill('af-vsp', vspTipi);
+  fill('af-cq',  cqTipi);
+}
+
+function resetAnagFilters() {
+  ['af-presidio','af-reparto','af-costruttore','af-vsp','af-cq'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  searchAnagrafica();
+}
+
+function getAnagFilters() {
+  return {
+    presidio:    document.getElementById('af-presidio')?.value    || '',
+    reparto:     document.getElementById('af-reparto')?.value     || '',
+    costruttore: document.getElementById('af-costruttore')?.value || '',
+    vsp:         document.getElementById('af-vsp')?.value         || '',
+    cq:          document.getElementById('af-cq')?.value          || '',
+  };
+}
+
+function countActiveFilters(f) {
+  return Object.values(f).filter(Boolean).length;
 }
 
 function searchAnagrafica() {
   const q = (document.getElementById('anag-input').value||'').trim().toLowerCase();
+  const f = getAnagFilters();
   anagPage = 0;
-  const all = Object.values(DB);
-  anagResults = q ? all.filter(d =>
-    d.c.includes(q) ||
-    (d.n||'').toLowerCase().includes(q) ||
-    (d.b||'').toLowerCase().includes(q) ||
-    (d.m||'').toLowerCase().includes(q) ||
-    (d.mat||'').toLowerCase().includes(q) ||
-    (d.rep||'').toLowerCase().includes(q) ||
-    (d.loc||'').toLowerCase().includes(q)
-  ) : all;
+  anagResults = Object.values(DB).filter(d => {
+    if (q && !(
+      d.c.includes(q) ||
+      (d.n||'').toLowerCase().includes(q) ||
+      (d.b||'').toLowerCase().includes(q) ||
+      (d.m||'').toLowerCase().includes(q) ||
+      (d.mat||'').toLowerCase().includes(q) ||
+      (d.rep||'').toLowerCase().includes(q) ||
+      (d.loc||'').toLowerCase().includes(q)
+    )) return false;
+    if (f.presidio    && (d.loc||'') !== f.presidio)    return false;
+    if (f.reparto     && (d.rep||'') !== f.reparto)     return false;
+    if (f.costruttore && (d.b||'')   !== f.costruttore) return false;
+    if (f.vsp || f.cq) {
+      const vm = VERIF_MAP[d.c] || {};
+      if (f.vsp && vm.vsp !== f.vsp) return false;
+      if (f.cq  && vm.cq  !== f.cq)  return false;
+    }
+    return true;
+  });
+  // Aggiorna badge filtri attivi
+  const n = countActiveFilters(f);
+  const countEl = document.getElementById('anag-filter-count');
+  if (countEl) countEl.textContent = n ? `${n} attivo${n>1?'i':''}` : '';
   renderAnagList();
 }
 
