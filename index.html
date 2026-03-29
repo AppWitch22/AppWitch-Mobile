@@ -2743,14 +2743,10 @@ async function importPresetsFromExcel(input) {
   async function importBatch(table, payload) {
     if (!payload.length) return 0;
     const CHUNK = 500;
-    const tipo = payload[0].tipo;
     let count = 0;
     for (let i=0; i<payload.length; i+=CHUNK) {
       const chunk = payload.slice(i, i+CHUNK);
-      const codici = chunk.map(r=>r.codice).join(',');
-      const filter = tipo ? `?codice=in.(${codici})&tipo=eq.${tipo}` : `?codice=in.(${codici})`;
-      await fetch(`${SUPA_URL}/rest/v1/${table}${filter}`, {method:'DELETE',headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+token}});
-      const r = await fetch(`${SUPA_URL}/rest/v1/${table}`, {method:'POST',headers:{...supaHdrs(token),'Prefer':'return=minimal'},body:JSON.stringify(chunk)});
+      const r = await fetch(`${SUPA_URL}/rest/v1/${table}`, {method:'POST',headers:{...supaHdrs(token),'Prefer':'return=minimal,resolution=merge-duplicates'},body:JSON.stringify(chunk)});
       if (!r.ok) { const t=await r.text(); toast(`Errore import ${table}: ${t.slice(0,80)}`, 'warn'); return count; }
       count += chunk.length;
     }
