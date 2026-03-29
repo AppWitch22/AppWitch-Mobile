@@ -2742,13 +2742,24 @@ async function importPresetsFromExcel(input) {
 
   async function importBatch(table, payload) {
     if (!payload.length) return 0;
-    const codici = [...new Set(payload.map(r=>r.codice))];
+    const CHUNK = 500;
+    // DELETE a blocchi per evitare URL troppo lunghi
     const tipo = payload[0].tipo;
-    const filter = tipo ? `?codice=in.(${codici.join(',')})&tipo=eq.${tipo}` : `?codice=in.(${codici.join(',')})`;
-    await fetch(`${SUPA_URL}/rest/v1/${table}${filter}`, {method:'DELETE',headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+token}});
-    const r = await fetch(`${SUPA_URL}/rest/v1/${table}`, {method:'POST',headers:{...supaHdrs(token),'Prefer':'return=minimal'},body:JSON.stringify(payload)});
-    if (!r.ok) { const t=await r.text(); toast(`Errore import ${table}: ${t.slice(0,80)}`, 'warn'); return 0; }
-    return payload.length;
+    const codici = [...new Set(payload.map(r=>r.codice))];
+    for (let i=0; i<codici.length; i+=CHUNK) {
+      const slice = codici.slice(i, i+CHUNK);
+      const filter = tipo ? `?codice=in.(${slice.join(',')})&tipo=eq.${tipo}` : `?codice=in.(${slice.join(',')})`;
+      await fetch(`${SUPA_URL}/rest/v1/${table}${filter}`, {method:'DELETE',headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+token}});
+    }
+    // POST a blocchi da 500 record
+    let count = 0;
+    for (let i=0; i<payload.length; i+=CHUNK) {
+      const chunk = payload.slice(i, i+CHUNK);
+      const r = await fetch(`${SUPA_URL}/rest/v1/${table}`, {method:'POST',headers:{...supaHdrs(token),'Prefer':'return=minimal'},body:JSON.stringify(chunk)});
+      if (!r.ok) { const t=await r.text(); toast(`Errore import ${table}: ${t.slice(0,80)}`, 'warn'); return count; }
+      count += chunk.length;
+    }
+    return count;
   }
   // Helper: read cell as string or null
   const _rc = (row,c) => (row[c]!=null&&row[c]!=='') ? String(row[c]) : null;
@@ -2762,7 +2773,7 @@ async function importPresetsFromExcel(input) {
     const FVSE=['codice','data','note','ten','tdp','frq','fdp','pot','pdp','mar','fud','fur','cls','cdp','pat','pad','fnz','def','spi','smo','msp','cav','icv','isp','int','pdc','icn','prc','icd','mus','mse','nag','clm','tms','cor','trl','trm','pnl','pnm','pil','pim','pbl','pbm','ibl','ibm','pcl','pcm','icl','icm','giu','vt','vd','mot','','str','nrs','ver','dat2','vrc','sct'];
     const rows = XLSX.utils.sheet_to_json(vseWs,{header:1,defval:''});
     const payload = rows.slice(1).map(row => {
-      const codice=norm(row[0]); if(!DB[codice]) return null;
+      const codice=norm(row[0]); if(!codice||codice==='0000000') return null;
       const dati={}; FVSE.forEach((f,i)=>{ if(VSE_PRESET_FIELDS.has(f)&&row[i]!=null&&row[i]!=='') dati[f]=String(row[i]); });
       return Object.keys(dati).length ? {codice,dati} : null;
     }).filter(Boolean);
@@ -2774,7 +2785,7 @@ async function importPresetsFromExcel(input) {
   if (mpWs) {
     const rows = XLSX.utils.sheet_to_json(mpWs,{header:1,defval:''});
     const payload = rows.slice(2).map(row => {
-      const codice=norm(row[0]); if(!DB[codice]) return null;
+      const codice=norm(row[0]); if(!codice||codice==='0000000') return null;
       const dati={};
       for(let i=1;i<=19;i++){const b=3+(i-1)*3; if(row[b]) dati['mp'+i+'_ok']=true; if(row[b+1]) dati['mp'+i+'_ko']=true; if(row[b+2]) dati['mp'+i+'_na']=true;}
       if(row[60]) dati.mp_tecnico=String(row[60]);
@@ -2789,7 +2800,7 @@ async function importPresetsFromExcel(input) {
     const rows = XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
     const def = VSP_POINTS[tipo];
     const payload = rows.slice(3).map(row => {
-      const codice=norm(row[0]); if(!DB[codice]) return null;
+      const codice=norm(row[0]); if(!codice||codice==='0000000') return null;
       const dati={};
       if(tipo==='VSP_ELB'){
         // Dati targa at explicit cols (skipping merged/empty header cols)
@@ -2885,7 +2896,7 @@ async function importPresetsFromExcel(input) {
     const sc = CQ_SC[tipo], tc = CQ_TC[tipo];
 
     const payload = rows.slice(3).map(row => {
-      const codice=norm(row[0]); if(!DB[codice]) return null;
+      const codice=norm(row[0]); if(!codice||codice==='0000000') return null;
       const dati={};
       // Vis checkboxes (3 cols each: OK, KO, NA)
       visPoints.forEach((p,idx)=>{
