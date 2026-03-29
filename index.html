@@ -2742,12 +2742,16 @@ async function importPresetsFromExcel(input) {
 
   async function importBatch(table, payload) {
     if (!payload.length) return 0;
+    // Deduplica per (codice, tipo) — tiene l'ultimo record in caso di duplicati nel file
+    const seen = new Map();
+    for (const row of payload) { seen.set(row.codice + '|' + (row.tipo||''), row); }
+    const deduped = [...seen.values()];
     const CHUNK = 200;
     let count = 0;
-    for (let i=0; i<payload.length; i+=CHUNK) {
-      const chunk = payload.slice(i, i+CHUNK);
+    for (let i=0; i<deduped.length; i+=CHUNK) {
+      const chunk = deduped.slice(i, i+CHUNK);
       const r = await fetch(`${SUPA_URL}/rest/v1/${table}`, {method:'POST',headers:{...supaHdrs(token),'Prefer':'return=minimal,resolution=merge-duplicates'},body:JSON.stringify(chunk)});
-      if (!r.ok) { const t=await r.text(); console.error(`importBatch ${table} chunk ${i}-${i+chunk.length}:`, t); toast(`Errore import ${table} chunk ${i}: ${t.slice(0,80)}`, 'warn'); return count; }
+      if (!r.ok) { const t=await r.text(); console.error(`importBatch ${table} chunk ${i}:`, t); toast(`Errore import ${table}: ${t.slice(0,80)}`, 'warn'); return count; }
       count += chunk.length;
     }
     return count;
