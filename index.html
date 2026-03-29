@@ -263,13 +263,23 @@ h1{font-size:18px;font-weight:600;margin-bottom:4px}
 /* FILTRI ANAGRAFICA */
 .anag-filter-hdr{display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:6px 0;font-size:13px;font-weight:600;color:var(--text2);user-select:none;-webkit-tap-highlight-color:transparent;margin-bottom:6px}
 .anag-filter-hdr .anag-filter-count{font-size:12px;font-weight:400;color:var(--info)}
-.anag-filter-body{display:none;background:var(--bg2);border:1px solid var(--border);border-radius:var(--rad);padding:12px;margin-bottom:10px}
+.anag-filter-body{display:none;background:var(--bg2);border:1px solid var(--border);border-radius:var(--rad);padding:10px;margin-bottom:10px}
 .anag-filter-body.open{display:block}
-.anag-filter-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;margin-bottom:10px}
-.anag-filter-field{display:flex;flex-direction:column;gap:4px}
-.anag-filter-field label{font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.03em}
-.anag-filter-field select{font-size:13px;padding:7px 10px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text);outline:none;-webkit-appearance:none;appearance:none;width:100%}
-.anag-filter-field select:focus{border-color:var(--info)}
+.anag-filter-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;margin-bottom:10px}
+.af-item{position:relative}
+.af-btn{width:100%;display:flex;align-items:center;justify-content:space-between;gap:4px;padding:7px 10px;font-size:12px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text);cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+.af-btn.active{border-color:var(--info);background:var(--info-bg);color:var(--info)}
+.af-btn-label{font-weight:600;text-transform:uppercase;letter-spacing:.03em;font-size:11px;flex-shrink:0}
+.af-btn-val{font-size:11px;color:var(--text2);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right;padding-left:4px}
+.af-btn.active .af-btn-val{color:var(--info)}
+.af-panel{display:none;position:absolute;top:calc(100% + 4px);left:0;min-width:100%;max-width:260px;background:var(--bg);border:1px solid var(--border2);border-radius:var(--rad);box-shadow:0 4px 16px rgba(0,0,0,.15);z-index:200;padding:6px 0;max-height:220px;overflow-y:auto}
+.af-panel.open{display:block}
+.af-check-item{display:flex;align-items:center;gap:8px;padding:6px 12px;cursor:pointer;font-size:13px;-webkit-tap-highlight-color:transparent}
+.af-check-item:hover{background:var(--bg2)}
+.af-check-item input{width:15px;height:15px;cursor:pointer;flex-shrink:0}
+.af-check-item.disabled{opacity:.4;pointer-events:none}
+.af-panel-footer{padding:6px 12px;border-top:1px solid var(--border);display:flex;gap:6px}
+.af-panel-footer button{flex:1;padding:5px;font-size:12px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);cursor:pointer;color:var(--text)}
 .anag-filter-actions{display:flex;gap:8px}
 </style>
 </head>
@@ -325,18 +335,7 @@ h1{font-size:18px;font-weight:600;margin-bottom:4px}
       <span class="anag-filter-count" id="anag-filter-count"></span>
     </div>
     <div class="anag-filter-body" id="anag-filter-body">
-      <div class="anag-filter-grid">
-        <div class="anag-filter-field"><label>Presidio</label><select id="af-presidio" onchange="searchAnagrafica()"><option value="">Tutti</option></select></div>
-        <div class="anag-filter-field"><label>Sede Struttura</label><select id="af-sede" onchange="searchAnagrafica()"><option value="">Tutti</option></select></div>
-        <div class="anag-filter-field"><label>Reparto</label><select id="af-reparto" onchange="searchAnagrafica()"><option value="">Tutti</option></select></div>
-        <div class="anag-filter-field"><label>Nuova Area</label><select id="af-nuova-area" onchange="searchAnagrafica()"><option value="">Tutte</option></select></div>
-        <div class="anag-filter-field"><label>Codice Padre</label><select id="af-codice-padre" onchange="searchAnagrafica()"><option value="">Tutti</option></select></div>
-        <div class="anag-filter-field"><label>Costruttore</label><select id="af-costruttore" onchange="searchAnagrafica()"><option value="">Tutti</option></select></div>
-        <div class="anag-filter-field"><label>Modello</label><select id="af-modello" onchange="searchAnagrafica()"><option value="">Tutti</option></select></div>
-        <div class="anag-filter-field"><label>Presenze Effettive</label><select id="af-presenze" onchange="searchAnagrafica()"><option value="">Tutte</option></select></div>
-        <div class="anag-filter-field"><label>Tipo VSP</label><select id="af-vsp" onchange="searchAnagrafica()"><option value="">Tutti</option></select></div>
-        <div class="anag-filter-field"><label>Tipo CQ</label><select id="af-cq" onchange="searchAnagrafica()"><option value="">Tutti</option></select></div>
-      </div>
+      <div class="anag-filter-grid" id="anag-filter-grid"></div>
       <div class="anag-filter-actions">
         <button class="btn-sm" onclick="resetAnagFilters()">✕ Reset filtri</button>
       </div>
@@ -3542,7 +3541,11 @@ function toggleAnagrafica() {
   const sec = document.getElementById('anag-section');
   const visible = sec.style.display !== 'none' && sec.style.display !== '';
   sec.style.display = visible ? 'none' : 'block';
-  if (!visible) { populateAnagFilters(); searchAnagrafica(); document.getElementById('anag-input').focus(); }
+  if (!visible) {
+    if (!document.getElementById('af-item-loc')) { buildAnagFilterGrid(); initAfState(); updateAllAfBtns(); }
+    searchAnagrafica();
+    document.getElementById('anag-input').focus();
+  }
 }
 
 function toggleAnagFilters() {
@@ -3552,26 +3555,29 @@ function toggleAnagFilters() {
   tog.textContent = open ? '▴' : '▾';
 }
 
-// Definizione filtri: id select, chiave su oggetto DB (o 'vsp'/'cq' speciali)
-// fixedVals: se presente usa valori fissi invece di estrarli dal DB
+// Definizione filtri multi-select
+// fixedVals: valori fissi (non estratti dal DB); defaultSel: selezionati di default
 const ANAG_FILTER_DEFS = [
-  {id:'af-presidio',    dbKey:'loc'},
-  {id:'af-sede',        dbKey:'ss'},
-  {id:'af-reparto',     dbKey:'rep'},
-  {id:'af-nuova-area',  dbKey:'na'},
-  {id:'af-codice-padre',dbKey:'cp'},
-  {id:'af-costruttore', dbKey:'b'},
-  {id:'af-modello',     dbKey:'m'},
-  {id:'af-presenze',    dbKey:'pe', fixedVals:['1','2','3']},
-  {id:'af-vsp',         dbKey:'vsp'},
-  {id:'af-cq',          dbKey:'cq'},
+  {key:'loc', label:'Presidio'},
+  {key:'ss',  label:'Sede Struttura'},
+  {key:'rep', label:'Reparto'},
+  {key:'na',  label:'Nuova Area'},
+  {key:'cp',  label:'Codice Padre'},
+  {key:'b',   label:'Costruttore'},
+  {key:'m',   label:'Modello'},
+  {key:'pe',  label:'Presenze Eff.', fixedVals:['1','2','3'], defaultSel:['1','3']},
 ];
 
-function _anagDbVal(d, dbKey) {
-  if (dbKey === 'vsp') return (VERIF_MAP[d.c]||{}).vsp || '';
-  if (dbKey === 'cq')  return (VERIF_MAP[d.c]||{}).cq  || '';
-  return d[dbKey] || '';
+// Stato filtri: key → Set di valori selezionati (Set vuoto = tutti)
+let afState = {};
+
+function initAfState() {
+  ANAG_FILTER_DEFS.forEach(d => {
+    afState[d.key] = d.defaultSel ? new Set(d.defaultSel) : new Set();
+  });
 }
+
+function _anagDbVal(d, key) { return d[key] || ''; }
 
 function _matchesQuery(d, q) {
   return d.c.includes(q) ||
@@ -3586,70 +3592,133 @@ function _matchesQuery(d, q) {
     (d.cp||'').toLowerCase().includes(q);
 }
 
-function getAnagFilters() {
-  const f = {};
-  ANAG_FILTER_DEFS.forEach(def => { f[def.dbKey] = document.getElementById(def.id)?.value || ''; });
-  return f;
+function _deviceMatchesFilters(d, excludeKey) {
+  for (const def of ANAG_FILTER_DEFS) {
+    if (def.key === excludeKey) continue;
+    const sel = afState[def.key];
+    if (sel.size > 0 && !sel.has(_anagDbVal(d, def.key))) return false;
+  }
+  return true;
 }
 
-function countActiveFilters(f) {
-  return Object.values(f).filter(Boolean).length;
+function buildAnagFilterGrid() {
+  const grid = document.getElementById('anag-filter-grid');
+  if (!grid) return;
+  grid.innerHTML = ANAG_FILTER_DEFS.map(def => `
+    <div class="af-item" id="af-item-${def.key}">
+      <button class="af-btn" id="af-btn-${def.key}" onclick="toggleAfPanel('${def.key}')">
+        <span class="af-btn-label">${def.label}</span>
+        <span class="af-btn-val" id="af-bval-${def.key}">Tutti</span>
+        <span>▾</span>
+      </button>
+      <div class="af-panel" id="af-panel-${def.key}">
+        <div id="af-checks-${def.key}"></div>
+        <div class="af-panel-footer">
+          <button onclick="afSelectAll('${def.key}')">Tutti</button>
+          <button onclick="afClearAll('${def.key}')">Nessuno</button>
+        </div>
+      </div>
+    </div>`).join('');
+  // Chiudi panel cliccando fuori
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.af-item')) closeAllAfPanels();
+  }, {capture:true});
 }
 
-// Aggiorna le opzioni di ogni select mostrando solo valori compatibili
-// con i filtri attivi sugli ALTRI campi (logica cascata stile Excel)
-function updateFilterCascade(q, f) {
+function toggleAfPanel(key) {
+  const panel = document.getElementById('af-panel-'+key);
+  const isOpen = panel.classList.contains('open');
+  closeAllAfPanels();
+  if (!isOpen) { updateAfPanel(key); panel.classList.add('open'); }
+}
+function closeAllAfPanels() {
+  document.querySelectorAll('.af-panel.open').forEach(p => p.classList.remove('open'));
+}
+
+function updateAfPanel(key) {
+  const def = ANAG_FILTER_DEFS.find(d => d.key === key);
+  const q = (document.getElementById('anag-input').value||'').trim().toLowerCase();
   const all = Object.values(DB);
-  ANAG_FILTER_DEFS.forEach(def => {
-    const sel = document.getElementById(def.id);
-    if (!sel) return;
-    const cur = sel.value;
-    // Filtra il DB escludendo il filtro del campo corrente
-    const subset = all.filter(d => {
-      if (q && !_matchesQuery(d, q)) return false;
-      for (const other of ANAG_FILTER_DEFS) {
-        if (other.id === def.id) continue;
-        const fv = f[other.dbKey];
-        if (fv && _anagDbVal(d, other.dbKey) !== fv) return false;
-      }
-      return true;
-    });
-    // Per fixedVals usa valori fissi filtrati per quelli presenti nel subset
-    const presentVals = new Set(subset.map(d => _anagDbVal(d, def.dbKey)).filter(Boolean));
-    const vals = def.fixedVals
-      ? def.fixedVals.filter(v => presentVals.has(v))
-      : [...presentVals].sort();
-    sel.innerHTML = '<option value="">Tutti</option>' + vals.map(v=>`<option value="${_esc(v)}">${_esc(v)}</option>`).join('');
-    sel.value = vals.includes(cur) ? cur : '';
-  });
+  // Valori disponibili = subset che passa tutti gli ALTRI filtri
+  const subset = all.filter(d => (q ? _matchesQuery(d, q) : true) && _deviceMatchesFilters(d, key));
+  const available = def.fixedVals
+    ? def.fixedVals.filter(v => subset.some(d => _anagDbVal(d, key) === v))
+    : [...new Set(subset.map(d => _anagDbVal(d, key)).filter(Boolean))].sort();
+  // Tutti i valori selezionati (anche non più disponibili) per mostrarli greyed
+  const allVals = def.fixedVals ? def.fixedVals : available;
+  const sel = afState[key];
+  document.getElementById('af-checks-'+key).innerHTML = allVals.map(v => {
+    const avail = available.includes(v);
+    const checked = sel.has(v);
+    const cnt = subset.filter(d => _anagDbVal(d, key) === v).length;
+    return `<label class="af-check-item${avail?'':' disabled'}">
+      <input type="checkbox" ${checked?'checked':''} onchange="afToggleVal('${key}','${_esc(v)}',this.checked)">
+      <span>${_esc(v)}</span><span style="margin-left:auto;font-size:11px;color:var(--text3)">${avail?cnt:''}</span>
+    </label>`;
+  }).join('');
+}
+
+function afToggleVal(key, val, checked) {
+  const sel = afState[key];
+  checked ? sel.add(val) : sel.delete(val);
+  updateAfBtn(key);
+  searchAnagrafica();
+  updateAfPanel(key); // aggiorna conteggi e disponibilità
+}
+
+function afSelectAll(key) {
+  afState[key] = new Set();
+  updateAfBtn(key); closeAllAfPanels(); searchAnagrafica();
+}
+function afClearAll(key) {
+  // Per presenze: se si azzerano, rimettere default
+  const def = ANAG_FILTER_DEFS.find(d => d.key === key);
+  afState[key] = def.defaultSel ? new Set(def.defaultSel) : new Set();
+  updateAfBtn(key); closeAllAfPanels(); searchAnagrafica();
+}
+
+function updateAfBtn(key) {
+  const sel = afState[key];
+  const btn = document.getElementById('af-btn-'+key);
+  const val = document.getElementById('af-bval-'+key);
+  if (!btn||!val) return;
+  if (sel.size === 0) {
+    val.textContent = 'Tutti';
+    btn.classList.remove('active');
+  } else {
+    const arr = [...sel];
+    val.textContent = arr.length <= 2 ? arr.join(', ') : `${arr.length} selezionati`;
+    btn.classList.add('active');
+  }
+}
+
+function updateAllAfBtns() { ANAG_FILTER_DEFS.forEach(d => updateAfBtn(d.key)); }
+
+function countActiveFilters() {
+  return ANAG_FILTER_DEFS.filter(d => afState[d.key]?.size > 0).length;
 }
 
 function populateAnagFilters() {
-  updateFilterCascade('', getAnagFilters());
+  if (!document.getElementById('af-item-loc')) buildAnagFilterGrid();
+  initAfState();
+  updateAllAfBtns();
 }
 
 function resetAnagFilters() {
-  ANAG_FILTER_DEFS.forEach(def => { const el = document.getElementById(def.id); if (el) el.value = ''; });
+  initAfState();
+  updateAllAfBtns();
   searchAnagrafica();
 }
 
 function searchAnagrafica() {
+  if (!afState || !ANAG_FILTER_DEFS.length) return;
   const q = (document.getElementById('anag-input').value||'').trim().toLowerCase();
-  const f = getAnagFilters();
-  // Aggiorna opzioni a cascata
-  updateFilterCascade(q, f);
-  // Ricalcola i filtri dopo eventuale reset cascade
-  const f2 = getAnagFilters();
   anagPage = 0;
   anagResults = Object.values(DB).filter(d => {
     if (q && !_matchesQuery(d, q)) return false;
-    for (const def of ANAG_FILTER_DEFS) {
-      const fv = f2[def.dbKey];
-      if (fv && _anagDbVal(d, def.dbKey) !== fv) return false;
-    }
-    return true;
+    return _deviceMatchesFilters(d, null);
   });
-  const n = countActiveFilters(f2);
+  const n = countActiveFilters();
   const countEl = document.getElementById('anag-filter-count');
   if (countEl) countEl.textContent = n ? `${n} attivo${n>1?'i':''}` : '';
   renderAnagList();
