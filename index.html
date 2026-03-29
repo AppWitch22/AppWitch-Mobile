@@ -224,6 +224,42 @@ h1{font-size:18px;font-weight:600;margin-bottom:4px}
 .sess-sync-dot.offline{background:var(--border2)}
 .btn-sess{padding:4px 10px;font-size:12px;border-radius:var(--rad);cursor:pointer;background:var(--bg);border:1px solid var(--border2);color:var(--text2)}
 .btn-sess.danger{border-color:var(--ko);color:var(--ko)}
+
+/* ANAGRAFICA */
+#anag-section{margin-bottom:14px}
+.anag-search-row{display:flex;gap:8px;margin-bottom:10px}
+.anag-search-row input{flex:1;font-size:16px;padding:10px 12px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text);outline:none;-webkit-appearance:none}
+.anag-search-row input:focus{border-color:var(--info)}
+.anag-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--rad);margin-bottom:6px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.anag-item:active{background:var(--bg2)}
+.anag-cod{font-family:monospace;font-size:13px;color:var(--info);min-width:70px;flex-shrink:0}
+.anag-info{flex:1}
+.anag-nome{font-size:14px;font-weight:500}
+.anag-loc{font-size:11px;color:var(--text3);margin-top:2px}
+.anag-arrow{color:var(--text3);font-size:18px;flex-shrink:0}
+.anag-pagination{display:flex;align-items:center;justify-content:center;gap:10px;padding:8px 0;font-size:13px;color:var(--text2)}
+.anag-pagination button{padding:6px 14px;font-size:13px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text);cursor:pointer}
+.anag-pagination button:disabled{opacity:.4;cursor:not-allowed}
+/* MODAL DETTAGLIO */
+#anag-modal{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:10000;display:none;align-items:flex-start;justify-content:center;padding:16px;overflow-y:auto}
+#anag-modal.open{display:flex}
+.anag-modal-box{background:var(--bg);border-radius:var(--rad-lg);width:100%;max-width:660px;padding:20px;margin:auto}
+.anag-modal-hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;gap:8px}
+.anag-modal-hdr h2{font-size:15px;font-weight:600;line-height:1.4}
+.anag-modal-actions{display:flex;gap:6px;flex-shrink:0}
+.anag-grp{border:1px solid var(--border);border-radius:var(--rad-lg);margin-bottom:10px;overflow:hidden}
+.anag-grp-hdr{background:var(--bg2);padding:9px 14px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--text2);cursor:pointer;display:flex;justify-content:space-between;align-items:center;user-select:none;-webkit-tap-highlight-color:transparent}
+.anag-grp-body{padding:14px;display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px}
+.anag-grp-body.hidden{display:none}
+.anag-field{display:flex;flex-direction:column;gap:4px}
+.anag-field.full{grid-column:1/-1}
+.anag-field label{font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.03em}
+.anag-field input,.anag-field textarea{font-size:14px;padding:8px 10px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text);outline:none;-webkit-appearance:none;width:100%}
+.anag-field input:focus,.anag-field textarea:focus{border-color:var(--info)}
+.anag-field input[readonly]{background:var(--bg2);color:var(--text2)}
+.anag-field textarea{resize:vertical;min-height:58px;font-family:inherit}
+.jolly-lbl-btn{background:none;border:none;padding:0;color:var(--text2);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.03em;cursor:pointer;display:inline-flex;align-items:center;gap:3px}
+.jolly-lbl-btn:hover{color:var(--info)}
 </style>
 </head>
 <body>
@@ -260,6 +296,25 @@ h1{font-size:18px;font-weight:600;margin-bottom:4px}
     </div>
     <div class="chips" id="chips"><span class="sess-empty">Nessun apparecchio compilato</span></div>
     <div class="sess-stats" id="sess-stats" style="display:none"></div>
+  </div>
+
+  <!-- SEZIONE ANAGRAFICA -->
+  <div class="card" id="anag-section" style="display:none">
+    <div class="sess-hdr">
+      <div class="card-title" style="margin-bottom:0">Anagrafica Dispositivi</div>
+      <div class="sess-btns">
+        <label class="btn-sm" style="cursor:pointer" title="Importa anagrafica da file Excel">📥 Importa<input type="file" accept=".xlsx,.xls" onchange="importAnagraficaFromExcel(this)" style="display:none"></label>
+      </div>
+    </div>
+    <div class="anag-search-row">
+      <input type="text" id="anag-input" placeholder="Codice, nome, costruttore, reparto..." autocomplete="off" oninput="searchAnagrafica()" onkeydown="if(event.key==='Enter')searchAnagrafica()">
+    </div>
+    <div id="anag-list"></div>
+    <div id="anag-pagination" class="anag-pagination" style="display:none">
+      <button onclick="anagPrev()">◀</button>
+      <span id="anag-page-info"></span>
+      <button onclick="anagNext()">▶</button>
+    </div>
   </div>
 
   <div class="export-preview" id="export-preview">
@@ -2099,6 +2154,7 @@ document.querySelector('.app').insertAdjacentHTML('afterbegin', `
 <div id="user-bar">
   <div><span class="u-name" id="u-name"></span><span class="u-role" id="u-role"></span></div>
  <button onclick="openAdmin()" id="btn-admin" style="display:none">Admin</button>
+  <button onclick="toggleAnagrafica()">Anagrafica</button>
   <button onclick="doLogout()">Esci</button>
 </div>
 `);
@@ -3394,6 +3450,302 @@ async function exportTutti(cod){
 
 // ── FINE EXPORT XLSX ──────────────────────────────────────────
 
+// ── ANAGRAFICA ────────────────────────────────────────────────
+
+const ANAG_GROUPS = [
+  { id:'id', label:'Identificazione', fields:[
+    {k:'codice',l:'Codice',ro:true},
+    {k:'codice_padre',l:'Codice Padre'},
+    {k:'descrizione_classe',l:'Descrizione Classe',full:true},
+    {k:'costruttore',l:'Costruttore'},
+    {k:'modello',l:'Modello'},
+    {k:'matricola',l:'Matricola'},
+    {k:'civab',l:'CIVAB'},
+  ]},
+  { id:'loc', label:'Collocazione', fields:[
+    {k:'cliente',l:'Cliente'},
+    {k:'presidio',l:'Presidio'},
+    {k:'reparto',l:'Reparto'},
+    {k:'nuova_area',l:'Nuova Area'},
+    {k:'sede_struttura',l:'Sede Struttura'},
+    {k:'stanza',l:'Stanza'},
+  ]},
+  { id:'stato', label:'Stato e Ciclo di Vita', fields:[
+    {k:'dettagli_stato',l:'Stato'},
+    {k:'presenze_effettive',l:'Presenze Effettive'},
+    {k:'esito_verifica',l:'Esito Verifica'},
+    {k:'esito_verifica_precedente',l:'Esito Precedente'},
+    {k:'proprieta',l:'Proprietà'},
+    {k:'forma_presenza',l:'Forma Presenza'},
+    {k:'data_collaudo',l:'Data Collaudo'},
+    {k:'data_fine_garanzia',l:'Fine Garanzia'},
+    {k:'manutentore',l:'Manutentore'},
+    {k:'fine_service_comodato',l:'Fine Comodato'},
+    {k:'proposta_dismissione',l:'Proposta Dismissione'},
+    {k:'dismissione_effettiva',l:'Dismissione Effettiva'},
+  ]},
+  { id:'verif', label:'Verifiche', fields:[
+    {k:'verifiche',l:'Tipi Verifica',full:true},
+    {k:'periodicita_vse',l:'Period. VSE'},{k:'vse_2324',l:'VSE 23/24'},{k:'vse_2425',l:'VSE 24/25'},{k:'vse_2526',l:'VSE 25/26'},{k:'data_prossima_vse',l:'Prossima VSE'},
+    {k:'periodicita_vsp',l:'Period. VSP'},{k:'vsp_2324',l:'VSP 23/24'},{k:'vsp_2425',l:'VSP 24/25'},{k:'vsp_2526',l:'VSP 25/26'},{k:'data_prossima_vsp',l:'Prossima VSP'},
+    {k:'periodicita_mp',l:'Period. MP'},{k:'mp_2324',l:'MP 23/24'},{k:'mp_2425',l:'MP 24/25'},{k:'mp_2526',l:'MP 25/26'},{k:'data_prossima_mp',l:'Prossima MP'},
+    {k:'periodicita_cq',l:'Period. CQ'},{k:'cq_2324',l:'CQ 23/24'},{k:'cq_2425',l:'CQ 24/25'},{k:'cq_2526',l:'CQ 25/26'},{k:'data_prossimo_cq',l:'Prossimo CQ'},
+  ]},
+  { id:'note', label:'Note', fields:[
+    {k:'note_programmate',l:'Note Programmate',full:true,ta:true},
+    {k:'note_inventario',l:'Note Inventario',full:true,ta:true},
+  ]},
+];
+
+let anagPage = 0;
+const ANAG_PER_PAGE = 30;
+let anagResults = [];
+let anagCurDev = null;
+
+function toggleAnagrafica() {
+  const sec = document.getElementById('anag-section');
+  const visible = sec.style.display !== 'none' && sec.style.display !== '';
+  sec.style.display = visible ? 'none' : 'block';
+  if (!visible) { searchAnagrafica(); document.getElementById('anag-input').focus(); }
+}
+
+function searchAnagrafica() {
+  const q = (document.getElementById('anag-input').value||'').trim().toLowerCase();
+  anagPage = 0;
+  const all = Object.values(DB);
+  anagResults = q ? all.filter(d =>
+    d.c.includes(q) ||
+    (d.n||'').toLowerCase().includes(q) ||
+    (d.b||'').toLowerCase().includes(q) ||
+    (d.m||'').toLowerCase().includes(q) ||
+    (d.mat||'').toLowerCase().includes(q) ||
+    (d.rep||'').toLowerCase().includes(q) ||
+    (d.loc||'').toLowerCase().includes(q)
+  ) : all;
+  renderAnagList();
+}
+
+function renderAnagList() {
+  const list = document.getElementById('anag-list');
+  const pag  = document.getElementById('anag-pagination');
+  const start = anagPage * ANAG_PER_PAGE;
+  const page  = anagResults.slice(start, start + ANAG_PER_PAGE);
+  if (!page.length) {
+    list.innerHTML = '<div class="not-found">Nessun dispositivo trovato</div>';
+    pag.style.display = 'none'; return;
+  }
+  list.innerHTML = page.map(d => `
+    <div class="anag-item" onclick="openAnagDetail('${d.c}')">
+      <span class="anag-cod">${d.c}</span>
+      <div class="anag-info">
+        <div class="anag-nome">${_esc(d.n||'—')}</div>
+        <div class="anag-loc">${[d.b,d.m,d.rep].filter(Boolean).map(_esc).join(' · ')}</div>
+      </div>
+      <span class="anag-arrow">›</span>
+    </div>`).join('');
+  const tp = Math.ceil(anagResults.length / ANAG_PER_PAGE);
+  if (tp > 1) {
+    pag.style.display = 'flex';
+    document.getElementById('anag-page-info').textContent = `Pag. ${anagPage+1}/${tp} — ${anagResults.length} disp.`;
+    pag.querySelector('button:first-child').disabled = anagPage === 0;
+    pag.querySelector('button:last-child').disabled  = anagPage >= tp-1;
+  } else { pag.style.display = 'none'; }
+}
+function anagPrev(){ if(anagPage>0){anagPage--;renderAnagList();} }
+function anagNext(){ const tp=Math.ceil(anagResults.length/ANAG_PER_PAGE); if(anagPage<tp-1){anagPage++;renderAnagList();} }
+
+function _esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function getJollyLabels() {
+  const aslKey = (currentUser?.profile?.asl||'ASL Benevento').toLowerCase().replace('asl ','');
+  const s = localStorage.getItem('jolly_labels_'+aslKey);
+  return s ? JSON.parse(s) : Array.from({length:10},(_,i)=>`Jolly ${i+1}`);
+}
+function saveJollyLabels(labels) {
+  const aslKey = (currentUser?.profile?.asl||'ASL Benevento').toLowerCase().replace('asl ','');
+  localStorage.setItem('jolly_labels_'+aslKey, JSON.stringify(labels));
+}
+
+async function openAnagDetail(codice) {
+  const aslKey = (currentUser?.profile?.asl||'ASL Benevento').toLowerCase().replace('asl ','');
+  const token = await supaToken();
+  const r = await fetch(`${SUPA_URL}/rest/v1/dispositivi_${aslKey}?codice=eq.${codice}&limit=1`,
+    {headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+token}});
+  if (!r.ok) { toast('Errore caricamento dispositivo','warn'); return; }
+  const rows = await r.json();
+  if (!rows.length) { toast('Dispositivo non trovato','warn'); return; }
+  anagCurDev = rows[0];
+  renderAnagDetail();
+  document.getElementById('anag-modal').classList.add('open');
+}
+
+function closeAnagModal() {
+  document.getElementById('anag-modal').classList.remove('open');
+  anagCurDev = null;
+}
+
+function renderAnagDetail() {
+  const d = anagCurDev;
+  const jl = getJollyLabels();
+  document.getElementById('anag-modal-title').textContent = `${d.codice} — ${d.descrizione_classe||''}`;
+  let html = '';
+  for (const grp of ANAG_GROUPS) {
+    html += `<div class="anag-grp">
+      <div class="anag-grp-hdr" onclick="toggleAnagGrp('${grp.id}')"><span>${grp.label}</span><span id="anag-tog-${grp.id}">▾</span></div>
+      <div class="anag-grp-body" id="anag-grp-${grp.id}">`;
+    for (const f of grp.fields) {
+      const v = _esc(d[f.k]||'');
+      const cls = 'anag-field'+(f.full?' full':'');
+      if (f.ta) html += `<div class="${cls}"><label>${f.l}</label><textarea id="anag-f-${f.k}" data-k="${f.k}">${v}</textarea></div>`;
+      else      html += `<div class="${cls}"><label>${f.l}</label><input type="text" id="anag-f-${f.k}" data-k="${f.k}" value="${v}"${f.ro?' readonly':''}></div>`;
+    }
+    html += `</div></div>`;
+  }
+  // Jolly
+  html += `<div class="anag-grp">
+    <div class="anag-grp-hdr" onclick="toggleAnagGrp('jolly')"><span>Campi Jolly</span><span id="anag-tog-jolly">▾</span></div>
+    <div class="anag-grp-body" id="anag-grp-jolly">`;
+  for (let i=1;i<=10;i++) {
+    const k='jolly_'+i, v=_esc(d[k]||'');
+    html += `<div class="anag-field">
+      <label><button class="jolly-lbl-btn" onclick="editJollyLabel(${i})" title="Clicca per rinominare">${_esc(jl[i-1])} ✎</button></label>
+      <input type="text" id="anag-f-${k}" data-k="${k}" value="${v}">
+    </div>`;
+  }
+  html += `</div></div>`;
+  document.getElementById('anag-modal-body').innerHTML = html;
+}
+
+function toggleAnagGrp(id) {
+  const body = document.getElementById('anag-grp-'+id);
+  const tog  = document.getElementById('anag-tog-'+id);
+  const h = body.classList.toggle('hidden');
+  tog.textContent = h ? '▸' : '▾';
+}
+
+async function saveAnagDetail() {
+  if (!anagCurDev) return;
+  const patch = {};
+  document.querySelectorAll('#anag-modal-body [data-k]').forEach(el => {
+    if (el.readOnly) return;
+    patch[el.dataset.k] = el.value.trim() || null;
+  });
+  const aslKey = (currentUser?.profile?.asl||'ASL Benevento').toLowerCase().replace('asl ','');
+  const token = await supaToken();
+  const r = await fetch(`${SUPA_URL}/rest/v1/dispositivi_${aslKey}?codice=eq.${anagCurDev.codice}`, {
+    method:'PATCH', headers:{...supaHdrs(token),'Prefer':'return=minimal'}, body:JSON.stringify(patch)
+  });
+  if (!r.ok) { toast('Errore salvataggio','warn'); return; }
+  // Aggiorna cache in memoria
+  const cod = anagCurDev.codice;
+  Object.assign(anagCurDev, patch);
+  if (DB[cod]) {
+    if (patch.descrizione_classe!==undefined) DB[cod].n = patch.descrizione_classe||'';
+    if (patch.costruttore!==undefined) DB[cod].b = patch.costruttore||'';
+    if (patch.modello!==undefined) DB[cod].m = patch.modello||'';
+    if (patch.matricola!==undefined) DB[cod].mat = patch.matricola||'';
+    if (patch.presidio!==undefined) DB[cod].loc = patch.presidio||'';
+    if (patch.reparto!==undefined) DB[cod].rep = patch.reparto||'';
+  }
+  toast('Salvato','ok');
+}
+
+function editJollyLabel(i) {
+  const labels = getJollyLabels();
+  const newLabel = prompt(`Nome campo Jolly ${i}:`, labels[i-1]);
+  if (newLabel === null) return;
+  labels[i-1] = newLabel.trim() || `Jolly ${i}`;
+  saveJollyLabels(labels);
+  renderAnagDetail();
+}
+
+async function importAnagraficaFromExcel(input) {
+  const file = input.files[0]; if (!file) return;
+  input.value = '';
+  if (typeof XLSX === 'undefined') {
+    toast('Caricamento libreria...','warn');
+    await new Promise(res=>{ const s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js'; s.onload=res; document.head.appendChild(s); });
+  }
+  const wb = XLSX.read(await file.arrayBuffer(),{type:'array',cellDates:true});
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  if (!ws) { toast('Foglio non trovato','warn'); return; }
+  const COL_MAP = [
+    ['Codice','codice'],['Codice padre','codice_padre'],['Descrizione Classe','descrizione_classe'],
+    ['Costruttore','costruttore'],['Modello','modello'],['Matricola','matricola'],
+    ['Cliente','cliente'],['Presidio','presidio'],['Reparto','reparto'],
+    ['NUOVA AREA','nuova_area'],['Sede Struttura','sede_struttura'],['Stanza','stanza'],
+    ['CIVAB','civab'],['Verifiche','verifiche'],
+    ['Proposta dismissione','proposta_dismissione'],['Dismissione effettiva','dismissione_effettiva'],
+    ['Dettagli Stato','dettagli_stato'],['Manutentore (ID_Assistenza)','manutentore'],
+    ['Data fine Garanzia','data_fine_garanzia'],
+    ["PERIODICITA' VSE",'periodicita_vse'],['VSE 23/24','vse_2324'],['VSE 24/25','vse_2425'],['VSE 25/26','vse_2526'],['Data prossima VSE','data_prossima_vse'],
+    ["PERIODICITA' VPS",'periodicita_vsp'],['VSP 23/24','vsp_2324'],['VSP 24/25','vsp_2425'],['VSP 25/26','vsp_2526'],['Data prossima VSP','data_prossima_vsp'],
+    ["PERIODICITA' MO",'periodicita_mp'],['MO 23/24','mp_2324'],['MO 24/25','mp_2425'],['MO 25/26','mp_2526'],['Data prossima MO','data_prossima_mp'],
+    ["PERIODICITA' CQ",'periodicita_cq'],['CQ  23/24','cq_2324'],['CQ  24/25','cq_2425'],['CQ  25/26','cq_2526'],['Data prossimo CQ','data_prossimo_cq'],
+    ['NOTE PROGRAMMATE','note_programmate'],['NOTE INVENTARIO','note_inventario'],
+    ['Presenze Effettive','presenze_effettive'],['Esito Verifica','esito_verifica'],
+    ['Esito Verifica anno precedente','esito_verifica_precedente'],
+    ['Proprietà','proprieta'],['Fine Service Comodato','fine_service_comodato'],
+    ['Forma di Presenza8','forma_presenza'],['Data Collaudo','data_collaudo'],
+  ];
+  const NULL_PH = new Set(['-','/','n/a','n.a.','nd','n.d.','']);
+  const toStr = v => {
+    if (v==null) return null;
+    if (v instanceof Date) {
+      if (isNaN(v.getTime())) return null;
+      return v.getDate().toString().padStart(2,'0')+'/'+(v.getMonth()+1).toString().padStart(2,'0')+'/'+v.getFullYear();
+    }
+    const s=String(v).trim();
+    if (NULL_PH.has(s.toLowerCase())) return null;
+    if (/^\d+$/.test(s)){const n=parseInt(s,10);if(n>=30000&&n<=60000){const d=new Date(Math.round((n-25569)*86400*1000));return d.getUTCDate().toString().padStart(2,'0')+'/'+(d.getUTCMonth()+1).toString().padStart(2,'0')+'/'+d.getUTCFullYear();}}
+    return s||null;
+  };
+  const raw = XLSX.utils.sheet_to_json(ws,{raw:false,defval:null});
+  const rows = raw.map(r=>{
+    const obj={};
+    COL_MAP.forEach(([ec,dc])=>{obj[dc]=toStr(r[ec]);});
+    if(obj.codice) obj.codice=String(obj.codice).replace(/\D/g,'').padStart(7,'0');
+    return obj;
+  }).filter(r=>r.codice&&r.codice!=='0000000');
+  const seen=new Map(); rows.forEach(r=>seen.set(r.codice,r));
+  const deduped=[...seen.values()];
+  const aslKey=(currentUser?.profile?.asl||'ASL Benevento').toLowerCase().replace('asl ','');
+  const token=await supaToken();
+  toast(`Import ${deduped.length} dispositivi...`,'warn');
+  let total=0; const CHUNK=200;
+  for(let i=0;i<deduped.length;i+=CHUNK){
+    const chunk=deduped.slice(i,i+CHUNK);
+    const r=await fetch(`${SUPA_URL}/rest/v1/dispositivi_${aslKey}`,{
+      method:'POST',headers:{...supaHdrs(token),'Prefer':'return=minimal,resolution=merge-duplicates'},body:JSON.stringify(chunk)
+    });
+    if(!r.ok){const t=await r.text();toast(`Errore import: ${t.slice(0,80)}`,'warn');break;}
+    total+=chunk.length;
+  }
+  await initDB();
+  toast(total?`Importati ${total} dispositivi`:'Nessun dispositivo importato',total?'ok':'warn');
+}
+
+// ── FINE ANAGRAFICA ───────────────────────────────────────────
+
 </script>
+
+<!-- MODALE DETTAGLIO ANAGRAFICA -->
+<div id="anag-modal">
+  <div class="anag-modal-box">
+    <div class="anag-modal-hdr">
+      <h2 id="anag-modal-title"></h2>
+      <div class="anag-modal-actions">
+        <button class="btn-salva" onclick="saveAnagDetail()">Salva</button>
+        <button class="btn-sm" onclick="closeAnagModal()">✕</button>
+      </div>
+    </div>
+    <div id="anag-modal-body"></div>
+    <div style="display:flex;gap:8px;margin-top:14px">
+      <button class="btn-salva" style="flex:1" onclick="saveAnagDetail()">Salva modifiche</button>
+      <button class="btn-sm" onclick="closeAnagModal()">Chiudi</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
