@@ -43,9 +43,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
 .sb-btn.danger{border-color:rgba(248,113,113,.4);color:var(--ko)}
 
 /* ── LAYOUT ── */
-.app{padding:14px 16px 90px;transition:margin-left .2s}
+.app{padding:14px 16px 90px}
 @media(min-width:768px){
-  .app{margin-left:220px;padding:20px 28px 50px;max-width:calc(220px + 860px)}
+  body.logged-in .app{margin-left:220px;padding:20px 28px 50px;max-width:calc(220px + 860px)}
+  body.logged-in #sidebar{display:flex}
 }
 
 /* PAGE HEADER — nascosto su desktop (rimpiazzato da sidebar) */
@@ -344,12 +345,13 @@ h1{font-size:18px;font-weight:700;margin-bottom:4px;color:var(--text)}
 .af-panel-footer button{flex:1;padding:5px;font-size:12px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg3);cursor:pointer;color:var(--text2)}
 .anag-filter-actions{display:flex;gap:8px}
 
-/* BOTTOM NAV (solo mobile) */
-.bottom-nav{display:flex;position:fixed;bottom:0;left:0;right:0;background:var(--bg2);border-top:1px solid var(--border);padding:6px 0 calc(6px + env(safe-area-inset-bottom,0px));z-index:150}
+/* BOTTOM NAV (solo mobile, visibile solo se logged-in) */
+.bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--bg2);border-top:1px solid var(--border);padding:6px 0 calc(6px + env(safe-area-inset-bottom,0px));z-index:150}
+body.logged-in .bottom-nav{display:flex}
+@media(min-width:768px){body.logged-in .bottom-nav{display:none}}
 .bnav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 4px;font-size:10px;font-weight:500;color:var(--text3);cursor:pointer;-webkit-tap-highlight-color:transparent;transition:color .1s;user-select:none}
 .bnav-item.active,.bnav-item:active{color:var(--info)}
 .bnav-icon{font-size:20px;line-height:1}
-@media(min-width:768px){.bottom-nav{display:none}}
 </style>
 </head>
 <body>
@@ -754,7 +756,7 @@ h1{font-size:18px;font-weight:700;margin-bottom:4px;color:var(--text)}
 </div>
 
 <!-- BOTTOM NAV (solo mobile, visibile dopo login) -->
-<nav class="bottom-nav" id="bottom-nav" style="display:none">
+<nav class="bottom-nav" id="bottom-nav">
   <div class="bnav-item active" id="bnav-verifica" onclick="sbNav('verifica');document.getElementById('search-input').focus()">
     <div class="bnav-icon">🔍</div>Verifica
   </div>
@@ -2363,8 +2365,7 @@ async function showApp() {
   // Sidebar + bottom nav
   document.getElementById('sb-name').textContent = p.full_name || '—';
   document.getElementById('sb-meta').textContent = (p.role || '') + (p.asl_key ? ' · ASL ' + p.asl_key.toUpperCase() : '');
-  document.getElementById('sidebar').style.display = 'flex';
-  document.getElementById('bottom-nav').style.display = 'flex';
+  document.body.classList.add('logged-in');
   if (p.role === 'admin') document.getElementById('sb-btn-admin').style.display = '';
   await initDB();
 }
@@ -2375,8 +2376,7 @@ async function doLogout() {
   currentUser = null;
   document.getElementById('login-screen').style.display = 'flex';
   document.getElementById('user-bar').style.display = 'none';
-  document.getElementById('sidebar').style.display = 'none';
-  document.getElementById('bottom-nav').style.display = 'none';
+  document.body.classList.remove('logged-in');
 }
 
 async function checkSession() {
@@ -2930,6 +2930,8 @@ async function saveSessionAsPresets() {
       const dati = {};
       pts.forEach(p => { const v=rec['vsp_'+p.l], opts=p.opts||['OK','KO','NA']; opts.forEach(o=>{ if(v===o) dati['vsp_'+p.l+'_'+o.toLowerCase()]=true; }); });
       if (rec.vsp_tecnico) dati.vsp_tecnico=rec.vsp_tecnico;
+      // Campi extra (misure prove di scarica, tempi di carica, correnti ELB, ecc.)
+      (VSP_EXTRA[tipo]||[]).forEach(sec=>sec.fields.forEach(f=>{ if(rec[f.id]) dati[f.id]=rec[f.id]; }));
       if (Object.keys(dati).length) ok = await presetUpsert(`preset_vsp_${aslKey}`, cod, tipo, dati, token) && ok;
     }
     // CQ
