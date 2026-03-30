@@ -2983,6 +2983,18 @@ async function importPresetsFromExcel(input) {
   }
   // Helper: read cell as string or null
   const _rc = (row,c) => (row[c]!=null&&row[c]!=='') ? String(row[c]) : null;
+  // Helper: converte serial Excel → 'YYYY-MM-DD', oppure stringa già formattata
+  const _rxldate = (row,c) => {
+    const v = row[c];
+    if (v==null||v==='') return null;
+    const n = Number(v);
+    if (!isNaN(n) && n > 1000 && n < 2958466) {
+      const d = new Date(Date.UTC(1899,11,30) + n*86400000);
+      return d.toISOString().split('T')[0];
+    }
+    const s = String(v).trim();
+    return s || null;
+  };
   // Helper: set multiple explicit [field, colIndex] pairs
   const _fm = (row,map,dati) => map.forEach(([f,c])=>{ const v=_rc(row,c); if(v) dati[f]=v; });
 
@@ -2994,7 +3006,7 @@ async function importPresetsFromExcel(input) {
     const rows = XLSX.utils.sheet_to_json(vseWs,{header:1,defval:''});
     const payload = rows.slice(1).map(row => {
       const codice=norm(row[0]); if(!codice||codice==='0000000') return null;
-      const dati={}; FVSE.forEach((f,i)=>{ if(VSE_PRESET_FIELDS.has(f)&&row[i]!=null&&row[i]!=='') dati[f]=String(row[i]); });
+      const dati={}; FVSE.forEach((f,i)=>{ if(!VSE_PRESET_FIELDS.has(f)||row[i]==null||row[i]==='') return; dati[f]=f==='sct'?(_rxldate(row,i)||String(row[i])):String(row[i]); });
       return Object.keys(dati).length ? {codice,dati} : null;
     }).filter(Boolean);
     total += await importBatch(`preset_vse_${aslKey}`, payload);
@@ -3030,7 +3042,7 @@ async function importPresetsFromExcel(input) {
         // Corrente dispersione (col 36-48, col 45 empty/skip) + uscita isolata (col 52-55)
         _fm(row,[['elb_ct_t',36],['elb_ct_m',37],['elb_ct_c',38],['elb_at_t',39],['elb_at_m',40],['elb_at_c',41],['elb_en_t',42],['elb_en_m',43],['elb_en_c',44],['elb_ea_t',46],['elb_ea_m',47],['elb_ea_c',48],['elb_iso1n',52],['elb_iso1t',53],['elb_iso2n',54],['elb_iso2t',55]],dati);
         // Strumentazione col 100-104, tecnico col 105
-        ['elb_strum','elb_mod','elb_ser','elb_cert','elb_scad'].forEach((f,i)=>{ const v=_rc(row,100+i); if(v) dati[f]=v; });
+        ['elb_strum','elb_mod','elb_ser','elb_cert','elb_scad'].forEach((f,i)=>{ const v=f==='elb_scad'?_rxldate(row,100+i):_rc(row,100+i); if(v) dati[f]=v; });
         if(row[105]) dati.vsp_tecnico=String(row[105]);
       } else {
         // CEN, ECG, DEF: checkboxes start at col 3
@@ -3043,7 +3055,7 @@ async function importPresetsFromExcel(input) {
           ['def_tc_ar','def_tc_ab','def_tc_am','def_tc_br','def_tc_bb','def_tc_bm','def_tc_cr','def_tc_cb','def_tc_cm','def_tc_dr','def_tc_db','def_tc_dm'].forEach((f,i)=>{ const v=_rc(row,64+i); if(v) dati[f]=v; });
           _fm(row,[['def_tr_ar',79],['def_tr_am',80],['def_tr_br',83],['def_tr_bm',84],['def_tr_cr',87],['def_tr_cm',88]],dati);
           // Strumentazione col 91-95, tecnico col 96
-          ['def_strum','def_mod','def_ser','def_cert','def_scad'].forEach((f,i)=>{ const v=_rc(row,91+i); if(v) dati[f]=v; });
+          ['def_strum','def_mod','def_ser','def_cert','def_scad'].forEach((f,i)=>{ const v=f==='def_scad'?_rxldate(row,91+i):_rc(row,91+i); if(v) dati[f]=v; });
           if(row[96]) dati.vsp_tecnico=String(row[96]);
         } else {
           // CEN, ECG: tecnico immediately after checkboxes
@@ -3128,7 +3140,7 @@ async function importPresetsFromExcel(input) {
       // Prova fields (explicit column positions)
       _fm(row,pmap,dati);
       // Strumentazione + tecnico
-      if(sc!=null) cqSf.forEach((f,i)=>{ const v=_rc(row,sc+i); if(v) dati[f]=v; });
+      if(sc!=null) cqSf.forEach((f,i)=>{ const v=f==='cq_strum_scad'?_rxldate(row,sc+i):_rc(row,sc+i); if(v) dati[f]=v; });
       if(tc!=null&&row[tc]) dati.cq_tecnico=String(row[tc]);
       return Object.keys(dati).length ? {codice,tipo,dati} : null;
     }).filter(Boolean);
