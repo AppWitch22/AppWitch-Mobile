@@ -405,6 +405,7 @@ body.logged-in h1,body.logged-in .subtitle{display:none}
     <label class="sb-btn" id="btn-carica-preset" style="cursor:pointer">📥 Carica Preset<input type="file" accept=".xlsx,.xls" onchange="importPresetsFromExcel(this)" style="display:none"></label>
     <button class="sb-btn" onclick="uploadSessionToCloud()">☁️ Carica su Cloud</button>
     <button class="sb-btn" id="btn-export-massivo" onclick="exportSessioneMassiva()" disabled>⬇ Esporta Sessione</button>
+    <button class="sb-btn" onclick="downloadMacroPDF()">📄 Macro PDF</button>
   </div>
 
   <div class="sb-bottom">
@@ -454,6 +455,7 @@ body.logged-in h1,body.logged-in .subtitle{display:none}
         <label class="btn-sm" id="btn-carica-preset-m" style="cursor:pointer">📥 Carica Preset<input type="file" accept=".xlsx,.xls" onchange="importPresetsFromExcel(this)" style="display:none"></label>
         <button class="btn-sm" onclick="uploadSessionToCloud()">☁️ Carica</button>
         <button class="btn-sm" id="btn-export-massivo-m" onclick="exportSessioneMassiva()" disabled>⬇ Sessione</button>
+        <button class="btn-sm" onclick="downloadMacroPDF()">📄 Macro PDF</button>
       </div>
     </div>
     <div id="sess-sync-bar" style="display:none;font-size:11px;color:var(--text3);margin-bottom:6px;display:flex;align-items:center;gap:6px">
@@ -2865,12 +2867,15 @@ async function loadSessList() {
       </div>
       <div class="sess-item-btns">
         ${isActive ? '<span style="font-size:11px;color:var(--info);font-weight:600">ATTIVA</span>' : ''}
+        <button class="btn-sess" data-exp="1" title="Esporta Excel">⬇</button>
         <button class="btn-sess danger" data-del="1">✕</button>
       </div>
     </div>`;
   }).join('');
   list.querySelectorAll('.sess-item').forEach(el => {
     el.addEventListener('click', () => activateSession(el.dataset.sid, el.dataset.titolo));
+    const expBtn = el.querySelector('[data-exp]');
+    if (expBtn) expBtn.addEventListener('click', e => { e.stopPropagation(); exportSessioneByID(el.dataset.sid, el.dataset.titolo); });
     const delBtn = el.querySelector('[data-del]');
     if (delBtn) delBtn.addEventListener('click', e => { e.stopPropagation(); deleteSession(el.dataset.sid, el.dataset.titolo); });
   });
@@ -3534,7 +3539,7 @@ async function _resolveSheetPath(zip, name){
 }
 
 // Helper: clona template, compila il foglio indicato, scarica come xlsx
-async function _downloadSheetXLSX(buf, cod, tipo, fillFn, fileDate, sheetName='Foglio1'){
+async function _downloadSheetXLSX(buf, cod, tipo, fillFn, fileDate, sheetName='Foglio1', dirHandle=null){
   await _loadJSZip();
   const z=await JSZip.loadAsync(buf);
   const shPath=await _resolveSheetPath(z,sheetName);
@@ -3558,9 +3563,18 @@ async function _downloadSheetXLSX(buf, cod, tipo, fillFn, fileDate, sheetName='F
   z.file('xl/_rels/workbook.xml.rels',rels);
   const fname=cod+'_'+tipo+'_'+_fmtDD_MM_YY(fileDate)+'.xlsx';
   const blob=await z.generateAsync({type:'blob',compression:'DEFLATE'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');a.href=url;a.download=fname;a.click();
-  URL.revokeObjectURL(url);
+  if (dirHandle) {
+    try {
+      const fh = await dirHandle.getFileHandle(fname, {create:true});
+      const ws = await fh.createWritable();
+      await ws.write(blob); await ws.close();
+    } catch(e) {
+      console.error('Errore salvataggio cartella',e);
+      const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=fname;a.click();URL.revokeObjectURL(url);
+    }
+  } else {
+    const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=fname;a.click();URL.revokeObjectURL(url);
+  }
   return fname;
 }
 
@@ -4242,11 +4256,47 @@ async function exportSessioneMassiva() {
   if (!currentSessionId) { toast('Nessuna sessione attiva', 'warn'); return; }
   const codici = Object.keys(saved).filter(c => c !== '__attesi__' && (saved[c]?.vse_saved || saved[c]?.mp_saved || saved[c]?.vsp_saved || saved[c]?.cq_saved));
   if (!codici.length) { toast('Nessuna scheda salvata', 'warn'); return; }
+  let dirHandle = null;
+  if (window.showDirectoryPicker) {
+    try { dirHandle = await window.showDirectoryPicker({mode:'readwrite'}); }
+    catch(e) { if (e.name === 'AbortError') return; }
+  }
+  await _esportaCodici(codici, saved, dirHandle);
+}
+
+async function exportSessioneByID(id, titolo) {
+  toast(`Caricamento schede "${titolo}"...`, 'warn');
+  const token = await supaToken();
+  const r = await fetch(`${SUPA_URL}/rest/v1/sessione_schede?sessione_id=eq.${id}&select=*`,
+    {headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+token}});
+  if (!r.ok) { toast('Errore caricamento schede', 'warn'); return; }
+  const schede = await r.json();
+  const savedTmp = {};
+  schede.forEach(s => {
+    if (s.codice === '__attesi__') return;
+    savedTmp[s.codice] = {
+      codice: s.codice,
+      ...(s.dati_vse||{}), ...(s.dati_mp||{}), ...(s.dati_vsp||{}), ...(s.dati_cq||{}),
+      vse_saved:!!s.dati_vse, mp_saved:!!s.dati_mp, vsp_saved:!!s.dati_vsp, cq_saved:!!s.dati_cq,
+      vsp_type:s.vsp_type||null, cq_type:s.cq_type||null,
+    };
+  });
+  const codici = Object.keys(savedTmp).filter(c => savedTmp[c].vse_saved||savedTmp[c].mp_saved||savedTmp[c].vsp_saved||savedTmp[c].cq_saved);
+  if (!codici.length) { toast('Nessuna scheda salvata in questa sessione', 'warn'); return; }
+  let dirHandle = null;
+  if (window.showDirectoryPicker) {
+    try { dirHandle = await window.showDirectoryPicker({mode:'readwrite'}); }
+    catch(e) { if (e.name === 'AbortError') return; }
+  }
+  await _esportaCodici(codici, savedTmp, dirHandle);
+}
+
+async function _esportaCodici(codici, savedMap, dirHandle) {
   const asl = currentUser?.profile?.asl || 'ASL Benevento';
   toast(`Esportazione ${codici.length} dispositivi in corso...`, 'warn');
   let count = 0, errors = 0;
   for (const cod of codici) {
-    const rec = saved[cod], dev = DB[cod];
+    const rec = savedMap[cod], dev = DB[cod];
     if (!dev) continue;
     const vm = VERIF_MAP[cod] || {};
     try {
@@ -4262,19 +4312,19 @@ async function exportSessioneMassiva() {
         (rec.cq_saved  && cqTplFile)  ? _getTemplate('tpl_'+cqTipo.toLowerCase(),cqTplFile)   : Promise.resolve(null),
       ]);
       if (bufVS && rec.vse_saved) {
-        await _downloadSheetXLSX(bufVS, cod, 'VS', xml=>_fillVSSheet(xml,rec,dev), date);
+        await _downloadSheetXLSX(bufVS, cod, 'VS', xml=>_fillVSSheet(xml,rec,dev), date, 'Foglio1', dirHandle);
         await new Promise(r=>setTimeout(r,300));
       }
       if (bufMP && rec.mp_saved) {
-        await _downloadSheetXLSX(bufMP, cod, 'MP', xml=>_fillMPSheet(xml,rec,dev,asl), rec.mp_data||date);
+        await _downloadSheetXLSX(bufMP, cod, 'MP', xml=>_fillMPSheet(xml,rec,dev,asl), rec.mp_data||date, 'Foglio1', dirHandle);
         await new Promise(r=>setTimeout(r,300));
       }
       if (bufVSP && vspTipo && rec.vsp_saved) {
-        await _downloadSheetXLSX(bufVSP, cod, 'VSP', xml=>_fillVSPSheet(xml,rec,dev), rec.vsp_data||date, vspTipo);
+        await _downloadSheetXLSX(bufVSP, cod, 'VSP', xml=>_fillVSPSheet(xml,rec,dev), rec.vsp_data||date, vspTipo, dirHandle);
         await new Promise(r=>setTimeout(r,300));
       }
       if (bufCQ && cqTipo && rec.cq_saved) {
-        await _downloadSheetXLSX(bufCQ, cod, 'CQ', xml=>_fillCQSheet(xml,rec,dev,asl), rec.cq_data||date, cqTipo);
+        await _downloadSheetXLSX(bufCQ, cod, 'CQ', xml=>_fillCQSheet(xml,rec,dev,asl), rec.cq_data||date, cqTipo, dirHandle);
         await new Promise(r=>setTimeout(r,300));
       }
       count++;
@@ -4283,6 +4333,53 @@ async function exportSessioneMassiva() {
   toast(errors
     ? `Esportati ${count} dispositivi, ${errors} errori`
     : `⬇ ${count} dispositivi esportati`, errors?'warn':'ok');
+}
+
+function downloadMacroPDF() {
+  const vbs = `' Converti tutti i file Excel in PDF nella cartella selezionata
+' Doppio clic per eseguire - richiede Microsoft Excel installato
+Option Explicit
+
+Dim folderPath, objFSO, objFolder, objFile, objExcel, objWB, pdfPath, count, ext
+
+folderPath = InputBox("Inserisci il percorso della cartella con i file Excel:" & Chr(13) & Chr(13) & "Esempio: C:\\Users\\Utente\\Downloads\\Sessione_2024", "Conversione Excel in PDF")
+If Trim(folderPath) = "" Then WScript.Quit
+
+Set objFSO = CreateObject("Scripting.FileSystemObject")
+If Not objFSO.FolderExists(folderPath) Then
+  MsgBox "Cartella non trovata:" & Chr(13) & folderPath, 16, "Errore"
+  WScript.Quit
+End If
+
+Set objExcel = CreateObject("Excel.Application")
+objExcel.Visible = False
+objExcel.DisplayAlerts = False
+
+count = 0
+Set objFolder = objFSO.GetFolder(folderPath)
+For Each objFile In objFolder.Files
+  ext = LCase(Right(objFile.Name, 5))
+  If ext = ".xlsx" Or LCase(Right(objFile.Name, 4)) = ".xls" Then
+    pdfPath = objFSO.BuildPath(folderPath, Left(objFile.Name, InStrRev(objFile.Name, ".") - 1) & ".pdf")
+    On Error Resume Next
+    Set objWB = objExcel.Workbooks.Open(objFile.Path, False, True)
+    If Err.Number = 0 Then
+      objWB.ExportAsFixedFormat 0, pdfPath, 0, True, False
+      objWB.Close False
+      count = count + 1
+    End If
+    On Error GoTo 0
+  End If
+Next
+
+objExcel.Quit
+MsgBox count & " file convertiti in PDF." & Chr(13) & Chr(13) & "Cartella: " & folderPath, 64, "Conversione completata"
+`;
+  const blob = new Blob([vbs], {type:'text/plain'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href=url; a.download='Converti_Excel_PDF.vbs'; a.click();
+  URL.revokeObjectURL(url);
+  toast('Script scaricato — doppio clic per eseguire', 'ok');
 }
 
 function openArchivioModal() {
@@ -4362,7 +4459,10 @@ async function deleteArchivioFile(id, path) {
   <div class="arch-box">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
       <h2 style="margin:0;font-size:18px">📂 Archivio Cloud</h2>
-      <button class="btn-sm" onclick="closeArchivioModal()">✕</button>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="btn-sm" onclick="downloadMacroPDF()" title="Scarica script per convertire Excel in PDF">📄 Macro PDF</button>
+        <button class="btn-sm" onclick="closeArchivioModal()">✕</button>
+      </div>
     </div>
     <div id="archivio-content"><div class="arch-empty">Caricamento...</div></div>
   </div>
