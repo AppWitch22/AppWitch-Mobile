@@ -3595,11 +3595,13 @@ async function _buildSheetXLSX(buf, cod, tipo, fillFn, fileDate, sheetName='Fogl
   if(!shPath) return null;
   let xml=fillFn(await z.file(shPath).async('string'));
   if(tipo==='VS'||tipo==='MP'){
-    // Normalizza sheetPr: rimuove tutti gli elementi esistenti (anche duplicati/corrotti)
-    // e inserisce un unico sheetPr con fitToPage="1" per garantire landscape fit-to-width
+    // Normalizza sheetPr: rimuove duplicati/corrotti, inserisce fitToPage="1"
     xml=xml.replace(/<sheetPr[^>]*\/>/g,'');
     xml=xml.replace(/<sheetPr[^>]*>[\s\S]*?<\/sheetPr>/g,'');
     xml=xml.replace(/(<worksheet[^>]*>)/,'$1<sheetPr><pageSetUpPr fitToPage="1"/></sheetPr>');
+    // Inietta/sostituisce pageSetup con landscape + fit-to-width
+    xml=xml.replace(/<pageSetup[^/]*\/>/g,'');
+    xml=xml.replace('</worksheet>','<pageSetup paperSize="9" orientation="landscape" fitToWidth="1" fitToHeight="0"/></worksheet>');
   }
   z.file(shPath, xml);
   z.remove('xl/externalLinks/externalLink1.xml');
