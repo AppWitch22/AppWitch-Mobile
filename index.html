@@ -3593,7 +3593,15 @@ async function _buildSheetXLSX(buf, cod, tipo, fillFn, fileDate, sheetName='Fogl
   const z=await JSZip.loadAsync(buf);
   const shPath=await _resolveSheetPath(z,sheetName);
   if(!shPath) return null;
-  z.file(shPath, fillFn(await z.file(shPath).async('string')));
+  let xml=fillFn(await z.file(shPath).async('string'));
+  if(tipo==='VS'||tipo==='MP'){
+    // Normalizza sheetPr: rimuove tutti gli elementi esistenti (anche duplicati/corrotti)
+    // e inserisce un unico sheetPr con fitToPage="1" per garantire landscape fit-to-width
+    xml=xml.replace(/<sheetPr[^>]*\/>/g,'');
+    xml=xml.replace(/<sheetPr[^>]*>[\s\S]*?<\/sheetPr>/g,'');
+    xml=xml.replace(/(<worksheet[^>]*>)/,'$1<sheetPr><pageSetUpPr fitToPage="1"/></sheetPr>');
+  }
+  z.file(shPath, xml);
   z.remove('xl/externalLinks/externalLink1.xml');
   z.remove('xl/externalLinks/_rels/externalLink1.xml.rels');
   z.remove('xl/calcChain.xml');
