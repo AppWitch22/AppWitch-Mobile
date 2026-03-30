@@ -3303,16 +3303,6 @@ function _sc(xml,addr,val,isNum){
   return xml.slice(0,re)+nc+xml.slice(re);
 }
 
-function _injectPageSetup(xml){
-  const ps='<pageSetup paperSize="9" orientation="landscape" fitToWidth="1" fitToHeight="0"/>';
-  // Sostituisce il pageSetup esistente (self-closing o con chiusura separata)
-  if(xml.includes('<pageSetup')){
-    xml=xml.replace(/<pageSetup\b[^>]*\/>/g,ps);
-  } else {
-    xml=xml.replace('</sheetData>','</sheetData>'+ps);
-  }
-  return xml;
-}
 function _fillVSSheet(xml,rec,dev){
   const s=(a,v,n)=>{xml=_patchCell(xml,a,v,n);};
   const date=rec.data||new Date().toISOString().slice(0,10);
@@ -3345,7 +3335,7 @@ function _fillVSSheet(xml,rec,dev){
   s('D109',rec.str||'');s('L109',rec.nrs||'');
   if(rec.sct){const n=/^\d{4}-\d{2}-\d{2}$/.test(rec.sct)?_toExcelDate(rec.sct):toN(rec.sct);if(n)s('D111',n,true);else s('D111',rec.sct);}
   s('Q115',ds,true);
-  return _injectPageSetup(xml);
+  return xml;
 }
 
 const _MP_ROWS=[21,25,27,30,35,38,41,44,46,49,73,76,78,80,83,85,88,90,92];
@@ -3364,7 +3354,7 @@ function _fillMPSheet(xml,rec,dev,asl){
     s('R'+row,val==='OK'?'X':'');s('S'+row,val==='KO'?'X':'');s('T'+row,val==='NA'?'X':'');
   });
   s('A102',rec.mp_note||'');s('D113',rec.mp_tecnico||'');s('Q54',ds,true);
-  return _injectPageSetup(xml);
+  return xml;
 }
 
 // ── VSP / CQ FILL FUNCTIONS ──────────────────────────────────
