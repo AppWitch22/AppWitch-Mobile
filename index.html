@@ -1490,6 +1490,11 @@ function renderSession(){
   renderSession();
   toast('Rimosso: '+cod,'warn');
 }   
+function applyPageSetup(ws){
+  ws['!pageSetup']={paperSize:9,orientation:'landscape',fitToPage:true,fitToWidth:1,fitToHeight:0};
+  ws['!printOptions']={fitToPage:true};
+  ws['!margins']={left:0.5,right:0.5,top:0.75,bottom:0.75,header:0.3,footer:0.3};
+}
 function exportXLSX(){
   const keys=Object.keys(saved);if(!keys.length){toast('Nessun dato','warn');return;}
   if(typeof XLSX==='undefined'){
@@ -1511,6 +1516,7 @@ function exportXLSX(){
     const rows=vseKeys.map(k=>{const r=saved[k];return FVSE.map((f,i)=>{const v=f?r[f]||'':'';if(NUMERIC_VSE.has(i)&&v!==''){const n=parseFloat(v);return isNaN(n)?v:n;}return v;});});
     const ws=XLSX.utils.aoa_to_sheet([HVSE,...rows]);
     ws['!cols']=HVSE.map(()=>({wch:16}));
+    applyPageSetup(ws);
     XLSX.utils.book_append_sheet(wb,ws,'Inserimento_VSE');
   }
 
@@ -1538,6 +1544,7 @@ function exportXLSX(){
     for(let i=0;i<19;i++)cols.push({wch:5},{wch:5},{wch:5});
     cols.push({wch:20});
     ws['!cols']=cols;
+    applyPageSetup(ws);
     XLSX.utils.book_append_sheet(wb,ws,'Inserimento_MP');
   }
 
@@ -1610,6 +1617,7 @@ function exportXLSX(){
       });
     }
     const wsVsp=XLSX.utils.aoa_to_sheet([R1,R2,R3,...rows]);
+    applyPageSetup(wsVsp);
     XLSX.utils.book_append_sheet(wb,wsVsp,'Inserimento_VSP_'+vtype.replace('VSP_',''));
   });
 
@@ -1698,6 +1706,7 @@ function exportXLSX(){
     });
     const ws=XLSX.utils.aoa_to_sheet([R1,R2,R3,...rows]);
     ws['!cols']=Array(NC).fill({wch:14});
+    applyPageSetup(ws);
     XLSX.utils.book_append_sheet(wb,ws,'Inserimento_'+ctype);
   });
 
