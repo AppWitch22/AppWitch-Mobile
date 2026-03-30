@@ -41,6 +41,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
 .sb-btn{width:100%;padding:8px 12px;font-size:12px;font-weight:600;border:1px solid var(--border2);border-radius:var(--rad);background:transparent;color:var(--text2);cursor:pointer;text-align:left;display:flex;align-items:center;gap:6px;margin-bottom:4px;-webkit-tap-highlight-color:transparent}
 .sb-btn:hover{background:var(--bg3);color:var(--text)}
 .sb-btn.danger{border-color:rgba(248,113,113,.4);color:var(--ko)}
+.sb-btn:disabled{opacity:.4;cursor:not-allowed}
+.sb-section{padding:8px 8px 4px;border-top:1px solid var(--border)}
+.sb-section-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);padding:6px 12px 4px}
+/* Azioni sessione visibili solo su mobile (sidebar nascosta) */
+.sess-mobile-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)}
+@media(min-width:768px){.sess-mobile-actions{display:none}}
 
 /* ── LAYOUT ── */
 .app{padding:14px 16px 90px}
@@ -376,6 +382,14 @@ body.logged-in .bottom-nav{display:flex}
       <span class="sb-icon">☁️</span> Archivio
     </div>
   </nav>
+  <div class="sb-section">
+    <div class="sb-section-title">Strumenti</div>
+    <button class="sb-btn" id="btn-xlsx" onclick="exportXLSX()" disabled>⬇ Esporta Excel</button>
+    <button class="sb-btn" onclick="saveSessionAsPresets()">💾 Salva Preset</button>
+    <label class="sb-btn" style="cursor:pointer">📥 Carica Preset<input type="file" accept=".xlsx,.xls" onchange="importPresetsFromExcel(this)" style="display:none"></label>
+    <button class="sb-btn" onclick="uploadSessionToCloud()">☁️ Carica su Cloud</button>
+  </div>
+
   <div class="sb-bottom">
     <div class="sb-user">
       <div class="sb-user-name" id="sb-name">—</div>
@@ -411,12 +425,12 @@ body.logged-in .bottom-nav{display:flex}
       <div class="card-title" style="margin-bottom:0">Sessione</div>
       <div class="sess-btns">
         <button class="btn-sm" id="btn-sess-open" onclick="openSessModal()">📋 Sessioni</button>
-        <button class="btn-sm" onclick="exportJSON()">⬇ JSON</button>
-        <button class="btn-xlsx" id="btn-xlsx" onclick="exportXLSX()" disabled>⬇ Excel</button>
-        <button class="btn-sm" onclick="saveSessionAsPresets()" title="Salva i dati della sessione come preset">💾 Preset</button>
-        <label class="btn-sm" style="cursor:pointer" title="Importa preset da file Excel (stesso formato export)">📥 Preset<input type="file" accept=".xlsx,.xls" onchange="importPresetsFromExcel(this)" style="display:none"></label>
-        <button class="btn-sm" onclick="uploadSessionToCloud()" title="Carica schede sessione su cloud">☁️ Carica</button>
-        <button class="btn-sm" onclick="openArchivioModal()" title="Archivio file cloud">📂 Archivio</button>
+      </div>
+      <div class="sess-mobile-actions">
+        <button class="btn-sm" id="btn-xlsx-mobile" onclick="exportXLSX()" disabled>⬇ Excel</button>
+        <button class="btn-sm" onclick="saveSessionAsPresets()">💾 Salva Preset</button>
+        <label class="btn-sm" style="cursor:pointer">📥 Carica Preset<input type="file" accept=".xlsx,.xls" onchange="importPresetsFromExcel(this)" style="display:none"></label>
+        <button class="btn-sm" onclick="uploadSessionToCloud()">☁️ Carica</button>
       </div>
     </div>
     <div id="sess-sync-bar" style="display:none;font-size:11px;color:var(--text3);margin-bottom:6px;display:flex;align-items:center;gap:6px">
@@ -1396,6 +1410,7 @@ function renderSession(){
   const keys=Object.keys(saved);
   const pending=[...attesi].filter(c=>!saved[c]);
   document.getElementById('btn-xlsx').disabled=keys.length===0;
+  const bxm=document.getElementById('btn-xlsx-mobile');if(bxm)bxm.disabled=keys.length===0;
   const chips=document.getElementById('chips');
   const stats=document.getElementById('sess-stats');
   if(!keys.length&&!pending.length){chips.innerHTML='<span class="sess-empty">Nessun apparecchio compilato</span>';stats.style.display='none';document.getElementById('export-preview').style.display='none';return;}
@@ -1448,14 +1463,6 @@ function renderSession(){
   renderSession();
   toast('Rimosso: '+cod,'warn');
 }   
-function exportJSON(){
-  const keys=Object.keys(saved);if(!keys.length){toast('Nessun dato','warn');return;}
-  const b=new Blob([JSON.stringify(keys.map(k=>saved[k]),null,2)],{type:'application/json'});
-  const a=document.createElement('a');a.href=URL.createObjectURL(b);
-  a.download='appwitch_'+new Date().toISOString().split('T')[0]+'.json';a.click();
-  toast('JSON scaricato','ok');
-}
-
 function exportXLSX(){
   const keys=Object.keys(saved);if(!keys.length){toast('Nessun dato','warn');return;}
   if(typeof XLSX==='undefined'){
