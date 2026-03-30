@@ -401,8 +401,8 @@ body.logged-in h1,body.logged-in .subtitle{display:none}
   <div class="sb-section">
     <div class="sb-section-title">Strumenti</div>
     <button class="sb-btn" id="btn-xlsx" onclick="exportXLSX()" disabled>⬇ Esporta Excel</button>
-    <button class="sb-btn" onclick="saveSessionAsPresets()">💾 Salva Preset</button>
-    <label class="sb-btn" style="cursor:pointer">📥 Carica Preset<input type="file" accept=".xlsx,.xls" onchange="importPresetsFromExcel(this)" style="display:none"></label>
+    <button class="sb-btn" id="btn-salva-preset" onclick="saveSessionAsPresets()">💾 Salva Preset</button>
+    <label class="sb-btn" id="btn-carica-preset" style="cursor:pointer">📥 Carica Preset<input type="file" accept=".xlsx,.xls" onchange="importPresetsFromExcel(this)" style="display:none"></label>
     <button class="sb-btn" onclick="uploadSessionToCloud()">☁️ Carica su Cloud</button>
   </div>
 
@@ -449,8 +449,8 @@ body.logged-in h1,body.logged-in .subtitle{display:none}
       </div>
       <div class="sess-mobile-actions">
         <button class="btn-sm" id="btn-xlsx-mobile" onclick="exportXLSX()" disabled>⬇ Excel</button>
-        <button class="btn-sm" onclick="saveSessionAsPresets()">💾 Salva Preset</button>
-        <label class="btn-sm" style="cursor:pointer">📥 Carica Preset<input type="file" accept=".xlsx,.xls" onchange="importPresetsFromExcel(this)" style="display:none"></label>
+        <button class="btn-sm" id="btn-salva-preset-m" onclick="saveSessionAsPresets()">💾 Salva Preset</button>
+        <label class="btn-sm" id="btn-carica-preset-m" style="cursor:pointer">📥 Carica Preset<input type="file" accept=".xlsx,.xls" onchange="importPresetsFromExcel(this)" style="display:none"></label>
         <button class="btn-sm" onclick="uploadSessionToCloud()">☁️ Carica</button>
       </div>
     </div>
@@ -2395,6 +2395,11 @@ async function showApp() {
   document.getElementById('sb-meta').textContent = (p.role || '') + (p.asl_key ? ' · ASL ' + p.asl_key.toUpperCase() : '');
   document.body.classList.add('logged-in');
   if (p.role === 'admin') document.getElementById('sb-btn-admin').style.display = '';
+  if (p.role === 'responsabile') {
+    ['btn-salva-preset','btn-carica-preset','btn-salva-preset-m','btn-carica-preset-m'].forEach(id => {
+      const el = document.getElementById(id); if (el) el.style.display = 'none';
+    });
+  }
   await initDB();
 }
 
@@ -2926,6 +2931,7 @@ async function presetUpsert(table, codice, tipo, dati, token) {
 
 // ── PRESET: Salva sessione corrente come preset ───────────────
 async function saveSessionAsPresets() {
+  if (currentUser?.profile?.role === 'responsabile') { toast('Operazione non consentita per questo profilo', 'warn'); return; }
   const keys = Object.keys(saved).filter(k => saved[k].vse_saved || saved[k].mp_saved || saved[k].vsp_saved || saved[k].cq_saved);
   if (!keys.length) { toast('Nessun dispositivo compilato nella sessione', 'warn'); return; }
   const asl = currentUser?.profile?.asl || 'ASL Benevento';
@@ -2982,6 +2988,7 @@ async function saveSessionAsPresets() {
 
 // ── PRESET: Importa da file Excel (formato AppWitch_2_INSERIMENTO) ─────
 async function importPresetsFromExcel(input) {
+  if (currentUser?.profile?.role === 'responsabile') { toast('Operazione non consentita per questo profilo', 'warn'); input.value=''; return; }
   const file = input.files[0]; if (!file) return;
   input.value = '';
   if (typeof XLSX === 'undefined') {
