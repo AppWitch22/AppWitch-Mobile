@@ -4341,9 +4341,13 @@ function downloadMacroPDF() {
 Option Explicit
 
 Dim folderPath, objFSO, objFolder, objFile, objExcel, objWB, pdfPath, count, ext
+Dim objShell, objBrowse
 
-folderPath = InputBox("Inserisci il percorso della cartella con i file Excel:" & Chr(13) & Chr(13) & "Esempio: C:\\Users\\Utente\\Downloads\\Sessione_2024", "Conversione Excel in PDF")
-If Trim(folderPath) = "" Then WScript.Quit
+' Dialogo sfoglia cartella
+Set objShell = CreateObject("Shell.Application")
+Set objBrowse = objShell.BrowseForFolder(0, "Seleziona la cartella con i file Excel da convertire in PDF", 0)
+If objBrowse Is Nothing Then WScript.Quit
+folderPath = objBrowse.Self.Path
 
 Set objFSO = CreateObject("Scripting.FileSystemObject")
 If Not objFSO.FolderExists(folderPath) Then
