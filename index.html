@@ -404,6 +404,7 @@ body.logged-in h1,body.logged-in .subtitle{display:none}
     <button class="sb-btn" id="btn-salva-preset" onclick="saveSessionAsPresets()">💾 Salva Preset</button>
     <label class="sb-btn" id="btn-carica-preset" style="cursor:pointer">📥 Carica Preset<input type="file" accept=".xlsx,.xls" onchange="importPresetsFromExcel(this)" style="display:none"></label>
     <button class="sb-btn" onclick="uploadSessionToCloud()">☁️ Carica su Cloud</button>
+    <button class="sb-btn" id="btn-export-massivo" onclick="exportSessioneMassiva()" disabled>⬇ Esporta Sessione</button>
   </div>
 
   <div class="sb-bottom">
@@ -452,6 +453,7 @@ body.logged-in h1,body.logged-in .subtitle{display:none}
         <button class="btn-sm" id="btn-salva-preset-m" onclick="saveSessionAsPresets()">💾 Salva Preset</button>
         <label class="btn-sm" id="btn-carica-preset-m" style="cursor:pointer">📥 Carica Preset<input type="file" accept=".xlsx,.xls" onchange="importPresetsFromExcel(this)" style="display:none"></label>
         <button class="btn-sm" onclick="uploadSessionToCloud()">☁️ Carica</button>
+        <button class="btn-sm" id="btn-export-massivo-m" onclick="exportSessioneMassiva()" disabled>⬇ Sessione</button>
       </div>
     </div>
     <div id="sess-sync-bar" style="display:none;font-size:11px;color:var(--text3);margin-bottom:6px;display:flex;align-items:center;gap:6px">
@@ -1432,6 +1434,8 @@ function renderSession(){
   const pending=[...attesi].filter(c=>!saved[c]);
   document.getElementById('btn-xlsx').disabled=keys.length===0;
   const bxm=document.getElementById('btn-xlsx-mobile');if(bxm)bxm.disabled=keys.length===0;
+  const bem=document.getElementById('btn-export-massivo');if(bem)bem.disabled=keys.length===0;
+  const bemm=document.getElementById('btn-export-massivo-m');if(bemm)bemm.disabled=keys.length===0;
   const chips=document.getElementById('chips');
   const stats=document.getElementById('sess-stats');
   if(!keys.length&&!pending.length){chips.innerHTML='<span class="sess-empty">Nessun apparecchio compilato</span>';stats.style.display='none';document.getElementById('export-preview').style.display='none';return;}
@@ -4232,6 +4236,53 @@ async function uploadSessionToCloud() {
   toast(errors
     ? `Caricati ${uploaded} dispositivi, ${errors} errori`
     : `☁️ ${uploaded} dispositivi caricati su cloud`, errors?'warn':'ok');
+}
+
+async function exportSessioneMassiva() {
+  if (!currentSessionId) { toast('Nessuna sessione attiva', 'warn'); return; }
+  const codici = Object.keys(saved).filter(c => c !== '__attesi__' && (saved[c]?.vse_saved || saved[c]?.mp_saved || saved[c]?.vsp_saved || saved[c]?.cq_saved));
+  if (!codici.length) { toast('Nessuna scheda salvata', 'warn'); return; }
+  const asl = currentUser?.profile?.asl || 'ASL Benevento';
+  toast(`Esportazione ${codici.length} dispositivi in corso...`, 'warn');
+  let count = 0, errors = 0;
+  for (const cod of codici) {
+    const rec = saved[cod], dev = DB[cod];
+    if (!dev) continue;
+    const vm = VERIF_MAP[cod] || {};
+    try {
+      const date = rec.data || new Date().toISOString().slice(0,10);
+      const vspTipo = rec.vsp_type || vm.vsp || null;
+      const cqTipo  = rec.cq_type  || vm.cq  || null;
+      const vspTplFile = vspTipo ? (vspTipo==='VSP_ECG'?'Template_VSP_EGG.xlsx':'Template_'+vspTipo+'.xlsx') : null;
+      const cqTplFile  = cqTipo  ? 'Template_'+cqTipo+'.xlsx' : null;
+      const [bufVS, bufMP, bufVSP, bufCQ] = await Promise.all([
+        rec.vse_saved ? _getTemplate('tpl_vse','Template_VSE.xlsx') : Promise.resolve(null),
+        rec.mp_saved  ? _getTemplate('tpl_mp','Template_MP.xlsx')   : Promise.resolve(null),
+        (rec.vsp_saved && vspTplFile) ? _getTemplate('tpl_'+vspTipo.toLowerCase(),vspTplFile) : Promise.resolve(null),
+        (rec.cq_saved  && cqTplFile)  ? _getTemplate('tpl_'+cqTipo.toLowerCase(),cqTplFile)   : Promise.resolve(null),
+      ]);
+      if (bufVS && rec.vse_saved) {
+        await _downloadSheetXLSX(bufVS, cod, 'VS', xml=>_fillVSSheet(xml,rec,dev), date);
+        await new Promise(r=>setTimeout(r,300));
+      }
+      if (bufMP && rec.mp_saved) {
+        await _downloadSheetXLSX(bufMP, cod, 'MP', xml=>_fillMPSheet(xml,rec,dev,asl), rec.mp_data||date);
+        await new Promise(r=>setTimeout(r,300));
+      }
+      if (bufVSP && vspTipo && rec.vsp_saved) {
+        await _downloadSheetXLSX(bufVSP, cod, 'VSP', xml=>_fillVSPSheet(xml,rec,dev), rec.vsp_data||date, vspTipo);
+        await new Promise(r=>setTimeout(r,300));
+      }
+      if (bufCQ && cqTipo && rec.cq_saved) {
+        await _downloadSheetXLSX(bufCQ, cod, 'CQ', xml=>_fillCQSheet(xml,rec,dev,asl), rec.cq_data||date, cqTipo);
+        await new Promise(r=>setTimeout(r,300));
+      }
+      count++;
+    } catch(e) { console.error('Export massivo', cod, e); errors++; }
+  }
+  toast(errors
+    ? `Esportati ${count} dispositivi, ${errors} errori`
+    : `⬇ ${count} dispositivi esportati`, errors?'warn':'ok');
 }
 
 function openArchivioModal() {
