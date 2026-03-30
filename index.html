@@ -25,7 +25,8 @@
 body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text);font-size:15px;min-height:100vh}
 
 /* ── SIDEBAR ── */
-#sidebar{position:fixed;top:0;left:0;width:220px;height:100vh;background:var(--bg2);border-right:1px solid var(--border);display:none;flex-direction:column;z-index:200}
+#sidebar{position:fixed;top:0;left:0;width:220px;height:100vh;background:var(--bg2);border-right:1px solid var(--border);display:none;flex-direction:column;z-index:200;transition:transform .25s ease,box-shadow .25s ease}
+#sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:199}
 .sb-logo{padding:18px 16px 14px;border-bottom:1px solid var(--border)}
 .sb-logo-text{font-size:16px;font-weight:700;color:var(--text);letter-spacing:-.3px}
 .sb-logo-sub{font-size:11px;color:var(--text3);margin-top:2px}
@@ -49,16 +50,31 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
 @media(min-width:768px){.sess-mobile-actions{display:none}}
 
 /* ── LAYOUT ── */
-.app{padding:14px 16px 90px}
+.app{padding:0 16px 40px}
 @media(min-width:768px){
   body.logged-in .app{margin-left:220px;padding:20px 28px 50px;max-width:calc(220px + 860px)}
   body.logged-in #sidebar{display:flex}
 }
+/* Mobile: sidebar a scomparsa */
+@media(max-width:767px){
+  body.logged-in #sidebar{display:flex;transform:translateX(-220px)}
+  body.logged-in.sidebar-open #sidebar{transform:translateX(0);box-shadow:4px 0 32px rgba(0,0,0,.7)}
+  body.logged-in.sidebar-open #sidebar-overlay{display:block}
+  #sb-close-btn{display:none} /* gestito via JS al toggle */
+}
+@media(min-width:768px){#sb-close-btn{display:none!important}}
+/* Mobile topbar */
+.mobile-topbar{display:none;position:sticky;top:0;z-index:100;background:var(--bg2);border-bottom:1px solid var(--border);padding:10px 14px;align-items:center;gap:10px;margin:0 -16px 14px}
+body.logged-in .mobile-topbar{display:flex}
+@media(min-width:768px){.mobile-topbar{display:none!important}}
+.hamburger{background:none;border:1px solid var(--border2);border-radius:var(--rad);color:var(--text);font-size:20px;cursor:pointer;padding:4px 9px;line-height:1;-webkit-tap-highlight-color:transparent}
+.mobile-logo-txt{font-size:15px;font-weight:700;color:var(--text);flex:1}
 
-/* PAGE HEADER — nascosto su desktop (rimpiazzato da sidebar) */
+/* PAGE HEADER — nascosto su desktop e mobile quando logged-in */
 h1{font-size:18px;font-weight:700;margin-bottom:4px;color:var(--text)}
 .subtitle{font-size:13px;color:var(--text2);margin-bottom:16px}
 @media(min-width:768px){h1,.subtitle{display:none}}
+body.logged-in h1,body.logged-in .subtitle{display:none}
 
 /* DB BAR */
 .db-bar{padding:8px 12px;border-radius:var(--rad);font-size:13px;margin-bottom:14px;border:1px solid var(--border)}
@@ -351,22 +367,22 @@ h1{font-size:18px;font-weight:700;margin-bottom:4px;color:var(--text)}
 .af-panel-footer button{flex:1;padding:5px;font-size:12px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg3);cursor:pointer;color:var(--text2)}
 .anag-filter-actions{display:flex;gap:8px}
 
-/* BOTTOM NAV (solo mobile, visibile solo se logged-in) */
-.bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--bg2);border-top:1px solid var(--border);padding:6px 0 calc(6px + env(safe-area-inset-bottom,0px));z-index:150}
-body.logged-in .bottom-nav{display:flex}
-@media(min-width:768px){body.logged-in .bottom-nav{display:none}}
-.bnav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 4px;font-size:10px;font-weight:500;color:var(--text3);cursor:pointer;-webkit-tap-highlight-color:transparent;transition:color .1s;user-select:none}
-.bnav-item.active,.bnav-item:active{color:var(--info)}
-.bnav-icon{font-size:20px;line-height:1}
+.bottom-nav{display:none}
 </style>
 </head>
 <body>
 
-<!-- SIDEBAR (visibile dopo login, solo desktop) -->
+<!-- Overlay per chiudere la sidebar su mobile -->
+<div id="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+<!-- SIDEBAR (desktop: sempre visibile; mobile: a scomparsa) -->
 <div id="sidebar">
-  <div class="sb-logo">
-    <div class="sb-logo-text">⚡ AppWitch</div>
-    <div class="sb-logo-sub">Verifiche Dispositivi Medici</div>
+  <div class="sb-logo" style="display:flex;align-items:center;justify-content:space-between">
+    <div>
+      <div class="sb-logo-text">⚡ AppWitch</div>
+      <div class="sb-logo-sub">Verifiche Dispositivi Medici</div>
+    </div>
+    <button class="hamburger" onclick="toggleSidebar()" style="display:none" id="sb-close-btn" title="Chiudi menu">✕</button>
   </div>
   <nav class="sb-nav">
     <div class="sb-item active" id="sb-nav-verifica" onclick="sbNav('verifica');document.getElementById('search-input').focus()">
@@ -405,6 +421,11 @@ body.logged-in .bottom-nav{display:flex}
 </div>
 
 <div class="app">
+  <div class="mobile-topbar">
+    <button class="hamburger" onclick="toggleSidebar()" title="Apri menu">☰</button>
+    <span class="mobile-logo-txt">⚡ AppWitch</span>
+    <div id="sync-dot-mobile" class="sess-sync-dot offline" style="margin-left:auto" title="Stato sync"></div>
+  </div>
   <h1>AppWitch</h1>
   <div class="subtitle">Verifiche Dispositivi Medici</div>
   <div class="db-bar loading" id="db-bar">Caricamento database...</div>
@@ -2744,24 +2765,26 @@ function collectCQFromRec(rec) {
 function updateSyncBar(titolo, synced) {
   const bar   = document.getElementById('sess-sync-bar');
   const dot   = document.getElementById('sync-dot');
+  const dotM  = document.getElementById('sync-dot-mobile');
   const label = document.getElementById('sync-label');
   if (!bar) return;
   bar.style.display = 'flex';
+  let cls;
   if (!currentSessionId) {
-    dot.className   = 'sess-sync-dot offline';
-    label.textContent = 'Nessuna sessione attiva';
-    return;
-  }
-  if (synced === false) {
-    dot.className   = 'sess-sync-dot pending';
-    label.textContent = 'Sincronizzazione...';
+    cls = 'sess-sync-dot offline';
+    if (label) label.textContent = 'Nessuna sessione attiva';
+  } else if (synced === false) {
+    cls = 'sess-sync-dot pending';
+    if (label) label.textContent = 'Sincronizzazione...';
   } else if (synced === true) {
-    dot.className   = 'sess-sync-dot synced';
-    label.textContent = (titolo || 'Sessione attiva') + ' · Sincronizzato';
+    cls = 'sess-sync-dot synced';
+    if (label) label.textContent = (titolo || 'Sessione attiva') + ' · Sincronizzato';
   } else {
-    dot.className   = 'sess-sync-dot pending';
-    label.textContent = (titolo || 'Sessione attiva') + ' · Modifiche in attesa';
+    cls = 'sess-sync-dot pending';
+    if (label) label.textContent = (titolo || 'Sessione attiva') + ' · Modifiche in attesa';
   }
+  if (dot) dot.className = cls;
+  if (dotM) dotM.className = cls;
 }
 
 // ── Auto-save: schedula sync 3s dopo l'ultima modifica ────────
@@ -3717,14 +3740,21 @@ const ANAG_PER_PAGE = 30;
 let anagResults = [];
 let anagCurDev = null;
 
+function toggleSidebar() {
+  document.body.classList.toggle('sidebar-open');
+  const closeBtn = document.getElementById('sb-close-btn');
+  if (closeBtn) closeBtn.style.display = document.body.classList.contains('sidebar-open') ? 'flex' : 'none';
+}
+
 function sbNav(key) {
   ['verifica','sessione','anagrafica','archivio'].forEach(k => {
     const sb = document.getElementById('sb-nav-' + k);
-    const bn = document.getElementById('bnav-' + k);
-    const active = k === key;
-    if (sb) sb.classList.toggle('active', active);
-    if (bn) bn.classList.toggle('active', active);
+    if (sb) sb.classList.toggle('active', k === key);
   });
+  // chiudi sidebar su mobile dopo la navigazione
+  if (window.innerWidth < 768 && document.body.classList.contains('sidebar-open')) {
+    toggleSidebar();
+  }
 }
 
 function toggleAnagrafica() {
