@@ -255,6 +255,12 @@ body.logged-in h1,body.logged-in .subtitle{display:none}
 .vsp-field input{font-size:13px;padding:7px 10px;border:1.5px solid var(--border2);border-radius:var(--rad);background:var(--bg3);color:var(--text);outline:none;width:100%;-webkit-appearance:none}
 .vsp-field input:focus{border-color:var(--info)}
 .vsp-field input::placeholder{color:var(--text3)}
+.hf-group-label{font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#C2500A;padding:8px 14px 6px;display:flex;align-items:center;gap:8px}
+.hf-group-label::after{content:'';flex:1;height:1px;background:rgba(194,80,10,.18)}
+.hf-group-grid{display:grid;gap:10px;padding:0 14px 12px}
+.hf-cols-3{grid-template-columns:repeat(3,1fr)}
+.hf-cols-4{grid-template-columns:repeat(4,1fr)}
+@media(max-width:600px){.hf-cols-3,.hf-cols-4{grid-template-columns:repeat(2,1fr)}}
 .vsp-table{width:100%;border-collapse:collapse;font-size:12px;margin:8px 14px 12px}
 .vsp-table th{background:var(--bg3);padding:6px 8px;text-align:center;border:1px solid var(--border);font-weight:600;font-size:11px;color:var(--text2)}
 .vsp-table td{padding:6px 8px;border:1px solid var(--border);text-align:center;background:var(--bg2);color:var(--text)}
@@ -1873,13 +1879,33 @@ function buildVSPPoints(type){
   const extra=VSP_EXTRA[type];
   if(extra){
     let html='';
+    const GRUPPI_HF=[
+      {label:'Carico elettrodi',ids:['elb_ct_t','elb_ct_m','elb_ct_c'],cols:3},
+      {label:'Attivo / Terra',ids:['elb_at_t','elb_at_m','elb_at_c'],cols:3},
+      {label:'Elettrodo neutro',ids:['elb_en_t','elb_en_m','elb_en_c'],cols:3},
+      {label:'Elettrodo attivo',ids:['elb_ea_t','elb_ea_m','elb_ea_c'],cols:3},
+      {label:'Uscita isolata',ids:['elb_iso1n','elb_iso1t','elb_iso2n','elb_iso2t'],cols:4},
+    ];
     extra.forEach(sec=>{
-      html+=`<div class="sec" style="margin-bottom:10px"><div class="sec-hdr">${sec.sec}</div><div class="sec-body" style="grid-template-columns:repeat(auto-fill,minmax(180px,1fr))">`;
-      sec.fields.forEach(f=>{
-        const inp=f.type==='date'?`<input type="date" id="${f.id}">`:`<input type="text" id="${f.id}" inputmode="decimal">`;
-        html+=`<div class="field"><label>${f.l}</label>${inp}</div>`;
-      });
-      html+='</div></div>';
+      if(sec.sec==='Corrente di dispersione nel paziente in HF'){
+        html+=`<div class="sec" style="margin-bottom:10px"><div class="sec-hdr">${sec.sec}</div>`;
+        GRUPPI_HF.forEach(g=>{
+          html+=`<div class="hf-group-label">${g.label}</div><div class="hf-group-grid hf-cols-${g.cols}">`;
+          g.ids.forEach(id=>{
+            const f=sec.fields.find(x=>x.id===id);
+            if(f) html+=`<div class="vsp-field"><label>${f.l}</label><input type="text" id="${f.id}" inputmode="decimal"></div>`;
+          });
+          html+='</div>';
+        });
+        html+='</div>';
+      } else {
+        html+=`<div class="sec" style="margin-bottom:10px"><div class="sec-hdr">${sec.sec}</div><div class="sec-body" style="grid-template-columns:repeat(auto-fill,minmax(180px,1fr))">`;
+        sec.fields.forEach(f=>{
+          const inp=f.type==='date'?`<input type="date" id="${f.id}">`:`<input type="text" id="${f.id}" inputmode="decimal">`;
+          html+=`<div class="field"><label>${f.l}</label>${inp}</div>`;
+        });
+        html+='</div></div>';
+      }
     });
     extraDiv.innerHTML=html;
     extraDiv.style.display='block';
