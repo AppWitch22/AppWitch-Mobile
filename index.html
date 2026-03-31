@@ -3553,9 +3553,16 @@ async function _downloadSheetXLSX(buf, cod, tipo, fillFn, fileDate, sheetName='F
   const z=await JSZip.loadAsync(buf);
   const shPath=await _resolveSheetPath(z,sheetName);
   if(!shPath){toast('Foglio '+sheetName+' non trovato nel template','warn');return null;}
-  const shXml=fillFn(await z.file(shPath).async('string'));
-  z.file(shPath, shXml);
+  let shXml=fillFn(await z.file(shPath).async('string'));
   if(tipo==='VS'||tipo==='MP'){
+    // Stesse impostazioni di VSP/CQ: portrait, scale=90, fitToHeight=2, print area A:T
+    shXml=shXml.replace(/<sheetPr[^>]*\/>/g,'');
+    shXml=shXml.replace(/<sheetPr[^>]*>[\s\S]*?<\/sheetPr>/g,'');
+    shXml=shXml.replace(/(<worksheet[^>]*>)/,'$1<sheetPr><pageSetUpPr fitToPage="1"/></sheetPr>');
+    shXml=shXml.replace(/<pageSetup[^/]*\/>/g,'');
+    const PS='<pageSetup paperSize="9" scale="90" fitToHeight="2" orientation="portrait"/>';
+    if(/<pageMargins/.test(shXml)) shXml=shXml.replace(/(<pageMargins[^/]*\/>)/,'$1'+PS);
+    else shXml=shXml.replace('</worksheet>',PS+'</worksheet>');
     const dimM=shXml.match(/<dimension ref="[^:]+:[A-Z]+(\d+)"/);
     const lastRow=dimM?dimM[1]:'200';
     let wbXml=await z.file('xl/workbook.xml').async('string');
@@ -3566,6 +3573,7 @@ async function _downloadSheetXLSX(buf, cod, tipo, fillFn, fileDate, sheetName='F
     else wbXml=wbXml.replace('</workbook>',DN+'</workbook>');
     z.file('xl/workbook.xml',wbXml);
   }
+  z.file(shPath, shXml);
   // Rimuovi external links (evita prompt "aggiorna link" in Excel)
   z.remove('xl/externalLinks/externalLink1.xml');
   z.remove('xl/externalLinks/_rels/externalLink1.xml.rels');
@@ -3605,9 +3613,15 @@ async function _buildSheetXLSX(buf, cod, tipo, fillFn, fileDate, sheetName='Fogl
   const z=await JSZip.loadAsync(buf);
   const shPath=await _resolveSheetPath(z,sheetName);
   if(!shPath) return null;
-  const shXml2=fillFn(await z.file(shPath).async('string'));
-  z.file(shPath, shXml2);
+  let shXml2=fillFn(await z.file(shPath).async('string'));
   if(tipo==='VS'||tipo==='MP'){
+    shXml2=shXml2.replace(/<sheetPr[^>]*\/>/g,'');
+    shXml2=shXml2.replace(/<sheetPr[^>]*>[\s\S]*?<\/sheetPr>/g,'');
+    shXml2=shXml2.replace(/(<worksheet[^>]*>)/,'$1<sheetPr><pageSetUpPr fitToPage="1"/></sheetPr>');
+    shXml2=shXml2.replace(/<pageSetup[^/]*\/>/g,'');
+    const PS2='<pageSetup paperSize="9" scale="90" fitToHeight="2" orientation="portrait"/>';
+    if(/<pageMargins/.test(shXml2)) shXml2=shXml2.replace(/(<pageMargins[^/]*\/>)/,'$1'+PS2);
+    else shXml2=shXml2.replace('</worksheet>',PS2+'</worksheet>');
     const dimM2=shXml2.match(/<dimension ref="[^:]+:[A-Z]+(\d+)"/);
     const lastRow2=dimM2?dimM2[1]:'200';
     let wbXml2=await z.file('xl/workbook.xml').async('string');
@@ -3618,6 +3632,7 @@ async function _buildSheetXLSX(buf, cod, tipo, fillFn, fileDate, sheetName='Fogl
     else wbXml2=wbXml2.replace('</workbook>',DN2+'</workbook>');
     z.file('xl/workbook.xml',wbXml2);
   }
+  z.file(shPath, shXml2);
   z.remove('xl/externalLinks/externalLink1.xml');
   z.remove('xl/externalLinks/_rels/externalLink1.xml.rels');
   z.remove('xl/calcChain.xml');
