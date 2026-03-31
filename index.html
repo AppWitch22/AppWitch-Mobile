@@ -3610,7 +3610,13 @@ function _fillCQSheet(xml,rec,dev,asl){
   else if(tipo==='CQ_ELB'){
     s('E47',rec.cq_elb_ct_t||''); s('I47',rec.cq_elb_at_t||''); s('M47',rec.cq_elb_fn_t||''); s('Q47',rec.cq_elb_en_t||'');
     s('E48',rec.cq_elb_ct_c||''); s('I48',rec.cq_elb_at_c||''); s('M48',rec.cq_elb_fn_c||''); s('Q48',rec.cq_elb_en_c||'');
+    xml=_patchCell(xml,'R49',rec.cq_elb_hf_esito==='OK'?'X':'');
+    xml=_patchCell(xml,'S49',rec.cq_elb_hf_esito==='KO'?'X':'');
+    xml=_patchCell(xml,'T49',rec.cq_elb_hf_esito==='NA'?'X':'');
     s('E72',rec.cq_elb_iso1||''); s('M72',rec.cq_elb_iso2||'');
+    xml=_patchCell(xml,'R73',rec.cq_elb_bip_esito==='OK'?'X':'');
+    xml=_patchCell(xml,'S73',rec.cq_elb_bip_esito==='KO'?'X':'');
+    xml=_patchCell(xml,'T73',rec.cq_elb_bip_esito==='NA'?'X':'');
     s('B79',rec.cq_elb_pt1d||''); s('E79',rec.cq_elb_pt1r||'');
     s('H79',rec.cq_elb_pc1d||''); s('K79',rec.cq_elb_pc1r||'');
     s('N79',rec.cq_elb_pb1d||''); s('R79',rec.cq_elb_pb1r||'');
