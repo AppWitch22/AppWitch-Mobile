@@ -3563,6 +3563,13 @@ async function _downloadSheetXLSX(buf, cod, tipo, fillFn, fileDate, sheetName='F
     const PS='<pageSetup paperSize="9" orientation="landscape" fitToWidth="1" fitToHeight="0"/>';
     if(/<pageMargins/.test(shXml)) shXml=shXml.replace(/(<pageMargins[^/]*\/>)/,'$1'+PS);
     else shXml=shXml.replace('</worksheet>',PS+'</worksheet>');
+    // Aggiungi area di stampa A1:T<lastRow> per evitare che Excel includa colonne oltre T
+    const dimM=shXml.match(/<dimension ref="[^:]+:[A-Z]+(\d+)"/);
+    const lastRow=dimM?dimM[1]:'200';
+    let wbXml=await z.file('xl/workbook.xml').async('string');
+    wbXml=wbXml.replace(/<definedNames>[\s\S]*?<\/definedNames>/g,'');
+    wbXml=wbXml.replace('</workbook>','<definedNames><definedName name="_xlnm.Print_Area" localSheetId="0">Foglio1!$A$1:$T$'+lastRow+'</definedName></definedNames></workbook>');
+    z.file('xl/workbook.xml',wbXml);
   }
   z.file(shPath, shXml);
   // Rimuovi external links (evita prompt "aggiorna link" in Excel)
@@ -3616,6 +3623,13 @@ async function _buildSheetXLSX(buf, cod, tipo, fillFn, fileDate, sheetName='Fogl
     const PS2='<pageSetup paperSize="9" orientation="landscape" fitToWidth="1" fitToHeight="0"/>';
     if(/<pageMargins/.test(xml)) xml=xml.replace(/(<pageMargins[^/]*\/>)/,'$1'+PS2);
     else xml=xml.replace('</worksheet>',PS2+'</worksheet>');
+    // Aggiungi area di stampa A1:T<lastRow>
+    const dimM2=xml.match(/<dimension ref="[^:]+:[A-Z]+(\d+)"/);
+    const lastRow2=dimM2?dimM2[1]:'200';
+    let wbXml2=await z.file('xl/workbook.xml').async('string');
+    wbXml2=wbXml2.replace(/<definedNames>[\s\S]*?<\/definedNames>/g,'');
+    wbXml2=wbXml2.replace('</workbook>','<definedNames><definedName name="_xlnm.Print_Area" localSheetId="0">Foglio1!$A$1:$T$'+lastRow2+'</definedName></definedNames></workbook>');
+    z.file('xl/workbook.xml',wbXml2);
   }
   z.file(shPath, xml);
   z.remove('xl/externalLinks/externalLink1.xml');
