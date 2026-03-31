@@ -3568,7 +3568,9 @@ async function _downloadSheetXLSX(buf, cod, tipo, fillFn, fileDate, sheetName='F
     const lastRow=dimM?dimM[1]:'200';
     let wbXml=await z.file('xl/workbook.xml').async('string');
     wbXml=wbXml.replace(/<definedNames>[\s\S]*?<\/definedNames>/g,'');
-    wbXml=wbXml.replace('</workbook>','<definedNames><definedName name="_xlnm.Print_Area" localSheetId="0">Foglio1!$A$1:$T$'+lastRow+'</definedName></definedNames></workbook>');
+    const DN='<definedNames><definedName name="_xlnm.Print_Area" localSheetId="0">Foglio1!$A$1:$T$'+lastRow+'</definedName></definedNames>';
+    if(/<calcPr/.test(wbXml)) wbXml=wbXml.replace(/<calcPr/,DN+'<calcPr');
+    else wbXml=wbXml.replace('</workbook>',DN+'</workbook>');
     z.file('xl/workbook.xml',wbXml);
   }
   z.file(shPath, shXml);
@@ -3628,7 +3630,9 @@ async function _buildSheetXLSX(buf, cod, tipo, fillFn, fileDate, sheetName='Fogl
     const lastRow2=dimM2?dimM2[1]:'200';
     let wbXml2=await z.file('xl/workbook.xml').async('string');
     wbXml2=wbXml2.replace(/<definedNames>[\s\S]*?<\/definedNames>/g,'');
-    wbXml2=wbXml2.replace('</workbook>','<definedNames><definedName name="_xlnm.Print_Area" localSheetId="0">Foglio1!$A$1:$T$'+lastRow2+'</definedName></definedNames></workbook>');
+    const DN2='<definedNames><definedName name="_xlnm.Print_Area" localSheetId="0">Foglio1!$A$1:$T$'+lastRow2+'</definedName></definedNames>';
+    if(/<calcPr/.test(wbXml2)) wbXml2=wbXml2.replace(/<calcPr/,DN2+'<calcPr');
+    else wbXml2=wbXml2.replace('</workbook>',DN2+'</workbook>');
     z.file('xl/workbook.xml',wbXml2);
   }
   z.file(shPath, xml);
