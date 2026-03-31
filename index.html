@@ -2223,13 +2223,47 @@ function buildCQPoints(type){
   const provaDiv=document.getElementById('cq-prova');
   const secs=CQ_PROVA[type];
   if(secs&&secs.length){
-    provaDiv.innerHTML=secs.map(sec=>`
-      <div class="sec" style="margin-bottom:10px">
-        <div class="sec-hdr">${sec.sec}</div>
-        <div class="sec-body" style="grid-template-columns:repeat(auto-fill,minmax(160px,1fr))">
-          ${sec.fields.map(f=>`<div class="field"><label>${f.l}</label><input type="text" id="${f.id}" inputmode="decimal"></div>`).join('')}
-        </div>
-      </div>`).join('');
+    const GRUPPI_CQ_HF=[
+      {label:'Carico elettrodi',ids:['cq_elb_ct_t','cq_elb_ct_c'],cols:2},
+      {label:'Attivo / Terra',ids:['cq_elb_at_t','cq_elb_at_c'],cols:2},
+      {label:'Flottante att. / Terra',ids:['cq_elb_fn_t','cq_elb_fn_c'],cols:2},
+      {label:'Elettrodo neutro',ids:['cq_elb_en_t','cq_elb_en_c'],cols:2},
+      {label:'Bipolare',ids:['cq_elb_iso1','cq_elb_iso2'],cols:2},
+    ];
+    const GRUPPI_CQ_POT=[
+      {label:'Taglio',ids:['cq_elb_pt1d','cq_elb_pt1r'],cols:2},
+      {label:'Coagulo',ids:['cq_elb_pc1d','cq_elb_pc1r'],cols:2},
+      {label:'Bipolare',ids:['cq_elb_pb1d','cq_elb_pb1r'],cols:2},
+    ];
+    let html='';
+    secs.forEach(sec=>{
+      if(sec.sec==='Correnti dispersione HF (mA)'){
+        html+=`<div class="sec" style="margin-bottom:10px"><div class="sec-hdr">${sec.sec}</div>`;
+        GRUPPI_CQ_HF.forEach(g=>{
+          html+=`<div class="hf-group-label">${g.label}</div><div class="hf-group-grid hf-cols-${g.cols}">`;
+          g.ids.forEach(id=>{
+            const f=sec.fields.find(x=>x.id===id);
+            if(f) html+=`<div class="vsp-field"><label>${f.l}</label><input type="text" id="${f.id}" inputmode="decimal"></div>`;
+          });
+          html+='</div>';
+        });
+        html+='</div>';
+      } else if(sec.sec==='Potenza uscita su carico nominale (W)'){
+        html+=`<div class="sec" style="margin-bottom:10px"><div class="sec-hdr">${sec.sec}</div>`;
+        GRUPPI_CQ_POT.forEach(g=>{
+          html+=`<div class="hf-group-label">${g.label}</div><div class="hf-group-grid hf-cols-${g.cols}">`;
+          g.ids.forEach(id=>{
+            const f=sec.fields.find(x=>x.id===id);
+            if(f) html+=`<div class="vsp-field"><label>${f.l}</label><input type="text" id="${f.id}" inputmode="decimal"></div>`;
+          });
+          html+='</div>';
+        });
+        html+='</div>';
+      } else {
+        html+=`<div class="sec" style="margin-bottom:10px"><div class="sec-hdr">${sec.sec}</div><div class="sec-body" style="grid-template-columns:repeat(auto-fill,minmax(160px,1fr))">${sec.fields.map(f=>`<div class="field"><label>${f.l}</label><input type="text" id="${f.id}" inputmode="decimal"></div>`).join('')}</div></div>`;
+      }
+    });
+    provaDiv.innerHTML=html;
     provaDiv.style.display='block';
   } else {
     provaDiv.innerHTML=''; provaDiv.style.display='none';
