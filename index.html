@@ -449,6 +449,7 @@ body.logged-in h1,body.logged-in .subtitle{display:none}
       <div class="card-title" style="margin-bottom:0">Sessione</div>
       <div class="sess-btns">
         <button class="btn-sm" id="btn-sess-open" onclick="openSessModal()">📋 Sessioni</button>
+        <button class="btn-sm danger" id="btn-chiudi-sess" onclick="chiudiSessione()" style="display:none">✕ Chiudi</button>
       </div>
       <div class="sess-mobile-actions">
         <button class="btn-sm" id="btn-xlsx-mobile" onclick="exportXLSX()" disabled>⬇ Excel</button>
@@ -458,6 +459,7 @@ body.logged-in h1,body.logged-in .subtitle{display:none}
         <button class="btn-sm" id="btn-export-massivo-m" onclick="exportSessioneMassiva()" disabled>⬇ Sessione</button>
         <button class="btn-sm" onclick="downloadMacroPDF()">📄 Macro PDF</button>
         <button class="btn-sm" id="btn-compila-odl-m" onclick="compilaODL()" disabled>📋 ODL</button>
+        <button class="btn-sm danger" id="btn-chiudi-sess-m" onclick="chiudiSessione()" style="display:none">✕ Chiudi Sessione</button>
       </div>
     </div>
     <div id="sess-sync-bar" style="display:none;font-size:11px;color:var(--text3);margin-bottom:6px;display:flex;align-items:center;gap:6px">
@@ -2809,6 +2811,11 @@ function updateSyncBar(titolo, synced) {
   }
   if (dot) dot.className = cls;
   if (dotM) dotM.className = cls;
+  const hasSession = !!currentSessionId;
+  const bc = document.getElementById('btn-chiudi-sess');
+  const bcm = document.getElementById('btn-chiudi-sess-m');
+  if (bc)  bc.style.display  = hasSession ? '' : 'none';
+  if (bcm) bcm.style.display = hasSession ? '' : 'none';
 }
 
 // ── Auto-save: schedula sync 3s dopo l'ultima modifica ────────
@@ -2845,6 +2852,19 @@ async function openSessModal() {
 }
 function closeSessModal() {
   document.getElementById('sess-modal').classList.remove('open');
+}
+
+function chiudiSessione() {
+  if (!currentSessionId) return;
+  currentSessionId = null;
+  currentSessionTitle = null;
+  attesi = new Set();
+  Object.keys(saved).forEach(k => delete saved[k]);
+  cur = null; curVerif = null;
+  document.getElementById('form-area').style.display = 'none';
+  updateSyncBar(null, null);
+  renderSession();
+  toast('Sessione chiusa', 'ok');
 }
 
 async function loadSessList() {
