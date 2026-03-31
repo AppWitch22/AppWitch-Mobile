@@ -1851,6 +1851,8 @@ const VSP_EXTRA = {
       {id:'elb_ea_t',l:'El. attivo — Taglio (mA)'},{id:'elb_ea_m',l:'El. attivo — Mix (mA)'},{id:'elb_ea_c',l:'El. attivo — Coagulo (mA)'},
       {id:'elb_iso1n',l:'Uscita isolata CN — El.1 (mA)'},{id:'elb_iso1t',l:'Uscita isolata CN — El.2 (mA)'},
       {id:'elb_iso2n',l:'Uscita isolata MT — El.1 (mA)'},{id:'elb_iso2t',l:'Uscita isolata MT — El.2 (mA)'},
+      {id:'elb_hf_esito',l:'Correnti HF nei limiti',type:'rb'},
+      {id:'elb_bip_esito',l:'Correnti bipolare nei limiti',type:'rb'},
     ]},
     {sec:'Strumentazione utilizzata', fields:[
       {id:'elb_strum',l:'Strumento'},{id:'elb_mod',l:'Modello'},
@@ -1906,6 +1908,8 @@ function buildVSPPoints(type){
           });
           html+='</div>';
         });
+        html+=`<input type="hidden" id="elb_hf_esito"><div class="cq-esito-row"><span class="cq-esito-label">Correnti HF nei limiti</span><div class="rg" id="rg-elb_hf_esito"><div class="rb ok" data-v="OK" onclick="pick(this);document.getElementById('elb_hf_esito').value='OK'">OK</div><div class="rb ko" data-v="KO" onclick="pick(this);document.getElementById('elb_hf_esito').value='KO'">KO</div><div class="rb na" data-v="NA" onclick="pick(this);document.getElementById('elb_hf_esito').value='NA'">NA</div></div></div>`;
+        html+=`<input type="hidden" id="elb_bip_esito"><div class="cq-esito-row"><span class="cq-esito-label">Correnti bipolare nei limiti</span><div class="rg" id="rg-elb_bip_esito"><div class="rb ok" data-v="OK" onclick="pick(this);document.getElementById('elb_bip_esito').value='OK'">OK</div><div class="rb ko" data-v="KO" onclick="pick(this);document.getElementById('elb_bip_esito').value='KO'">KO</div><div class="rb na" data-v="NA" onclick="pick(this);document.getElementById('elb_bip_esito').value='NA'">NA</div></div></div>`;
         html+='</div>';
       } else {
         html+=`<div class="sec" style="margin-bottom:10px"><div class="sec-hdr">${sec.sec}</div><div class="sec-body" style="grid-template-columns:repeat(auto-fill,minmax(180px,1fr))">`;
@@ -1978,7 +1982,7 @@ function loadVSPSaved(rec){
   sv('vsp-tecnico',rec.vsp_tecnico||''); sv('vsp-data2',rec.vsp_data2||'');
   (VSP_POINTS[rec.vsp_type]||[]).forEach(p=>{if(rec['vsp_'+p.l]) setVSP(p.l,rec['vsp_'+p.l]);});
   const extra=VSP_EXTRA[rec.vsp_type];
-  if(extra) extra.forEach(sec=>sec.fields.forEach(f=>{const el=document.getElementById(f.id);if(el&&rec[f.id])el.value=rec[f.id];}));
+  if(extra) extra.forEach(sec=>sec.fields.forEach(f=>{if(f.type==='rb'){sr('rg-'+f.id,rec[f.id]||'');}else{const el=document.getElementById(f.id);if(el&&rec[f.id])el.value=rec[f.id];}}));
 }
 
 
@@ -3527,8 +3531,14 @@ function _fillVSPSheet(xml,rec,dev){
     s('G40',r.elb_at_t); s('J40',r.elb_at_m); s('M40',r.elb_at_c);
     s('G41',r.elb_en_t); s('J41',r.elb_en_m); s('M41',r.elb_en_c);
     s('G42',r.elb_ea_t); s('J42',r.elb_ea_m); s('M42',r.elb_ea_c);
+    xml=_patchCell(xml,'R44',r.elb_hf_esito==='OK'?'X':'');
+    xml=_patchCell(xml,'S44',r.elb_hf_esito==='KO'?'X':'');
+    xml=_patchCell(xml,'T44',r.elb_hf_esito==='NA'?'X':'');
     s('G46',r.elb_iso1n); s('L46',r.elb_iso1t);
     s('G47',r.elb_iso2n); s('L47',r.elb_iso2t);
+    xml=_patchCell(xml,'L49',r.elb_bip_esito==='OK'?'X':'');
+    xml=_patchCell(xml,'M49',r.elb_bip_esito==='KO'?'X':'');
+    xml=_patchCell(xml,'N49',r.elb_bip_esito==='NA'?'X':'');
     s('A110',r.elb_strum); s('E110',r.elb_mod); s('I110',r.elb_ser); s('M110',r.elb_cert);
     if(r.elb_scad){const nd=/^\d{4}-\d{2}-\d{2}$/.test(r.elb_scad)?_toExcelDate(r.elb_scad):parseFloat(r.elb_scad);if(!isNaN(nd))s('Q110',nd,true);else s('Q110',r.elb_scad);}
   }
@@ -3610,13 +3620,13 @@ function _fillCQSheet(xml,rec,dev,asl){
   else if(tipo==='CQ_ELB'){
     s('E47',rec.cq_elb_ct_t||''); s('I47',rec.cq_elb_at_t||''); s('M47',rec.cq_elb_fn_t||''); s('Q47',rec.cq_elb_en_t||'');
     s('E48',rec.cq_elb_ct_c||''); s('I48',rec.cq_elb_at_c||''); s('M48',rec.cq_elb_fn_c||''); s('Q48',rec.cq_elb_en_c||'');
-    xml=_patchCell(xml,'R49',rec.cq_elb_hf_esito==='OK'?'X':'');
-    xml=_patchCell(xml,'S49',rec.cq_elb_hf_esito==='KO'?'X':'');
-    xml=_patchCell(xml,'T49',rec.cq_elb_hf_esito==='NA'?'X':'');
+    xml=_patchCell(xml,'R50',rec.cq_elb_hf_esito==='OK'?'X':'');
+    xml=_patchCell(xml,'S50',rec.cq_elb_hf_esito==='KO'?'X':'');
+    xml=_patchCell(xml,'T50',rec.cq_elb_hf_esito==='NA'?'X':'');
     s('E72',rec.cq_elb_iso1||''); s('M72',rec.cq_elb_iso2||'');
-    xml=_patchCell(xml,'R73',rec.cq_elb_bip_esito==='OK'?'X':'');
-    xml=_patchCell(xml,'S73',rec.cq_elb_bip_esito==='KO'?'X':'');
-    xml=_patchCell(xml,'T73',rec.cq_elb_bip_esito==='NA'?'X':'');
+    xml=_patchCell(xml,'R74',rec.cq_elb_bip_esito==='OK'?'X':'');
+    xml=_patchCell(xml,'S74',rec.cq_elb_bip_esito==='KO'?'X':'');
+    xml=_patchCell(xml,'T74',rec.cq_elb_bip_esito==='NA'?'X':'');
     s('B79',rec.cq_elb_pt1d||''); s('E79',rec.cq_elb_pt1r||'');
     s('H79',rec.cq_elb_pc1d||''); s('K79',rec.cq_elb_pc1r||'');
     s('N79',rec.cq_elb_pb1d||''); s('R79',rec.cq_elb_pb1r||'');
