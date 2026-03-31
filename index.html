@@ -8,13 +8,14 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'><path d='M20 2L36 11V29L20 38L4 29V11L20 2Z' fill='%23C2500A'/><polyline points='7,20 10.5,20 13,12.5 16,27.5 18.5,16 21,24 23.5,20 33,20' stroke='white' stroke-width='2.3' stroke-linecap='round' stroke-linejoin='round' fill='none'/></svg>">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <title>AppWitch — Verifiche Dispositivi Medici</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
   --bg:#F2EDE6;--bg2:#FDFAF7;--bg3:#EDE5DC;
-  --text:#1C0F06;--text2:#7A5C40;--text3:#B09070;
+  --text:#1C0F06;--text2:#4A2C10;--text3:#7A5030;
   --border:#DDD0C0;--border2:#C8B89A;
   --info-bg:rgba(194,80,10,.10);--info:#C2500A;
   --ok-bg:rgba(22,163,74,.10);--ok:#15803D;
@@ -379,7 +380,11 @@ body.logged-in h1,body.logged-in .subtitle{display:none}
 <div id="sidebar">
   <div class="sb-logo" style="display:flex;align-items:center;justify-content:space-between">
     <div>
-      <div class="sb-logo-text">⚡ AppWitch</div>
+      <div class="sb-logo-text"><svg width="32" height="32" viewBox="0 0 40 40" fill="none">
+  <path d="M20 2L36 11V29L20 38L4 29V11L20 2Z" fill="#C2500A"/>
+  <polyline points="7,20 10.5,20 13,12.5 16,27.5 18.5,16 21,24 23.5,20 33,20"
+    stroke="white" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+</svg> AppWitch</div>
       <div class="sb-logo-sub">Verifiche Dispositivi Medici</div>
     </div>
     <button class="hamburger" onclick="toggleSidebar()" style="display:none" id="sb-close-btn" title="Chiudi menu">✕</button>
@@ -426,7 +431,11 @@ body.logged-in h1,body.logged-in .subtitle{display:none}
 <div class="app">
   <div class="mobile-topbar">
     <button class="hamburger" onclick="toggleSidebar()" title="Apri menu">☰</button>
-    <span class="mobile-logo-txt">⚡ AppWitch</span>
+    <span class="mobile-logo-txt"><svg width="28" height="28" viewBox="0 0 40 40" fill="none">
+  <path d="M20 2L36 11V29L20 38L4 29V11L20 2Z" fill="rgba(255,255,255,0.18)" stroke="rgba(255,255,255,0.4)" stroke-width="1.2"/>
+  <polyline points="7,20 10.5,20 13,12.5 16,27.5 18.5,16 21,24 23.5,20 33,20"
+    stroke="white" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+</svg> AppWitch</span>
     <div id="sync-dot-mobile" class="sess-sync-dot offline" style="margin-left:auto" title="Stato sync"></div>
   </div>
   <h1>AppWitch</h1>
