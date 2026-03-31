@@ -406,6 +406,7 @@ body.logged-in h1,body.logged-in .subtitle{display:none}
     <button class="sb-btn" onclick="uploadSessionToCloud()">☁️ Carica su Cloud</button>
     <button class="sb-btn" id="btn-export-massivo" onclick="exportSessioneMassiva()" disabled>⬇ Esporta Sessione</button>
     <button class="sb-btn" onclick="downloadMacroPDF()">📄 Macro PDF</button>
+    <button class="sb-btn" id="btn-compila-odl" onclick="compilaODL()" disabled>📋 Compila ODL</button>
   </div>
 
   <div class="sb-bottom">
@@ -456,6 +457,7 @@ body.logged-in h1,body.logged-in .subtitle{display:none}
         <button class="btn-sm" onclick="uploadSessionToCloud()">☁️ Carica</button>
         <button class="btn-sm" id="btn-export-massivo-m" onclick="exportSessioneMassiva()" disabled>⬇ Sessione</button>
         <button class="btn-sm" onclick="downloadMacroPDF()">📄 Macro PDF</button>
+        <button class="btn-sm" id="btn-compila-odl-m" onclick="compilaODL()" disabled>📋 ODL</button>
       </div>
     </div>
     <div id="sess-sync-bar" style="display:none;font-size:11px;color:var(--text3);margin-bottom:6px;display:flex;align-items:center;gap:6px">
@@ -1438,6 +1440,8 @@ function renderSession(){
   const bxm=document.getElementById('btn-xlsx-mobile');if(bxm)bxm.disabled=keys.length===0;
   const bem=document.getElementById('btn-export-massivo');if(bem)bem.disabled=keys.length===0;
   const bemm=document.getElementById('btn-export-massivo-m');if(bemm)bemm.disabled=keys.length===0;
+  const bodl=document.getElementById('btn-compila-odl');if(bodl)bodl.disabled=keys.length===0;
+  const bodlm=document.getElementById('btn-compila-odl-m');if(bodlm)bodlm.disabled=keys.length===0;
   const chips=document.getElementById('chips');
   const stats=document.getElementById('sess-stats');
   if(!keys.length&&!pending.length){chips.innerHTML='<span class="sess-empty">Nessun apparecchio compilato</span>';stats.style.display='none';document.getElementById('export-preview').style.display='none';return;}
@@ -3240,7 +3244,8 @@ async function _getTemplate(idbKey,filename){
 }
 async function resetTemplates(){
   const keys=['tpl_vse','tpl_mp','tpl_vsp_cen','tpl_vsp_def','tpl_vsp_ecg','tpl_vsp_elb',
-    'tpl_cq_ans','tpl_cq_cen','tpl_cq_def','tpl_cq_ecg','tpl_cq_ect','tpl_cq_elb','tpl_cq_fbi','tpl_cq_mon','tpl_cq_vpo'];
+    'tpl_cq_ans','tpl_cq_cen','tpl_cq_def','tpl_cq_ecg','tpl_cq_ect','tpl_cq_elb','tpl_cq_fbi','tpl_cq_mon','tpl_cq_vpo',
+    'tpl_odl'];
   keys.forEach(k=>delete _tplCache[k]);
   try{const db=await _openIDB();const t=db.transaction('blobs','readwrite');keys.forEach(k=>t.objectStore('blobs').delete(k));}catch(e){}
   toast('Cache template rimossa','ok');
@@ -3664,6 +3669,108 @@ async function _buildSheetXLSX(buf, cod, tipo, fillFn, fileDate, sheetName='Fogl
   const fname=cod+'_'+tipo+'_'+_fmtDD_MM_YY(fileDate)+'.xlsx';
   const blob=await z.generateAsync({type:'blob',compression:'DEFLATE'});
   return {blob, fname};
+}
+
+// ── ODL ──────────────────────────────────────────────────────
+function _fillODLSheet(xml, keys, asl) {
+  // Template structure: 5 pages on one sheet, page break every 63 rows.
+  // Data rows per page: 31, starting at row 16 (page 0), 79 (page 1), 142, 205, 268.
+  const PAGE_OFFSET = 63;
+  const DATA_START  = 16;
+  const ROWS_PER_PAGE = 31;
+  const MAX_PAGES = 5;
+
+  // Patch header cells on all 5 pages (same fields, offset by PAGE_OFFSET each page)
+  const ds = _toExcelDate(new Date().toISOString().slice(0, 10));
+  const firstDev = keys.length > 0 ? (DB[keys[0]] || {}) : {};
+  const aslUpper = (asl || 'ASL BENEVENTO').toUpperCase();
+  for (let p = 0; p < MAX_PAGES; p++) {
+    const off = p * PAGE_OFFSET;
+    xml = _sc(xml, 'V' + (4  + off), ds, true);
+    xml = _sc(xml, 'D' + (9  + off), aslUpper);
+    xml = _sc(xml, 'D' + (10 + off), firstDev.loc || '');
+    xml = _sc(xml, 'D' + (11 + off), firstDev.ss  || '');
+    xml = _sc(xml, 'D' + (12 + off), firstDev.na  || '');
+    xml = _sc(xml, 'N' + (12 + off), firstDev.rep || '');
+  }
+
+  // Rewrite only the data rows; preserve all other rows (header, footer, formatting)
+  const SD_OPEN = '<sheetData>', SD_CLOSE = '</sheetData>';
+  const sd0 = xml.indexOf(SD_OPEN), sd1 = xml.indexOf(SD_CLOSE);
+  if (sd0 === -1 || sd1 === -1) return xml;
+
+  const esc = v => String(v || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const makeRow = (rowNum, cod) => {
+    if (!cod) return `<row r="${rowNum}" spans="1:36"></row>`;
+    const rec = saved[cod] || {};
+    const dev = DB[cod] || {};
+    const cell = (col, val) => val ? `<c r="${col}${rowNum}" t="inlineStr"><is><t>${esc(val)}</t></is></c>` : '';
+    return `<row r="${rowNum}" spans="1:36">`
+      + cell('A', dev.c || cod)
+      + cell('C', dev.n || '')
+      + cell('G', dev.b || '')
+      + cell('K', dev.m || '')
+      + cell('O', dev.mat || '')
+      + (rec.vse_saved ? cell('R', 'x') : '')
+      + (rec.cq_saved  ? cell('S', 'x') : '')
+      + (rec.mp_saved  ? cell('T', 'x') : '')
+      + '</row>';
+  };
+
+  const inner = xml.slice(sd0 + SD_OPEN.length, sd1);
+  const rowRe = /<row r="(\d+)"[^>]*>[\s\S]*?<\/row>/g;
+  let newInner = '', m;
+  while ((m = rowRe.exec(inner)) !== null) {
+    const rn = parseInt(m[1]);
+    const rel = rn - DATA_START;
+    const page = Math.floor(rel / PAGE_OFFSET);
+    const slot = rel % PAGE_OFFSET;
+    if (rel >= 0 && slot < ROWS_PER_PAGE && page < MAX_PAGES) {
+      const devIdx = page * ROWS_PER_PAGE + slot;
+      newInner += makeRow(rn, keys[devIdx] || null);
+    } else {
+      newInner += m[0]; // keep non-data rows as-is
+    }
+  }
+
+  return xml.slice(0, sd0 + SD_OPEN.length) + newInner + xml.slice(sd1);
+}
+
+async function compilaODL() {
+  const keys = Object.keys(saved).filter(k => saved[k]?.vse_saved || saved[k]?.mp_saved);
+  if (!keys.length) { toast('Nessun dispositivo verificato nella sessione', 'warn'); return; }
+  const buf = await _getTemplate('tpl_odl', 'Template_ODL.xlsx');
+  if (!buf) return;
+  try {
+    await _loadJSZip();
+    const z = await JSZip.loadAsync(buf);
+    const shPath = await _resolveSheetPath(z, 'ODL');
+    if (!shPath) { toast('Foglio ODL non trovato nel template', 'warn'); return; }
+    const asl = currentUser?.profile?.asl || 'ASL Benevento';
+    z.file(shPath, _fillODLSheet(await z.file(shPath).async('string'), keys, asl));
+    z.remove('xl/externalLinks/externalLink1.xml');
+    z.remove('xl/externalLinks/_rels/externalLink1.xml.rels');
+    z.remove('xl/calcChain.xml');
+    z.remove('xl/vbaProject.bin');
+    let ct = await z.file('[Content_Types].xml').async('string');
+    ct = ct.replace(/<Override[^>]*externalLink[^>]*\/>/g, '')
+           .replace(/<Override[^>]*calcChain[^>]*\/>/g, '')
+           .replace(/<Override[^>]*vbaProject[^>]*\/>/g, '')
+           .replace('application/vnd.ms-excel.sheet.macroEnabled.main+xml',
+                    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml');
+    z.file('[Content_Types].xml', ct);
+    let rels = await z.file('xl/_rels/workbook.xml.rels').async('string');
+    rels = rels.replace(/<Relationship[^>]*externalLink[^>]*\/>/g, '')
+               .replace(/<Relationship[^>]*vbaProject[^>]*\/>/g, '');
+    z.file('xl/_rels/workbook.xml.rels', rels);
+    const date = new Date().toISOString().slice(0, 10);
+    const fname = 'ODL_' + _fmtDD_MM_YY(date) + '.xlsx';
+    const blob = await z.generateAsync({type: 'blob', compression: 'DEFLATE'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = fname; a.click();
+    URL.revokeObjectURL(url);
+    toast('ODL scaricato: ' + fname, 'ok');
+  } catch(e) { console.error(e); toast('Errore compilazione ODL: ' + e.message, 'warn'); }
 }
 
 function _exportGuard(cod, tipoLabel){
