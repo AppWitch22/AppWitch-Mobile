@@ -3553,7 +3553,15 @@ async function _downloadSheetXLSX(buf, cod, tipo, fillFn, fileDate, sheetName='F
   const z=await JSZip.loadAsync(buf);
   const shPath=await _resolveSheetPath(z,sheetName);
   if(!shPath){toast('Foglio '+sheetName+' non trovato nel template','warn');return null;}
-  z.file(shPath, fillFn(await z.file(shPath).async('string')));
+  let shXml=fillFn(await z.file(shPath).async('string'));
+  if(tipo==='VS'||tipo==='MP'){
+    shXml=shXml.replace(/<sheetPr[^>]*\/>/g,'');
+    shXml=shXml.replace(/<sheetPr[^>]*>[\s\S]*?<\/sheetPr>/g,'');
+    shXml=shXml.replace(/(<worksheet[^>]*>)/,'$1<sheetPr><pageSetUpPr fitToPage="1"/></sheetPr>');
+    shXml=shXml.replace(/<pageSetup[^/]*\/>/g,'');
+    shXml=shXml.replace('</worksheet>','<pageSetup paperSize="9" orientation="landscape" fitToWidth="1" fitToHeight="0"/></worksheet>');
+  }
+  z.file(shPath, shXml);
   // Rimuovi external links (evita prompt "aggiorna link" in Excel)
   z.remove('xl/externalLinks/externalLink1.xml');
   z.remove('xl/externalLinks/_rels/externalLink1.xml.rels');
