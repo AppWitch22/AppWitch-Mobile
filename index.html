@@ -1207,7 +1207,8 @@ function fillVSE(d){
   document.getElementById('dev-nom').textContent=d.n.toLowerCase();
   document.getElementById('dev-inf').textContent=d.b+' · '+d.m;
   const loc=document.getElementById('dev-loc');
-  if(d.pre){loc.textContent='📍 '+d.pre+(d.sed?' — '+d.sed:'');loc.style.display='inline-block';}
+  const locParts=[d.loc,d.ss,d.rep].filter(Boolean);
+  if(locParts.length){loc.textContent='📍 '+locParts.join(' · ');loc.style.display='inline-block';}
   else loc.style.display='none';
   uM();
   ['f-trm','f-pnm','f-pim'].forEach((id,i)=>cv(id,['lim-tr','lim-pn','lim-pi'][i],['e-tr','e-pn','e-pi'][i]));
