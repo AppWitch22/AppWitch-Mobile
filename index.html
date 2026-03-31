@@ -3699,22 +3699,55 @@ function _fillODLSheet(xml, keys, asl) {
   const sd0 = xml.indexOf(SD_OPEN), sd1 = xml.indexOf(SD_CLOSE);
   if (sd0 === -1 || sd1 === -1) return xml;
 
+  // Patch a cell within a row XML fragment, preserving its style attribute.
+  // If the cell exists: update value keeping s="". If not: inject before </row>.
   const esc = v => String(v || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  const makeRow = (rowNum, cod) => {
-    if (!cod) return `<row r="${rowNum}" spans="1:36"></row>`;
-    const rec = saved[cod] || {};
-    const dev = DB[cod] || {};
-    const cell = (col, val) => val ? `<c r="${col}${rowNum}" t="inlineStr"><is><t>${esc(val)}</t></is></c>` : '';
-    return `<row r="${rowNum}" spans="1:36">`
-      + cell('A', dev.c || cod)
-      + cell('C', dev.n || '')
-      + cell('G', dev.b || '')
-      + cell('K', dev.m || '')
-      + cell('O', dev.mat || '')
-      + (rec.vse_saved ? cell('R', 'x') : '')
-      + (rec.cq_saved  ? cell('S', 'x') : '')
-      + (rec.mp_saved  ? cell('T', 'x') : '')
-      + '</row>';
+  const patchRowCell = (rowXml, addr, val) => {
+    const startTag = `<c r="${addr}"`;
+    const ci = rowXml.indexOf(startTag);
+    const eStr = val ? `<is><t>${esc(val)}</t></is>` : '';
+    if (ci !== -1) {
+      const selfClose = rowXml.indexOf('/>', ci);
+      const closeC    = rowXml.indexOf('</c>', ci);
+      const cellEnd   = (selfClose !== -1 && (closeC === -1 || selfClose < closeC))
+                        ? selfClose + 2 : closeC + 4;
+      const cellXml   = rowXml.slice(ci, cellEnd);
+      const sMatch    = cellXml.match(/\bs="(\d+)"/);
+      const sAttr     = sMatch ? ` s="${sMatch[1]}"` : '';
+      const newCell   = val
+        ? `<c r="${addr}"${sAttr} t="inlineStr">${eStr}</c>`
+        : `<c r="${addr}"${sAttr}/>`;
+      return rowXml.slice(0, ci) + newCell + rowXml.slice(cellEnd);
+    }
+    if (!val) return rowXml;
+    const closeRow = rowXml.lastIndexOf('</row>');
+    return rowXml.slice(0, closeRow)
+      + `<c r="${addr}" t="inlineStr">${eStr}</c>`
+      + rowXml.slice(closeRow);
+  };
+
+  // Clear all cell values in a row XML fragment, keeping style attributes.
+  const clearRow = rowXml =>
+    rowXml.replace(/<c (r="[^"]+")([^>]*)>[\s\S]*?<\/c>/g, (_, rAttr, rest) => {
+      const sMatch = rest.match(/\bs="(\d+)"/);
+      return sMatch ? `<c ${rAttr} s="${sMatch[1]}"/>` : `<c ${rAttr}/>`;
+    });
+
+  const fillRow = (origRowXml, cod) => {
+    let r = clearRow(origRowXml);
+    if (!cod) return r;
+    const rn   = r.match(/<row r="(\d+)"/)[1];
+    const rec  = saved[cod] || {};
+    const dev  = DB[cod]  || {};
+    r = patchRowCell(r, 'A' + rn, dev.c || cod);
+    r = patchRowCell(r, 'C' + rn, dev.n || '');
+    r = patchRowCell(r, 'G' + rn, dev.b || '');
+    r = patchRowCell(r, 'K' + rn, dev.m || '');
+    r = patchRowCell(r, 'O' + rn, dev.mat || '');
+    if (rec.vse_saved) r = patchRowCell(r, 'R' + rn, 'x');
+    if (rec.cq_saved)  r = patchRowCell(r, 'S' + rn, 'x');
+    if (rec.mp_saved)  r = patchRowCell(r, 'T' + rn, 'x');
+    return r;
   };
 
   const inner = xml.slice(sd0 + SD_OPEN.length, sd1);
@@ -3727,7 +3760,7 @@ function _fillODLSheet(xml, keys, asl) {
     const slot = rel % PAGE_OFFSET;
     if (rel >= 0 && slot < ROWS_PER_PAGE && page < MAX_PAGES) {
       const devIdx = page * ROWS_PER_PAGE + slot;
-      newInner += makeRow(rn, keys[devIdx] || null);
+      newInner += fillRow(m[0], keys[devIdx] || null);
     } else {
       newInner += m[0]; // keep non-data rows as-is
     }
