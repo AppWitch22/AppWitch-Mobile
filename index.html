@@ -3553,28 +3553,7 @@ async function _downloadSheetXLSX(buf, cod, tipo, fillFn, fileDate, sheetName='F
   const z=await JSZip.loadAsync(buf);
   const shPath=await _resolveSheetPath(z,sheetName);
   if(!shPath){toast('Foglio '+sheetName+' non trovato nel template','warn');return null;}
-  let shXml=fillFn(await z.file(shPath).async('string'));
-  if(tipo==='VS'||tipo==='MP'){
-    shXml=shXml.replace(/<sheetPr[^>]*\/>/g,'');
-    shXml=shXml.replace(/<sheetPr[^>]*>[\s\S]*?<\/sheetPr>/g,'');
-    shXml=shXml.replace(/(<worksheet[^>]*>)/,'$1<sheetPr><pageSetUpPr fitToPage="1"/></sheetPr>');
-    shXml=shXml.replace(/<pageSetup[^/]*\/>/g,'');
-    // pageSetup va DOPO pageMargins (spec OOXML) e PRIMA di drawing
-    const PS='<pageSetup paperSize="9" orientation="landscape" fitToWidth="1" fitToHeight="0"/>';
-    if(/<pageMargins/.test(shXml)) shXml=shXml.replace(/(<pageMargins[^/]*\/>)/,'$1'+PS);
-    else shXml=shXml.replace('</worksheet>',PS+'</worksheet>');
-    // Aggiungi area di stampa A1:T<lastRow> per evitare che Excel includa colonne oltre T
-    const dimM=shXml.match(/<dimension ref="[^:]+:[A-Z]+(\d+)"/);
-    const lastRow=dimM?dimM[1]:'200';
-    let wbXml=await z.file('xl/workbook.xml').async('string');
-    wbXml=wbXml.replace(/<externalReferences>[\s\S]*?<\/externalReferences>/g,'');
-    wbXml=wbXml.replace(/<definedNames>[\s\S]*?<\/definedNames>/g,'');
-    const DN='<definedNames><definedName name="_xlnm.Print_Area" localSheetId="0">Foglio1!$A$1:$T$'+lastRow+'</definedName></definedNames>';
-    if(/<calcPr/.test(wbXml)) wbXml=wbXml.replace(/<calcPr/,DN+'<calcPr');
-    else wbXml=wbXml.replace('</workbook>',DN+'</workbook>');
-    z.file('xl/workbook.xml',wbXml);
-  }
-  z.file(shPath, shXml);
+  z.file(shPath, fillFn(await z.file(shPath).async('string')));
   // Rimuovi external links (evita prompt "aggiorna link" in Excel)
   z.remove('xl/externalLinks/externalLink1.xml');
   z.remove('xl/externalLinks/_rels/externalLink1.xml.rels');
@@ -3614,30 +3593,7 @@ async function _buildSheetXLSX(buf, cod, tipo, fillFn, fileDate, sheetName='Fogl
   const z=await JSZip.loadAsync(buf);
   const shPath=await _resolveSheetPath(z,sheetName);
   if(!shPath) return null;
-  let xml=fillFn(await z.file(shPath).async('string'));
-  if(tipo==='VS'||tipo==='MP'){
-    // Normalizza sheetPr: rimuove duplicati/corrotti, inserisce fitToPage="1"
-    xml=xml.replace(/<sheetPr[^>]*\/>/g,'');
-    xml=xml.replace(/<sheetPr[^>]*>[\s\S]*?<\/sheetPr>/g,'');
-    xml=xml.replace(/(<worksheet[^>]*>)/,'$1<sheetPr><pageSetUpPr fitToPage="1"/></sheetPr>');
-    // Inietta/sostituisce pageSetup con landscape + fit-to-width
-    // pageSetup va DOPO pageMargins (spec OOXML) e PRIMA di drawing
-    xml=xml.replace(/<pageSetup[^/]*\/>/g,'');
-    const PS2='<pageSetup paperSize="9" orientation="landscape" fitToWidth="1" fitToHeight="0"/>';
-    if(/<pageMargins/.test(xml)) xml=xml.replace(/(<pageMargins[^/]*\/>)/,'$1'+PS2);
-    else xml=xml.replace('</worksheet>',PS2+'</worksheet>');
-    // Aggiungi area di stampa A1:T<lastRow>
-    const dimM2=xml.match(/<dimension ref="[^:]+:[A-Z]+(\d+)"/);
-    const lastRow2=dimM2?dimM2[1]:'200';
-    let wbXml2=await z.file('xl/workbook.xml').async('string');
-    wbXml2=wbXml2.replace(/<externalReferences>[\s\S]*?<\/externalReferences>/g,'');
-    wbXml2=wbXml2.replace(/<definedNames>[\s\S]*?<\/definedNames>/g,'');
-    const DN2='<definedNames><definedName name="_xlnm.Print_Area" localSheetId="0">Foglio1!$A$1:$T$'+lastRow2+'</definedName></definedNames>';
-    if(/<calcPr/.test(wbXml2)) wbXml2=wbXml2.replace(/<calcPr/,DN2+'<calcPr');
-    else wbXml2=wbXml2.replace('</workbook>',DN2+'</workbook>');
-    z.file('xl/workbook.xml',wbXml2);
-  }
-  z.file(shPath, xml);
+  z.file(shPath, fillFn(await z.file(shPath).async('string')));
   z.remove('xl/externalLinks/externalLink1.xml');
   z.remove('xl/externalLinks/_rels/externalLink1.xml.rels');
   z.remove('xl/calcChain.xml');
