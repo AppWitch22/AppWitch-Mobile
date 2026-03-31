@@ -3594,13 +3594,20 @@ async function _downloadSheetXLSX(buf, cod, tipo, fillFn, fileDate, sheetName='F
   const fname=cod+'_'+tipo+'_'+_fmtDD_MM_YY(fileDate)+'.xlsx';
   const blob=await z.generateAsync({type:'blob',compression:'DEFLATE'});
   if (dirHandle) {
-    try {
-      const fh = await dirHandle.getFileHandle(fname, {create:true});
-      const ws = await fh.createWritable();
-      await ws.write(blob); await ws.close();
-    } catch(e) {
-      console.error('Errore salvataggio cartella',e);
-      const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=fname;a.click();URL.revokeObjectURL(url);
+    let saved=false;
+    for(let attempt=0;attempt<3&&!saved;attempt++){
+      try {
+        if(attempt>0) await new Promise(r=>setTimeout(r,600));
+        const fh=await dirHandle.getFileHandle(fname,{create:true});
+        const ws=await fh.createWritable();
+        await ws.write(blob);await ws.close();
+        saved=true;
+      } catch(e) {
+        if(attempt===2){
+          console.error('Errore salvataggio cartella',e);
+          const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=fname;a.click();URL.revokeObjectURL(url);
+        }
+      }
     }
   } else {
     const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=fname;a.click();URL.revokeObjectURL(url);
