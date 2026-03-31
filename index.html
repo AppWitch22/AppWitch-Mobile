@@ -80,7 +80,7 @@ body.logged-in h1,body.logged-in .subtitle{display:none}
 /* DB BAR */
 .db-bar{padding:8px 12px;border-radius:var(--rad);font-size:13px;margin-bottom:14px;border:1px solid var(--border)}
 .db-bar.loading{background:var(--bg2);color:var(--text2)}
-.db-bar.ready{background:var(--ok-bg);color:var(--ok);border-color:rgba(21,128,61,.2)}
+.db-bar.ready{background:#FDF1EA;border-color:rgba(194,80,10,.20);color:#4A2C10}
 .db-bar.error{background:var(--ko-bg);color:var(--ko);border-color:rgba(185,28,28,.2)}
 
 /* CARDS */
@@ -440,7 +440,7 @@ body.logged-in h1,body.logged-in .subtitle{display:none}
   </div>
   <h1>AppWitch</h1>
   <div class="subtitle">Verifiche Dispositivi Medici</div>
-  <div class="db-bar loading" id="db-bar">Caricamento database...</div>
+  <div class="db-bar loading" id="db-bar" style="display:flex;align-items:center"><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#C2500A;margin-right:8px;vertical-align:middle;flex-shrink:0;"></span><span>Caricamento database...</span></div>
 
   <div class="card">
     <div class="card-title">Cerca apparecchio</div>
@@ -1077,7 +1077,7 @@ async function initDB(){
     // Sovrascrivi VERIF_MAP globale
     Object.keys(VERIF_MAP).forEach(k=>delete VERIF_MAP[k]);
     Object.assign(VERIF_MAP,VERIF_MAP_NEW);
-    bar.textContent='Database pronto — '+Object.keys(DB).length.toLocaleString()+' dispositivi';
+    bar.innerHTML='<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#C2500A;margin-right:8px;vertical-align:middle;flex-shrink:0;"></span><span>Database pronto</span><span style="font-family:\'SF Mono\',ui-monospace,monospace;font-size:12px;color:#C2500A;margin-left:6px;">— '+Object.keys(DB).length.toLocaleString()+' dispositivi</span>';
     bar.className='db-bar ready';
     await loadPresets();
   }catch(e){
