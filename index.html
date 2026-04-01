@@ -1842,9 +1842,9 @@ const VSP_EXTRA = {
   'VSP_ELB': [
     {sec:'Identificazione — Dati di targa', fields:[
       {id:'elb_pbip',l:'Potenza bipolare (W)'},{id:'elb_cbip',l:'Carico bip. (Ω)'},
-      {id:'elb_fkhz',l:'Freq. bip. [KHz]'},{id:'elb_fmhz',l:'Freq. bip. [MHz]'},
+      {id:'elb_fhz',l:'Freq. bip. [Hz]'},{id:'elb_fkhz',l:'Freq. bip. [KHz]'},{id:'elb_fmhz',l:'Freq. bip. [MHz]'},
       {id:'elb_pmono',l:'Potenza monopolare (W)'},{id:'elb_cmono',l:'Carico mono. (Ω)'},
-      {id:'elb_fkhz2',l:'Freq. mono. [KHz]'},{id:'elb_fmhz2',l:'Freq. mono. [MHz]'},
+      {id:'elb_fhz2',l:'Freq. mono. [Hz]'},{id:'elb_fkhz2',l:'Freq. mono. [KHz]'},{id:'elb_fmhz2',l:'Freq. mono. [MHz]'},
       {id:'elb_pa',l:'Tipo PA in HF',type:'rb',opts:['F','T'],labels:['Flottante (F)','Riferite a terra']},
     ]},
     {sec:'Corrente di dispersione nel paziente in HF', fields:[
@@ -1856,6 +1856,41 @@ const VSP_EXTRA = {
       {id:'elb_iso2n',l:'Uscita isolata MT — El.1 (mA)'},{id:'elb_iso2t',l:'Uscita isolata MT — El.2 (mA)'},
       {id:'elb_hf_esito',l:'Correnti HF nei limiti',type:'rb'},
       {id:'elb_bip_esito',l:'Correnti bipolare nei limiti',type:'rb'},
+    ]},
+    {sec:'Tolleranza di uscita (unità arbitrarie o W)', fields:[
+      {id:'elb_rc_t_ni',l:'Taglio — Nulla Ind.'},{id:'elb_rc_t_nm',l:'Taglio — Nulla Mis.'},
+      {id:'elb_rc_t_q1i',l:'Taglio — ¼ Ind.'},{id:'elb_rc_t_q1m',l:'Taglio — ¼ Mis.'},
+      {id:'elb_rc_t_q2i',l:'Taglio — ½ Ind.'},{id:'elb_rc_t_q2m',l:'Taglio — ½ Mis.'},
+      {id:'elb_rc_t_q3i',l:'Taglio — ¾ Ind.'},{id:'elb_rc_t_q3m',l:'Taglio — ¾ Mis.'},
+      {id:'elb_rc_t_mxi',l:'Taglio — MAX Ind.'},{id:'elb_rc_t_mxm',l:'Taglio — MAX Mis.'},
+      {id:'elb_rc_m_ni',l:'Mix — Nulla Ind.'},{id:'elb_rc_m_nm',l:'Mix — Nulla Mis.'},
+      {id:'elb_rc_m_q1i',l:'Mix — ¼ Ind.'},{id:'elb_rc_m_q1m',l:'Mix — ¼ Mis.'},
+      {id:'elb_rc_m_q2i',l:'Mix — ½ Ind.'},{id:'elb_rc_m_q2m',l:'Mix — ½ Mis.'},
+      {id:'elb_rc_m_q3i',l:'Mix — ¾ Ind.'},{id:'elb_rc_m_q3m',l:'Mix — ¾ Mis.'},
+      {id:'elb_rc_m_mxi',l:'Mix — MAX Ind.'},{id:'elb_rc_m_mxm',l:'Mix — MAX Mis.'},
+      {id:'elb_rc_c_ni',l:'Coagulo — Nulla Ind.'},{id:'elb_rc_c_nm',l:'Coagulo — Nulla Mis.'},
+      {id:'elb_rc_c_q1i',l:'Coagulo — ¼ Ind.'},{id:'elb_rc_c_q1m',l:'Coagulo — ¼ Mis.'},
+      {id:'elb_rc_c_q2i',l:'Coagulo — ½ Ind.'},{id:'elb_rc_c_q2m',l:'Coagulo — ½ Mis.'},
+      {id:'elb_rc_c_q3i',l:'Coagulo — ¾ Ind.'},{id:'elb_rc_c_q3m',l:'Coagulo — ¾ Mis.'},
+      {id:'elb_rc_c_mxi',l:'Coagulo — MAX Ind.'},{id:'elb_rc_c_mxm',l:'Coagulo — MAX Mis.'},
+      {id:'elb_rc_b_ni',l:'Bipolare — Nulla Ind.'},{id:'elb_rc_b_nm',l:'Bipolare — Nulla Mis.'},
+      {id:'elb_rc_b_q1i',l:'Bipolare — ¼ Ind.'},{id:'elb_rc_b_q1m',l:'Bipolare — ¼ Mis.'},
+      {id:'elb_rc_b_q2i',l:'Bipolare — ½ Ind.'},{id:'elb_rc_b_q2m',l:'Bipolare — ½ Mis.'},
+      {id:'elb_rc_b_q3i',l:'Bipolare — ¾ Ind.'},{id:'elb_rc_b_q3m',l:'Bipolare — ¾ Mis.'},
+      {id:'elb_rc_b_mxi',l:'Bipolare — MAX Ind.'},{id:'elb_rc_b_mxm',l:'Bipolare — MAX Mis.'},
+    ]},
+    {sec:'Verifica erogazione', fields:[
+      {id:'elb_er1',l:'Aumento progressivo della potenza di uscita all\'aumento dell\'indicazione del comando di uscita',type:'rb',opts:['OK','KO'],labels:['OK','KO']},
+      {id:'elb_er2',l:'Potenza minima di uscita < 5% di P nominale o 10W (il valore più basso)',type:'rb',opts:['OK','KO'],labels:['OK','KO']},
+      {id:'elb_er3',l:'Potenza massima misurata ± 20% di P impostata',type:'rb',opts:['OK','KO'],labels:['OK','KO']},
+    ]},
+    {sec:'Controlli visivi alle norme particolari', fields:[
+      {id:'elb_vp1',l:'Colorazione lampade spia (giallo: taglio, blu: coagulo, rosso: guasto circuito piastra)',type:'rb',opts:['KO'],labels:['KO']},
+      {id:'elb_vp2',l:'Protezione all\'immersione del pedale di comando (Solo per apparecchiature in Sala Operatoria)',type:'rb',opts:['NA','OK','KO'],labels:['NA','OK','KO']},
+      {id:'elb_vp3',l:'Assenza alimentazione simultanea, da un singolo interruttore, degli elettrodi attivi',type:'rb',opts:['OK','KO'],labels:['OK','KO']},
+      {id:'elb_vp4',l:'Non intercambiabilità fra elettrodo neutro e attivo',type:'rb',opts:['OK','KO'],labels:['OK','KO']},
+      {id:'elb_vp5',l:'Allarme interruzione cavo elettrodo neutro per apparecchiature con potenza: Pnom>50W',type:'rb',opts:['NA','OK','KO'],labels:['NA','OK','KO']},
+      {id:'elb_vp6',l:'Segnalazione sonora di uscita attivata',type:'rb',opts:['OK','KO'],labels:['OK','KO']},
     ]},
     {sec:'Strumentazione utilizzata', fields:[
       {id:'elb_strum',l:'Strumento'},{id:'elb_mod',l:'Modello'},
@@ -1901,7 +1936,19 @@ function buildVSPPoints(type){
       {label:'Uscita isolata',ids:['elb_iso1n','elb_iso1t','elb_iso2n','elb_iso2t'],cols:4},
     ];
     extra.forEach(sec=>{
-      if(sec.sec==='Corrente di dispersione nel paziente in HF'){
+      if(sec.sec==='Tolleranza di uscita (unità arbitrarie o W)'){
+        const RC_MODES=[{k:'t',l:'Taglio'},{k:'m',l:'Mix'},{k:'c',l:'Coagulo'},{k:'b',l:'Bipolare'}];
+        const RC_LEVELS=[{k:'ni',l:'Nulla Ind.'},{k:'nm',l:'Nulla Mis.'},{k:'q1i',l:'¼ Ind.'},{k:'q1m',l:'¼ Mis.'},{k:'q2i',l:'½ Ind.'},{k:'q2m',l:'½ Mis.'},{k:'q3i',l:'¾ Ind.'},{k:'q3m',l:'¾ Mis.'},{k:'mxi',l:'MAX Ind.'},{k:'mxm',l:'MAX Mis.'}];
+        html+=`<div class="sec" style="margin-bottom:10px"><div class="sec-hdr">${sec.sec}</div><div style="overflow-x:auto;padding:0 14px 12px"><table style="border-collapse:collapse;font-size:11px;width:100%"><thead><tr><th style="text-align:left;padding:4px 6px;white-space:nowrap"></th>`;
+        RC_LEVELS.forEach(lv=>{ html+=`<th style="padding:4px 4px;text-align:center;white-space:nowrap">${lv.l}</th>`; });
+        html+=`</tr></thead><tbody>`;
+        RC_MODES.forEach(m=>{
+          html+=`<tr><td style="padding:4px 6px;font-weight:600;white-space:nowrap">${m.l}</td>`;
+          RC_LEVELS.forEach(lv=>{ const id=`elb_rc_${m.k}_${lv.k}`; html+=`<td style="padding:2px 3px"><input type="text" id="${id}" inputmode="decimal" style="width:52px;text-align:center"></td>`; });
+          html+=`</tr>`;
+        });
+        html+=`</tbody></table></div></div>`;
+      } else if(sec.sec==='Corrente di dispersione nel paziente in HF'){
         html+=`<div class="sec" style="margin-bottom:10px"><div class="sec-hdr">${sec.sec}</div>`;
         GRUPPI_HF.forEach(g=>{
           html+=`<div class="hf-group-label">${g.label}</div><div class="hf-group-grid hf-cols-${g.cols}">`;
@@ -3541,8 +3588,8 @@ function _fillVSPSheet(xml,rec,dev){
   // Campi extra per ELB
   if(tipo==='VSP_ELB'){
     const r=rec;
-    s('G20',r.elb_pbip); s('K20',r.elb_cbip); s('Q20',r.elb_fkhz); s('S20',r.elb_fmhz);
-    s('G21',r.elb_pmono); s('K21',r.elb_cmono); s('Q21',r.elb_fkhz2); s('S21',r.elb_fmhz2);
+    s('G20',r.elb_pbip); s('K20',r.elb_cbip); s('O20',r.elb_fhz); s('Q20',r.elb_fkhz); s('S20',r.elb_fmhz);
+    s('G21',r.elb_pmono); s('K21',r.elb_cmono); s('O21',r.elb_fhz2); s('Q21',r.elb_fkhz2); s('S21',r.elb_fmhz2);
     xml=_patchCell(xml,'K22',r.elb_pa==='T'?'X':'');
     xml=_patchCell(xml,'P22',r.elb_pa==='F'?'X':'');
     s('G39',r.elb_ct_t); s('J39',r.elb_ct_m); s('M39',r.elb_ct_c);
@@ -3552,6 +3599,19 @@ function _fillVSPSheet(xml,rec,dev){
     xml=_patchCell(xml,'R44',r.elb_hf_esito==='OK'?'X':'');
     xml=_patchCell(xml,'S44',r.elb_hf_esito==='KO'?'X':'');
     xml=_patchCell(xml,'T44',r.elb_hf_esito==='NA'?'X':'');
+    s('K71',r.elb_rc_t_ni); s('L71',r.elb_rc_t_nm); s('M71',r.elb_rc_t_q1i); s('N71',r.elb_rc_t_q1m); s('O71',r.elb_rc_t_q2i); s('P71',r.elb_rc_t_q2m); s('Q71',r.elb_rc_t_q3i); s('R71',r.elb_rc_t_q3m); s('S71',r.elb_rc_t_mxi); s('T71',r.elb_rc_t_mxm);
+    s('K72',r.elb_rc_m_ni); s('L72',r.elb_rc_m_nm); s('M72',r.elb_rc_m_q1i); s('N72',r.elb_rc_m_q1m); s('O72',r.elb_rc_m_q2i); s('P72',r.elb_rc_m_q2m); s('Q72',r.elb_rc_m_q3i); s('R72',r.elb_rc_m_q3m); s('S72',r.elb_rc_m_mxi); s('T72',r.elb_rc_m_mxm);
+    s('K73',r.elb_rc_c_ni); s('L73',r.elb_rc_c_nm); s('M73',r.elb_rc_c_q1i); s('N73',r.elb_rc_c_q1m); s('O73',r.elb_rc_c_q2i); s('P73',r.elb_rc_c_q2m); s('Q73',r.elb_rc_c_q3i); s('R73',r.elb_rc_c_q3m); s('S73',r.elb_rc_c_mxi); s('T73',r.elb_rc_c_mxm);
+    s('K74',r.elb_rc_b_ni); s('L74',r.elb_rc_b_nm); s('M74',r.elb_rc_b_q1i); s('N74',r.elb_rc_b_q1m); s('O74',r.elb_rc_b_q2i); s('P74',r.elb_rc_b_q2m); s('Q74',r.elb_rc_b_q3i); s('R74',r.elb_rc_b_q3m); s('S74',r.elb_rc_b_mxi); s('T74',r.elb_rc_b_mxm);
+    xml=_patchCell(xml,'S77',r.elb_er1==='OK'?'X':''); xml=_patchCell(xml,'T77',r.elb_er1==='KO'?'X':'');
+    xml=_patchCell(xml,'S78',r.elb_er2==='OK'?'X':''); xml=_patchCell(xml,'T78',r.elb_er2==='KO'?'X':'');
+    xml=_patchCell(xml,'S79',r.elb_er3==='OK'?'X':''); xml=_patchCell(xml,'T79',r.elb_er3==='KO'?'X':'');
+    xml=_patchCell(xml,'T26',r.elb_vp1==='KO'?'X':'');
+    xml=_patchCell(xml,'R27',r.elb_vp2==='NA'?'X':''); xml=_patchCell(xml,'S27',r.elb_vp2==='OK'?'X':''); xml=_patchCell(xml,'T27',r.elb_vp2==='KO'?'X':'');
+    xml=_patchCell(xml,'S28',r.elb_vp3==='OK'?'X':''); xml=_patchCell(xml,'T28',r.elb_vp3==='KO'?'X':'');
+    xml=_patchCell(xml,'S29',r.elb_vp4==='OK'?'X':''); xml=_patchCell(xml,'T29',r.elb_vp4==='KO'?'X':'');
+    xml=_patchCell(xml,'R30',r.elb_vp5==='NA'?'X':''); xml=_patchCell(xml,'S30',r.elb_vp5==='OK'?'X':''); xml=_patchCell(xml,'T30',r.elb_vp5==='KO'?'X':'');
+    xml=_patchCell(xml,'S31',r.elb_vp6==='OK'?'X':''); xml=_patchCell(xml,'T31',r.elb_vp6==='KO'?'X':'');
     s('G46',r.elb_iso1n); s('G47',r.elb_iso1t);
     s('L46',r.elb_iso2n); s('L47',r.elb_iso2t);
     xml=_patchCell(xml,'L49',r.elb_bip_esito==='OK'?'X':'');
