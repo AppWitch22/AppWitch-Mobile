@@ -1846,6 +1846,7 @@ const VSP_EXTRA = {
       {id:'elb_pmono',l:'Potenza monopolare (W)'},{id:'elb_cmono',l:'Carico mono. (Ω)'},
       {id:'elb_fhz2',l:'Freq. mono. [Hz]'},{id:'elb_fkhz2',l:'Freq. mono. [KHz]'},{id:'elb_fmhz2',l:'Freq. mono. [MHz]'},
       {id:'elb_pa',l:'Tipo PA in HF',type:'rb',opts:['F','T'],labels:['Flottante (F)','Riferite a terra']},
+      {id:'elb_pdt',l:'Presenza nei dati di targa delle indicazioni di frequenza, potenza di uscita e carico',type:'rb',opts:['OK','KO'],labels:['OK','KO']},
     ]},
     {sec:'Corrente di dispersione nel paziente in HF', fields:[
       {id:'elb_ct_t',l:'Carico elettrodi — Taglio (mA)'},{id:'elb_ct_m',l:'Carico elettrodi — Mix (mA)'},{id:'elb_ct_c',l:'Carico elettrodi — Coagulo (mA)'},
@@ -1936,7 +1937,15 @@ function buildVSPPoints(type){
       {label:'Uscita isolata',ids:['elb_iso1n','elb_iso1t','elb_iso2n','elb_iso2t'],cols:4},
     ];
     extra.forEach(sec=>{
-      if(sec.sec==='Tolleranza di uscita (unità arbitrarie o W)'){
+      if(sec.sec==='Identificazione — Dati di targa'){
+        const inp=(id)=>`<input type="text" id="${id}" inputmode="decimal" style="width:56px;text-align:center">`;
+        html+=`<div class="sec" style="margin-bottom:10px"><div class="sec-hdr">${sec.sec}</div><div style="overflow-x:auto;padding:0 14px 12px"><table style="border-collapse:collapse;font-size:12px"><tbody>`;
+        html+=`<tr><td style="padding:5px 8px;white-space:nowrap;font-weight:600">Potenza Bipolare (W)</td><td style="padding:4px">${inp('elb_pbip')}</td><td style="padding:5px 8px;white-space:nowrap;font-weight:600">Carico (Ω)</td><td style="padding:4px">${inp('elb_cbip')}</td><td style="padding:5px 8px;white-space:nowrap;font-weight:600">Frequenza</td><td style="padding:4px">${inp('elb_fhz')}</td><td style="padding:4px">${inp('elb_fkhz')}</td><td style="padding:5px 2px;font-size:11px">KHz</td><td style="padding:4px">${inp('elb_fmhz')}</td><td style="padding:5px 2px;font-size:11px">MHz</td></tr>`;
+        html+=`<tr><td style="padding:5px 8px;white-space:nowrap;font-weight:600">Potenza Monopolare (W)</td><td style="padding:4px">${inp('elb_pmono')}</td><td style="padding:5px 8px;white-space:nowrap;font-weight:600">Carico (Ω)</td><td style="padding:4px">${inp('elb_cmono')}</td><td style="padding:5px 8px;white-space:nowrap;font-weight:600">Frequenza</td><td style="padding:4px">${inp('elb_fhz2')}</td><td style="padding:4px">${inp('elb_fkhz2')}</td><td style="padding:5px 2px;font-size:11px">KHz</td><td style="padding:4px">${inp('elb_fmhz2')}</td><td style="padding:5px 2px;font-size:11px">MHz</td></tr>`;
+        html+=`<tr><td style="padding:5px 8px;white-space:nowrap;font-weight:600" colspan="2">Tipo parte applicata in HF</td><td colspan="8" style="padding:5px 8px"><input type="hidden" id="elb_pa"><div class="rg" id="rg-elb_pa"><div class="rb" data-v="T" onclick="pick(this);document.getElementById('elb_pa').value='T'">÷ Riferita a terra</div><div class="rb" data-v="F" onclick="pick(this);document.getElementById('elb_pa').value='F'">[F] Flottante</div></div></td></tr>`;
+        html+=`<tr><td style="padding:5px 8px;font-size:11px" colspan="7">Presenza nei dati di targa delle indicazioni di frequenza, potenza di uscita e carico</td><td colspan="3" style="padding:4px"><input type="hidden" id="elb_pdt"><div class="rg" id="rg-elb_pdt"><div class="rb ok" data-v="OK" onclick="pick(this);document.getElementById('elb_pdt').value='OK'">OK</div><div class="rb ko" data-v="KO" onclick="pick(this);document.getElementById('elb_pdt').value='KO'">KO</div></div></td></tr>`;
+        html+=`</tbody></table></div></div>`;
+      } else if(sec.sec==='Tolleranza di uscita (unità arbitrarie o W)'){
         const RC_MODES=[{k:'t',l:'Taglio'},{k:'m',l:'Mix'},{k:'c',l:'Coagulo'},{k:'b',l:'Bipolare'}];
         const RC_LEVELS=[{k:'ni',l:'Nulla Ind.'},{k:'nm',l:'Nulla Mis.'},{k:'q1i',l:'¼ Ind.'},{k:'q1m',l:'¼ Mis.'},{k:'q2i',l:'½ Ind.'},{k:'q2m',l:'½ Mis.'},{k:'q3i',l:'¾ Ind.'},{k:'q3m',l:'¾ Mis.'},{k:'mxi',l:'MAX Ind.'},{k:'mxm',l:'MAX Mis.'}];
         html+=`<div class="sec" style="margin-bottom:10px"><div class="sec-hdr">${sec.sec}</div><div style="overflow-x:auto;padding:0 14px 12px"><table style="border-collapse:collapse;font-size:11px;width:100%"><thead><tr><th style="text-align:left;padding:4px 6px;white-space:nowrap"></th>`;
@@ -1949,18 +1958,20 @@ function buildVSPPoints(type){
         });
         html+=`</tbody></table></div></div>`;
       } else if(sec.sec==='Corrente di dispersione nel paziente in HF'){
-        html+=`<div class="sec" style="margin-bottom:10px"><div class="sec-hdr">${sec.sec}</div>`;
-        GRUPPI_HF.forEach(g=>{
-          html+=`<div class="hf-group-label">${g.label}</div><div class="hf-group-grid hf-cols-${g.cols}">`;
-          g.ids.forEach(id=>{
-            const f=sec.fields.find(x=>x.id===id);
-            if(f) html+=`<div class="vsp-field"><label>${f.l}</label><input type="text" id="${f.id}" inputmode="decimal"></div>`;
-          });
-          html+='</div>';
-        });
-        html+=`<input type="hidden" id="elb_hf_esito"><div class="cq-esito-row"><span class="cq-esito-label">Correnti HF nei limiti</span><div class="rg" id="rg-elb_hf_esito"><div class="rb ok" data-v="OK" onclick="pick(this);document.getElementById('elb_hf_esito').value='OK'">OK</div><div class="rb ko" data-v="KO" onclick="pick(this);document.getElementById('elb_hf_esito').value='KO'">KO</div><div class="rb na" data-v="NA" onclick="pick(this);document.getElementById('elb_hf_esito').value='NA'">NA</div></div></div>`;
-        html+=`<input type="hidden" id="elb_bip_esito"><div class="cq-esito-row"><span class="cq-esito-label">Correnti bipolare nei limiti</span><div class="rg" id="rg-elb_bip_esito"><div class="rb ok" data-v="OK" onclick="pick(this);document.getElementById('elb_bip_esito').value='OK'">OK</div><div class="rb ko" data-v="KO" onclick="pick(this);document.getElementById('elb_bip_esito').value='KO'">KO</div><div class="rb na" data-v="NA" onclick="pick(this);document.getElementById('elb_bip_esito').value='NA'">NA</div></div></div>`;
-        html+='</div>';
+        const inp=(id)=>`<input type="text" id="${id}" inputmode="decimal" style="width:54px;text-align:center">`;
+        const th=`padding:5px 8px;text-align:center;white-space:nowrap;border-bottom:2px solid #C2500A;font-weight:700`;
+        const td=`padding:5px 8px;white-space:nowrap`;
+        const tc=`padding:4px;text-align:center`;
+        html+=`<div class="sec" style="margin-bottom:10px"><div class="sec-hdr">${sec.sec}</div><div style="overflow-x:auto;padding:0 14px 12px"><table style="border-collapse:collapse;font-size:12px">`;
+        html+=`<thead><tr><th style="${th};text-align:left">Prova</th><th style="${th}">Taglio</th><th style="${th}">Mix</th><th style="${th}">Coagulo</th><th style="${th}">Tipo uscita</th></tr></thead><tbody>`;
+        html+=`<tr><td style="${td}">Carico tra elettrodi</td><td style="${tc}">${inp('elb_ct_t')}</td><td style="${tc}">${inp('elb_ct_m')}</td><td style="${tc}">${inp('elb_ct_c')}</td><td style="${td};font-size:11px;text-align:center" rowspan="2">Uscita riferita<br>a terra in HF</td></tr>`;
+        html+=`<tr><td style="${td}">Carico tra attivo e terra</td><td style="${tc}">${inp('elb_at_t')}</td><td style="${tc}">${inp('elb_at_m')}</td><td style="${tc}">${inp('elb_at_c')}</td></tr>`;
+        html+=`<tr><td style="${td}">Elettrodo neutro</td><td style="${tc}">${inp('elb_en_t')}</td><td style="${tc}">${inp('elb_en_m')}</td><td style="${tc}">${inp('elb_en_c')}</td><td style="${td};font-size:11px;text-align:center" rowspan="2">Uscita<br>isolata</td></tr>`;
+        html+=`<tr><td style="${td}">Elettrodo attivo</td><td style="${tc}">${inp('elb_ea_t')}</td><td style="${tc}">${inp('elb_ea_m')}</td><td style="${tc}">${inp('elb_ea_c')}</td></tr>`;
+        html+=`<tr><td style="${td};font-size:11px" colspan="2">Correnti di dispersione in HF rientranti nei limiti<br>Condizioni Normali 150 mA</td><td style="${td};font-size:11px" colspan="2">Misura sui Terminali Apparecchio 100 mA</td><td style="${tc}"><input type="hidden" id="elb_hf_esito"><div class="rg" id="rg-elb_hf_esito"><div class="rb ok" data-v="OK" onclick="pick(this);document.getElementById('elb_hf_esito').value='OK'">OK</div><div class="rb ko" data-v="KO" onclick="pick(this);document.getElementById('elb_hf_esito').value='KO'">KO</div><div class="rb na" data-v="NA" onclick="pick(this);document.getElementById('elb_hf_esito').value='NA'">NA</div></div></td></tr>`;
+        html+=`<tr><td style="${td}" rowspan="2">Elettrodo bipolare</td><td style="${tc};font-size:11px" colspan="2">Elettrodo 1<br>${inp('elb_iso1n')}&nbsp;${inp('elb_iso1t')}</td><td style="${tc};font-size:11px" colspan="2">Elettrodo 2 — Uscita isolata<br>${inp('elb_iso2n')}&nbsp;${inp('elb_iso2t')}</td></tr>`;
+        html+=`<tr><td style="${td};font-size:11px" colspan="3">Correnti di dispersione in HF rientranti nei limiti — 1% di P misurata su carico di 200 Ω</td><td style="${tc}"><input type="hidden" id="elb_bip_esito"><div class="rg" id="rg-elb_bip_esito"><div class="rb ok" data-v="OK" onclick="pick(this);document.getElementById('elb_bip_esito').value='OK'">OK</div><div class="rb ko" data-v="KO" onclick="pick(this);document.getElementById('elb_bip_esito').value='KO'">KO</div><div class="rb na" data-v="NA" onclick="pick(this);document.getElementById('elb_bip_esito').value='NA'">NA</div></div></td></tr>`;
+        html+=`</tbody></table></div></div>`;
       } else {
         html+=`<div class="sec" style="margin-bottom:10px"><div class="sec-hdr">${sec.sec}</div><div class="sec-body" style="grid-template-columns:repeat(auto-fill,minmax(180px,1fr))">`;
         sec.fields.forEach(f=>{
@@ -3592,6 +3603,8 @@ function _fillVSPSheet(xml,rec,dev){
     s('G21',r.elb_pmono); s('K21',r.elb_cmono); s('O21',r.elb_fhz2); s('Q21',r.elb_fkhz2); s('S21',r.elb_fmhz2);
     xml=_patchCell(xml,'K22',r.elb_pa==='T'?'X':'');
     xml=_patchCell(xml,'P22',r.elb_pa==='F'?'X':'');
+    xml=_patchCell(xml,'R23',r.elb_pdt==='OK'?'X':'');
+    xml=_patchCell(xml,'T23',r.elb_pdt==='KO'?'X':'');
     s('G39',r.elb_ct_t); s('J39',r.elb_ct_m); s('M39',r.elb_ct_c);
     s('G40',r.elb_at_t); s('J40',r.elb_at_m); s('M40',r.elb_at_c);
     s('G41',r.elb_en_t); s('J41',r.elb_en_m); s('M41',r.elb_en_c);
