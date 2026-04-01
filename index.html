@@ -1673,10 +1673,12 @@ function exportXLSX(){
               ['cq_cen_t1i',24],['cq_cen_t1m',25],['cq_cen_t2i',26],['cq_cen_t2m',27],['cq_cen_t3i',28],['cq_cen_t3m',29]],
     'CQ_ELB':[['cq_elb_ct_t',33],['cq_elb_ct_c',34],['cq_elb_at_t',35],['cq_elb_at_c',36],['cq_elb_fn_t',37],['cq_elb_fn_c',38],
               ['cq_elb_en_t',39],['cq_elb_en_c',40],['cq_elb_iso1',44],['cq_elb_iso2',45],
+              ['cq_elb_hf_esito',46],['cq_elb_bip_esito',47],
               ['cq_elb_pt1d',49],['cq_elb_pt1r',50],['cq_elb_pc1d',51],['cq_elb_pc1r',52],['cq_elb_pb1d',53],['cq_elb_pb1r',54],
               ['cq_elb_pt2d',55],['cq_elb_pt2r',56],['cq_elb_pc2d',57],['cq_elb_pc2r',58],['cq_elb_pb2d',59],['cq_elb_pb2r',60],
               ['cq_elb_pt3d',61],['cq_elb_pt3r',62],['cq_elb_pc3d',63],['cq_elb_pc3r',64],['cq_elb_pb3d',65],['cq_elb_pb3r',66],
-              ['cq_elb_pt4d',67],['cq_elb_pt4r',68],['cq_elb_pc4d',69],['cq_elb_pc4r',70],['cq_elb_pb4d',71],['cq_elb_pb4r',72]],
+              ['cq_elb_pt4d',67],['cq_elb_pt4r',68],['cq_elb_pc4d',69],['cq_elb_pc4r',70],['cq_elb_pb4d',71],['cq_elb_pb4r',72],
+              ['cq_elb_pot_esito',73]],
     'CQ_FBI':[['cq_fbi_r1label',9],['cq_fbi_r1i',10],['cq_fbi_r1ind',11],['cq_fbi_r1it',12],['cq_fbi_r1m',13],['cq_fbi_r1l',14],
               ['cq_fbi_r2label',15],['cq_fbi_r2i',16],['cq_fbi_r2ind',17],['cq_fbi_r2it',18],['cq_fbi_r2m',19],['cq_fbi_r2l',20],
               ['cq_fbi_r3label',21],['cq_fbi_r3i',22],['cq_fbi_r3ind',23],['cq_fbi_r3it',24],['cq_fbi_r3m',25],['cq_fbi_r3l',26],
@@ -3211,7 +3213,7 @@ async function importPresetsFromExcel(input) {
     return count;
   }
   // Helper: read cell as string or null
-  const _rc = (row,c) => (row[c]!=null&&row[c]!=='') ? String(row[c]) : null;
+  const _rc = (row,c) => { const v=row[c]; if(v==null||v==='') return null; return typeof v==='number' ? String(Math.round(v)) : String(v); };
   // Helper: converte serial Excel → 'YYYY-MM-DD', oppure stringa già formattata
   const _rxldate = (row,c) => {
     const v = row[c];
@@ -3308,10 +3310,12 @@ async function importPresetsFromExcel(input) {
                ['cq_cen_t1i',24],['cq_cen_t1m',25],['cq_cen_t2i',26],['cq_cen_t2m',27],['cq_cen_t3i',28],['cq_cen_t3m',29]],
     'CQ_ELB': [['cq_elb_ct_t',33],['cq_elb_ct_c',34],['cq_elb_at_t',35],['cq_elb_at_c',36],['cq_elb_fn_t',37],['cq_elb_fn_c',38],
                ['cq_elb_en_t',39],['cq_elb_en_c',40],['cq_elb_iso1',44],['cq_elb_iso2',45],
+               ['cq_elb_hf_esito',46],['cq_elb_bip_esito',47],
                ['cq_elb_pt1d',49],['cq_elb_pt1r',50],['cq_elb_pc1d',51],['cq_elb_pc1r',52],['cq_elb_pb1d',53],['cq_elb_pb1r',54],
                ['cq_elb_pt2d',55],['cq_elb_pt2r',56],['cq_elb_pc2d',57],['cq_elb_pc2r',58],['cq_elb_pb2d',59],['cq_elb_pb2r',60],
                ['cq_elb_pt3d',61],['cq_elb_pt3r',62],['cq_elb_pc3d',63],['cq_elb_pc3r',64],['cq_elb_pb3d',65],['cq_elb_pb3r',66],
-               ['cq_elb_pt4d',67],['cq_elb_pt4r',68],['cq_elb_pc4d',69],['cq_elb_pc4r',70],['cq_elb_pb4d',71],['cq_elb_pb4r',72]],
+               ['cq_elb_pt4d',67],['cq_elb_pt4r',68],['cq_elb_pc4d',69],['cq_elb_pc4r',70],['cq_elb_pb4d',71],['cq_elb_pb4r',72],
+               ['cq_elb_pot_esito',73]],
     'CQ_FBI': [['cq_fbi_r1label',9],['cq_fbi_r1i',10],['cq_fbi_r1ind',11],['cq_fbi_r1it',12],['cq_fbi_r1m',13],['cq_fbi_r1l',14],
                ['cq_fbi_r2label',15],['cq_fbi_r2i',16],['cq_fbi_r2ind',17],['cq_fbi_r2it',18],['cq_fbi_r2m',19],['cq_fbi_r2l',20],
                ['cq_fbi_r3label',21],['cq_fbi_r3i',22],['cq_fbi_r3ind',23],['cq_fbi_r3it',24],['cq_fbi_r3m',25],['cq_fbi_r3l',26],
@@ -3346,7 +3350,7 @@ async function importPresetsFromExcel(input) {
   const CQ_VN = {'CQ_ANS':4,'CQ_VPO':4};
   // Strumentazione start col and tecnico col per type
   const CQ_SC = {'CQ_DEF':53,'CQ_ECG':49,'CQ_CEN':30,'CQ_ELB':76,'CQ_FBI':33,'CQ_ECT':67,'CQ_MON':82,'CQ_ANS':30,'CQ_SPM':33,'CQ_VPO':30};
-  const CQ_TC = {'CQ_DEF':58,'CQ_ECG':54,'CQ_CEN':35,'CQ_ELB':81,'CQ_FBI':38,'CQ_ECT':72,'CQ_MON':87,'CQ_ANS':35,'CQ_SPM':38,'CQ_VPO':35};
+  const CQ_TC = {'CQ_DEF':58,'CQ_ECG':54,'CQ_CEN':35,'CQ_ELB':92,'CQ_FBI':38,'CQ_ECT':72,'CQ_MON':87,'CQ_ANS':35,'CQ_SPM':38,'CQ_VPO':35};
   const cqSf = ['cq_strum','cq_strum_mod','cq_strum_ser','cq_strum_cert','cq_strum_scad'];
 
   for (const tipo of [...new Set([...Object.keys(CQ_VIS),...Object.keys(CQ_PROVA)])]) {
