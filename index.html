@@ -1700,7 +1700,7 @@ function exportXLSX(){
   const _CVC0={'CQ_DEF':8};
   const _CVN={'CQ_ANS':4,'CQ_VPO':4};
   const _CSC={'CQ_DEF':53,'CQ_ECG':49,'CQ_CEN':30,'CQ_ELB':76,'CQ_FBI':33,'CQ_ECT':67,'CQ_MON':82,'CQ_ANS':30,'CQ_SPM':33,'CQ_VPO':30};
-  const _CTC={'CQ_DEF':58,'CQ_ECG':54,'CQ_CEN':35,'CQ_ELB':81,'CQ_FBI':38,'CQ_ECT':72,'CQ_MON':87,'CQ_ANS':35,'CQ_SPM':38,'CQ_VPO':35};
+  const _CTC={'CQ_DEF':58,'CQ_ECG':54,'CQ_CEN':35,'CQ_ELB':92,'CQ_FBI':38,'CQ_ECT':72,'CQ_MON':87,'CQ_ANS':35,'CQ_SPM':38,'CQ_VPO':35};
 
   const cqTypes=[...new Set(keys.filter(k=>saved[k].cq_saved).map(k=>saved[k].cq_type).filter(Boolean))];
   cqTypes.forEach(ctype=>{
@@ -2131,6 +2131,7 @@ const CQ_PROVA={
       {id:'cq_elb_pt1d',l:'Taglio — Dichiarato'},{id:'cq_elb_pt1r',l:'Taglio — Riscontrato'},
       {id:'cq_elb_pc1d',l:'Coagulo — Dichiarato'},{id:'cq_elb_pc1r',l:'Coagulo — Riscontrato'},
       {id:'cq_elb_pb1d',l:'Bipolare — Dichiarato'},{id:'cq_elb_pb1r',l:'Bipolare — Riscontrato'},
+      {id:'cq_elb_pot_esito',l:'Potenze rientranti nei limiti (max +/- 20%)',type:'rb'},
     ]},
   ],
   'CQ_FBI':[
@@ -2258,6 +2259,7 @@ function buildCQPoints(type){
           });
           html+='</div>';
         });
+        html+=`<input type="hidden" id="cq_elb_pot_esito"><div class="cq-esito-row"><span class="cq-esito-label">Potenze rientranti nei limiti (max +/- 20%)</span><div class="rg" id="rg-cq_elb_pot_esito"><div class="rb ok" data-v="OK" onclick="pick(this);document.getElementById('cq_elb_pot_esito').value='OK'">OK</div><div class="rb ko" data-v="KO" onclick="pick(this);document.getElementById('cq_elb_pot_esito').value='KO'">KO</div><div class="rb na" data-v="NA" onclick="pick(this);document.getElementById('cq_elb_pot_esito').value='NA'">NA</div></div></div>`;
         html+='</div>';
       } else {
         html+=`<div class="sec" style="margin-bottom:10px"><div class="sec-hdr">${sec.sec}</div><div class="sec-body" style="grid-template-columns:repeat(auto-fill,minmax(160px,1fr))">${sec.fields.map(f=>`<div class="field"><label>${f.l}</label><input type="text" id="${f.id}" inputmode="decimal"></div>`).join('')}</div></div>`;
@@ -3630,6 +3632,9 @@ function _fillCQSheet(xml,rec,dev,asl){
     s('B79',rec.cq_elb_pt1d||''); s('E79',rec.cq_elb_pt1r||'');
     s('H79',rec.cq_elb_pc1d||''); s('K79',rec.cq_elb_pc1r||'');
     s('N79',rec.cq_elb_pb1d||''); s('R79',rec.cq_elb_pb1r||'');
+    xml=_patchCell(xml,'R92',rec.cq_elb_pot_esito==='OK'?'X':'');
+    xml=_patchCell(xml,'S92',rec.cq_elb_pot_esito==='KO'?'X':'');
+    xml=_patchCell(xml,'T92',rec.cq_elb_pot_esito==='NA'?'X':'');
   }
   else if(tipo==='CQ_ECT'){
     s('A42',rec.cq_ect_s1||''); s('A43',rec.cq_ect_s2||''); s('A44',rec.cq_ect_s3||''); s('A45',rec.cq_ect_s4||'');
