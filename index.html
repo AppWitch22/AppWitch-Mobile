@@ -1845,7 +1845,7 @@ const VSP_EXTRA = {
       {id:'elb_fkhz',l:'Freq. bip. [KHz]'},{id:'elb_fmhz',l:'Freq. bip. [MHz]'},
       {id:'elb_pmono',l:'Potenza monopolare (W)'},{id:'elb_cmono',l:'Carico mono. (Ω)'},
       {id:'elb_fkhz2',l:'Freq. mono. [KHz]'},{id:'elb_fmhz2',l:'Freq. mono. [MHz]'},
-      {id:'elb_pa',l:'Tipo PA in HF ([F])'},
+      {id:'elb_pa',l:'Tipo PA in HF',type:'rb',opts:['F','T'],labels:['Flottante (F)','Riferite a terra']},
     ]},
     {sec:'Corrente di dispersione nel paziente in HF', fields:[
       {id:'elb_ct_t',l:'Carico elettrodi — Taglio (mA)'},{id:'elb_ct_m',l:'Carico elettrodi — Mix (mA)'},{id:'elb_ct_c',l:'Carico elettrodi — Coagulo (mA)'},
@@ -1917,8 +1917,15 @@ function buildVSPPoints(type){
       } else {
         html+=`<div class="sec" style="margin-bottom:10px"><div class="sec-hdr">${sec.sec}</div><div class="sec-body" style="grid-template-columns:repeat(auto-fill,minmax(180px,1fr))">`;
         sec.fields.forEach(f=>{
-          const inp=f.type==='date'?`<input type="date" id="${f.id}">`:`<input type="text" id="${f.id}" inputmode="decimal">`;
-          html+=`<div class="field"><label>${f.l}</label>${inp}</div>`;
+          if(f.type==='rb'){
+            const opts=f.opts||['OK','KO','NA'];
+            const lbls=f.labels||opts;
+            const rbHtml=opts.map((v,i)=>`<div class="rb" data-v="${v}" onclick="pick(this);document.getElementById('${f.id}').value='${v}'">${lbls[i]}</div>`).join('');
+            html+=`<input type="hidden" id="${f.id}"><div class="field" style="grid-column:1/-1"><label>${f.l}</label><div class="rg" id="rg-${f.id}">${rbHtml}</div></div>`;
+          } else {
+            const inp=f.type==='date'?`<input type="date" id="${f.id}">`:`<input type="text" id="${f.id}" inputmode="decimal">`;
+            html+=`<div class="field"><label>${f.l}</label>${inp}</div>`;
+          }
         });
         html+='</div></div>';
       }
@@ -3513,7 +3520,7 @@ function _fillVSPSheet(xml,rec,dev){
 
   // Tecnico
   const tec=rec.vsp_tecnico||'';
-  if(tipo==='VSP_DEF'||tipo==='VSP_ELB') s('D113',tec); else s('D43',tec);
+  if(tipo==='VSP_DEF') s('D113',tec); else if(tipo==='VSP_ELB') s('B113',tec); else s('D43',tec);
 
   // Campi extra per DEF
   if(tipo==='VSP_DEF'){
@@ -3536,7 +3543,8 @@ function _fillVSPSheet(xml,rec,dev){
     const r=rec;
     s('G20',r.elb_pbip); s('K20',r.elb_cbip); s('Q20',r.elb_fkhz); s('S20',r.elb_fmhz);
     s('G21',r.elb_pmono); s('K21',r.elb_cmono); s('Q21',r.elb_fkhz2); s('S21',r.elb_fmhz2);
-    s('K22',r.elb_pa);
+    xml=_patchCell(xml,'K22',r.elb_pa==='T'?'X':'');
+    xml=_patchCell(xml,'P22',r.elb_pa==='F'?'X':'');
     s('G39',r.elb_ct_t); s('J39',r.elb_ct_m); s('M39',r.elb_ct_c);
     s('G40',r.elb_at_t); s('J40',r.elb_at_m); s('M40',r.elb_at_c);
     s('G41',r.elb_en_t); s('J41',r.elb_en_m); s('M41',r.elb_en_c);
@@ -3544,8 +3552,8 @@ function _fillVSPSheet(xml,rec,dev){
     xml=_patchCell(xml,'R44',r.elb_hf_esito==='OK'?'X':'');
     xml=_patchCell(xml,'S44',r.elb_hf_esito==='KO'?'X':'');
     xml=_patchCell(xml,'T44',r.elb_hf_esito==='NA'?'X':'');
-    s('G46',r.elb_iso1n); s('L46',r.elb_iso1t);
-    s('G47',r.elb_iso2n); s('L47',r.elb_iso2t);
+    s('G46',r.elb_iso1n); s('G47',r.elb_iso1t);
+    s('L46',r.elb_iso2n); s('L47',r.elb_iso2t);
     xml=_patchCell(xml,'L49',r.elb_bip_esito==='OK'?'X':'');
     xml=_patchCell(xml,'M49',r.elb_bip_esito==='KO'?'X':'');
     xml=_patchCell(xml,'N49',r.elb_bip_esito==='NA'?'X':'');
