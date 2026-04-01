@@ -1668,7 +1668,10 @@ function exportXLSX(){
               ['cq_cen_t1i',24],['cq_cen_t1m',25],['cq_cen_t2i',26],['cq_cen_t2m',27],['cq_cen_t3i',28],['cq_cen_t3m',29]],
     'CQ_ELB':[['cq_elb_ct_t',33],['cq_elb_ct_c',34],['cq_elb_at_t',35],['cq_elb_at_c',36],['cq_elb_fn_t',37],['cq_elb_fn_c',38],
               ['cq_elb_en_t',39],['cq_elb_en_c',40],['cq_elb_iso1',44],['cq_elb_iso2',45],
-              ['cq_elb_pt1d',49],['cq_elb_pt1r',50],['cq_elb_pc1d',51],['cq_elb_pc1r',52],['cq_elb_pb1d',53],['cq_elb_pb1r',54]],
+              ['cq_elb_pt1d',49],['cq_elb_pt1r',50],['cq_elb_pc1d',51],['cq_elb_pc1r',52],['cq_elb_pb1d',53],['cq_elb_pb1r',54],
+              ['cq_elb_pt2d',55],['cq_elb_pt2r',56],['cq_elb_pc2d',57],['cq_elb_pc2r',58],['cq_elb_pb2d',59],['cq_elb_pb2r',60],
+              ['cq_elb_pt3d',61],['cq_elb_pt3r',62],['cq_elb_pc3d',63],['cq_elb_pc3r',64],['cq_elb_pb3d',65],['cq_elb_pb3r',66],
+              ['cq_elb_pt4d',67],['cq_elb_pt4r',68],['cq_elb_pc4d',69],['cq_elb_pc4r',70],['cq_elb_pb4d',71],['cq_elb_pb4r',72]],
     'CQ_FBI':[['cq_fbi_r1label',9],['cq_fbi_r1i',10],['cq_fbi_r1ind',11],['cq_fbi_r1it',12],['cq_fbi_r1m',13],['cq_fbi_r1l',14],
               ['cq_fbi_r2label',15],['cq_fbi_r2i',16],['cq_fbi_r2ind',17],['cq_fbi_r2it',18],['cq_fbi_r2m',19],['cq_fbi_r2l',20],
               ['cq_fbi_r3label',21],['cq_fbi_r3i',22],['cq_fbi_r3ind',23],['cq_fbi_r3it',24],['cq_fbi_r3m',25],['cq_fbi_r3l',26],
@@ -2118,7 +2121,7 @@ const CQ_PROVA={
     ]},
   ],
   'CQ_ELB':[
-    {sec:'Correnti dispersione HF (mA)',fields:[
+    {sec:'CORRENTI DI DISPERSIONE IN ALTA FREQUENZA (mA)',fields:[
       {id:'cq_elb_ct_t',l:'Carico el. — Taglio'},{id:'cq_elb_ct_c',l:'Carico el. — Coagulo'},
       {id:'cq_elb_at_t',l:'Attivo/terra — T'},{id:'cq_elb_at_c',l:'Attivo/terra — C'},
       {id:'cq_elb_fn_t',l:'Flott. att./terra — T'},{id:'cq_elb_fn_c',l:'Flott. att./terra — C'},
@@ -2127,10 +2130,19 @@ const CQ_PROVA={
       {id:'cq_elb_hf_esito',l:'Correnti HF nei limiti',type:'rb'},
       {id:'cq_elb_bip_esito',l:'Correnti bipolare nei limiti',type:'rb'},
     ]},
-    {sec:'Potenza uscita su carico nominale (W)',fields:[
-      {id:'cq_elb_pt1d',l:'Taglio — Dichiarato'},{id:'cq_elb_pt1r',l:'Taglio — Riscontrato'},
-      {id:'cq_elb_pc1d',l:'Coagulo — Dichiarato'},{id:'cq_elb_pc1r',l:'Coagulo — Riscontrato'},
-      {id:'cq_elb_pb1d',l:'Bipolare — Dichiarato'},{id:'cq_elb_pb1r',l:'Bipolare — Riscontrato'},
+    {sec:'POTENZA DI USCITA SU CARICO NOMINALE IN WATT ( LIMITE MASSIMO AMMESSO +- 20% )',fields:[
+      {id:'cq_elb_pt1d',l:'Taglio — Dic.'},{id:'cq_elb_pt1r',l:'Taglio — Ris.'},
+      {id:'cq_elb_pc1d',l:'Coagulo — Dic.'},{id:'cq_elb_pc1r',l:'Coagulo — Ris.'},
+      {id:'cq_elb_pb1d',l:'Bipolare — Dic.'},{id:'cq_elb_pb1r',l:'Bipolare — Ris.'},
+      {id:'cq_elb_pt2d',l:'Taglio — Dic.'},{id:'cq_elb_pt2r',l:'Taglio — Ris.'},
+      {id:'cq_elb_pc2d',l:'Coagulo — Dic.'},{id:'cq_elb_pc2r',l:'Coagulo — Ris.'},
+      {id:'cq_elb_pb2d',l:'Bipolare — Dic.'},{id:'cq_elb_pb2r',l:'Bipolare — Ris.'},
+      {id:'cq_elb_pt3d',l:'Taglio — Dic.'},{id:'cq_elb_pt3r',l:'Taglio — Ris.'},
+      {id:'cq_elb_pc3d',l:'Coagulo — Dic.'},{id:'cq_elb_pc3r',l:'Coagulo — Ris.'},
+      {id:'cq_elb_pb3d',l:'Bipolare — Dic.'},{id:'cq_elb_pb3r',l:'Bipolare — Ris.'},
+      {id:'cq_elb_pt4d',l:'Taglio — Dic.'},{id:'cq_elb_pt4r',l:'Taglio — Ris.'},
+      {id:'cq_elb_pc4d',l:'Coagulo — Dic.'},{id:'cq_elb_pc4r',l:'Coagulo — Ris.'},
+      {id:'cq_elb_pb4d',l:'Bipolare — Dic.'},{id:'cq_elb_pb4r',l:'Bipolare — Ris.'},
       {id:'cq_elb_pot_esito',l:'Potenze rientranti nei limiti (max +/- 20%)',type:'rb'},
     ]},
   ],
@@ -2239,28 +2251,21 @@ function buildCQPoints(type){
   const provaDiv=document.getElementById('cq-prova');
   const secs=CQ_PROVA[type];
   if(secs&&secs.length){
-    const GRUPPI_CQ_POT=[
-      {label:'Taglio',ids:['cq_elb_pt1d','cq_elb_pt1r'],cols:2},
-      {label:'Coagulo',ids:['cq_elb_pc1d','cq_elb_pc1r'],cols:2},
-      {label:'Bipolare',ids:['cq_elb_pb1d','cq_elb_pb1r'],cols:2},
-    ];
     let html='';
     secs.forEach(sec=>{
-      if(sec.sec==='Correnti dispersione HF (mA)'){
-        html+=`<div class="sec" style="margin-bottom:10px"><div class="sec-hdr">${sec.sec}</div><div class="cq-matrix"><table class="cq-table"><thead><tr><th></th><th>Carico tra elettrodi</th><th>Carico fra attivo e terra</th><th>Tre elettrodo attivo e terra</th><th>Tra elettrodo neutro e terra</th></tr></thead><tbody><tr><td class="cq-row-label">TAGLIO</td><td><input type="text" id="cq_elb_ct_t" inputmode="decimal"></td><td><input type="text" id="cq_elb_at_t" inputmode="decimal"></td><td><input type="text" id="cq_elb_fn_t" inputmode="decimal"></td><td><input type="text" id="cq_elb_en_t" inputmode="decimal"></td></tr><tr><td class="cq-row-label">COAGULO</td><td><input type="text" id="cq_elb_ct_c" inputmode="decimal"></td><td><input type="text" id="cq_elb_at_c" inputmode="decimal"></td><td><input type="text" id="cq_elb_fn_c" inputmode="decimal"></td><td><input type="text" id="cq_elb_en_c" inputmode="decimal"></td></tr></tbody></table></div><input type="hidden" id="cq_elb_hf_esito"><div class="cq-esito-row"><span class="cq-esito-label">Correnti nei limiti</span><div class="rg" id="rg-cq_elb_hf_esito"><div class="rb ok" data-v="OK" onclick="pick(this);document.getElementById('cq_elb_hf_esito').value='OK'">OK</div><div class="rb ko" data-v="KO" onclick="pick(this);document.getElementById('cq_elb_hf_esito').value='KO'">KO</div><div class="rb na" data-v="NA" onclick="pick(this);document.getElementById('cq_elb_hf_esito').value='NA'">NA</div></div></div></div>`;
-        html+=`<div class="sec" style="margin-bottom:10px"><div class="sec-hdr">Bipolare</div><div class="cq-matrix"><table class="cq-table"><thead><tr><th></th><th>Elettrodo 1</th><th>Elettrodo 2</th></tr></thead><tbody><tr><td class="cq-row-label">BIPOLARE</td><td><input type="text" id="cq_elb_iso1" inputmode="decimal"></td><td><input type="text" id="cq_elb_iso2" inputmode="decimal"></td></tr></tbody></table></div><input type="hidden" id="cq_elb_bip_esito"><div class="cq-esito-row"><span class="cq-esito-label">Correnti nei limiti</span><div class="rg" id="rg-cq_elb_bip_esito"><div class="rb ok" data-v="OK" onclick="pick(this);document.getElementById('cq_elb_bip_esito').value='OK'">OK</div><div class="rb ko" data-v="KO" onclick="pick(this);document.getElementById('cq_elb_bip_esito').value='KO'">KO</div><div class="rb na" data-v="NA" onclick="pick(this);document.getElementById('cq_elb_bip_esito').value='NA'">NA</div></div></div></div>`;
-      } else if(sec.sec==='Potenza uscita su carico nominale (W)'){
-        html+=`<div class="sec" style="margin-bottom:10px"><div class="sec-hdr">${sec.sec}</div>`;
-        GRUPPI_CQ_POT.forEach(g=>{
-          html+=`<div class="hf-group-label">${g.label}</div><div class="hf-group-grid hf-cols-${g.cols}">`;
-          g.ids.forEach(id=>{
-            const f=sec.fields.find(x=>x.id===id);
-            if(f) html+=`<div class="vsp-field"><label>${f.l}</label><input type="text" id="${f.id}" inputmode="decimal"></div>`;
-          });
-          html+='</div>';
-        });
-        html+=`<input type="hidden" id="cq_elb_pot_esito"><div class="cq-esito-row"><span class="cq-esito-label">Potenze rientranti nei limiti (max +/- 20%)</span><div class="rg" id="rg-cq_elb_pot_esito"><div class="rb ok" data-v="OK" onclick="pick(this);document.getElementById('cq_elb_pot_esito').value='OK'">OK</div><div class="rb ko" data-v="KO" onclick="pick(this);document.getElementById('cq_elb_pot_esito').value='KO'">KO</div><div class="rb na" data-v="NA" onclick="pick(this);document.getElementById('cq_elb_pot_esito').value='NA'">NA</div></div></div>`;
-        html+='</div>';
+      if(sec.sec==='CORRENTI DI DISPERSIONE IN ALTA FREQUENZA (mA)'){
+        html+=`<div class="sec" style="margin-bottom:10px"><div class="sec-hdr">${sec.sec}</div><div class="cq-matrix"><table class="cq-table"><thead><tr><th></th><th>Carico tra elettrodi</th><th>Carico fra attivo e terra</th><th>Tre elettrodo attivo e terra</th><th>Tra elettrodo neutro e terra</th></tr></thead><tbody><tr><td class="cq-row-label">TAGLIO</td><td><input type="text" id="cq_elb_ct_t" inputmode="decimal"></td><td><input type="text" id="cq_elb_at_t" inputmode="decimal"></td><td><input type="text" id="cq_elb_fn_t" inputmode="decimal"></td><td><input type="text" id="cq_elb_en_t" inputmode="decimal"></td></tr><tr><td class="cq-row-label">COAGULO</td><td><input type="text" id="cq_elb_ct_c" inputmode="decimal"></td><td><input type="text" id="cq_elb_at_c" inputmode="decimal"></td><td><input type="text" id="cq_elb_fn_c" inputmode="decimal"></td><td><input type="text" id="cq_elb_en_c" inputmode="decimal"></td></tr></tbody></table></div><input type="hidden" id="cq_elb_hf_esito"><div class="cq-esito-row"><span class="cq-esito-label">Correnti di dispersione in alta frequenza rientranti nei limiti</span><div class="rg" id="rg-cq_elb_hf_esito"><div class="rb ok" data-v="OK" onclick="pick(this);document.getElementById('cq_elb_hf_esito').value='OK'">OK</div><div class="rb ko" data-v="KO" onclick="pick(this);document.getElementById('cq_elb_hf_esito').value='KO'">KO</div><div class="rb na" data-v="NA" onclick="pick(this);document.getElementById('cq_elb_hf_esito').value='NA'">NA</div></div></div></div>`;
+        html+=`<div class="sec" style="margin-bottom:10px"><div class="sec-hdr">Bipolare</div><div class="cq-matrix"><table class="cq-table"><thead><tr><th></th><th>Elettrodo 1</th><th>Elettrodo 2</th></tr></thead><tbody><tr><td class="cq-row-label">BIPOLARE</td><td><input type="text" id="cq_elb_iso1" inputmode="decimal"></td><td><input type="text" id="cq_elb_iso2" inputmode="decimal"></td></tr></tbody></table></div><input type="hidden" id="cq_elb_bip_esito"><div class="cq-esito-row"><span class="cq-esito-label">Correnti di dispersione in alta frequenza rientranti nei limiti</span><div class="rg" id="rg-cq_elb_bip_esito"><div class="rb ok" data-v="OK" onclick="pick(this);document.getElementById('cq_elb_bip_esito').value='OK'">OK</div><div class="rb ko" data-v="KO" onclick="pick(this);document.getElementById('cq_elb_bip_esito').value='KO'">KO</div><div class="rb na" data-v="NA" onclick="pick(this);document.getElementById('cq_elb_bip_esito').value='NA'">NA</div></div></div></div>`;
+      } else if(sec.sec==='POTENZA DI USCITA SU CARICO NOMINALE IN WATT ( LIMITE MASSIMO AMMESSO +- 20% )'){
+        const ROWS_POT=[
+          {n:1,pt:'cq_elb_pt1d',pr:'cq_elb_pt1r',ct:'cq_elb_pc1d',cr:'cq_elb_pc1r',bt:'cq_elb_pb1d',br:'cq_elb_pb1r'},
+          {n:2,pt:'cq_elb_pt2d',pr:'cq_elb_pt2r',ct:'cq_elb_pc2d',cr:'cq_elb_pc2r',bt:'cq_elb_pb2d',br:'cq_elb_pb2r'},
+          {n:3,pt:'cq_elb_pt3d',pr:'cq_elb_pt3r',ct:'cq_elb_pc3d',cr:'cq_elb_pc3r',bt:'cq_elb_pb3d',br:'cq_elb_pb3r'},
+          {n:4,pt:'cq_elb_pt4d',pr:'cq_elb_pt4r',ct:'cq_elb_pc4d',cr:'cq_elb_pc4r',bt:'cq_elb_pb4d',br:'cq_elb_pb4r'},
+        ];
+        html+=`<div class="sec" style="margin-bottom:10px"><div class="sec-hdr">${sec.sec}</div><div class="cq-matrix"><table class="cq-table"><thead><tr><th>#</th><th>Taglio Dic.</th><th>Taglio Ris.</th><th>Coagulo Dic.</th><th>Coagulo Ris.</th><th>Bipolare Dic.</th><th>Bipolare Ris.</th></tr></thead><tbody>`;
+        ROWS_POT.forEach(r=>{html+=`<tr><td class="cq-row-label">${r.n}</td><td><input type="text" id="${r.pt}" inputmode="decimal"></td><td><input type="text" id="${r.pr}" inputmode="decimal"></td><td><input type="text" id="${r.ct}" inputmode="decimal"></td><td><input type="text" id="${r.cr}" inputmode="decimal"></td><td><input type="text" id="${r.bt}" inputmode="decimal"></td><td><input type="text" id="${r.br}" inputmode="decimal"></td></tr>`;});
+        html+=`</tbody></table></div><input type="hidden" id="cq_elb_pot_esito"><div class="cq-esito-row"><span class="cq-esito-label">Potenze rientranti nei limiti (max +/- 20%)</span><div class="rg" id="rg-cq_elb_pot_esito"><div class="rb ok" data-v="OK" onclick="pick(this);document.getElementById('cq_elb_pot_esito').value='OK'">OK</div><div class="rb ko" data-v="KO" onclick="pick(this);document.getElementById('cq_elb_pot_esito').value='KO'">KO</div><div class="rb na" data-v="NA" onclick="pick(this);document.getElementById('cq_elb_pot_esito').value='NA'">NA</div></div></div></div>`;
       } else {
         html+=`<div class="sec" style="margin-bottom:10px"><div class="sec-hdr">${sec.sec}</div><div class="sec-body" style="grid-template-columns:repeat(auto-fill,minmax(160px,1fr))">${sec.fields.map(f=>`<div class="field"><label>${f.l}</label><input type="text" id="${f.id}" inputmode="decimal"></div>`).join('')}</div></div>`;
       }
@@ -3234,7 +3239,10 @@ async function importPresetsFromExcel(input) {
                ['cq_cen_t1i',24],['cq_cen_t1m',25],['cq_cen_t2i',26],['cq_cen_t2m',27],['cq_cen_t3i',28],['cq_cen_t3m',29]],
     'CQ_ELB': [['cq_elb_ct_t',33],['cq_elb_ct_c',34],['cq_elb_at_t',35],['cq_elb_at_c',36],['cq_elb_fn_t',37],['cq_elb_fn_c',38],
                ['cq_elb_en_t',39],['cq_elb_en_c',40],['cq_elb_iso1',44],['cq_elb_iso2',45],
-               ['cq_elb_pt1d',49],['cq_elb_pt1r',50],['cq_elb_pc1d',51],['cq_elb_pc1r',52],['cq_elb_pb1d',53],['cq_elb_pb1r',54]],
+               ['cq_elb_pt1d',49],['cq_elb_pt1r',50],['cq_elb_pc1d',51],['cq_elb_pc1r',52],['cq_elb_pb1d',53],['cq_elb_pb1r',54],
+               ['cq_elb_pt2d',55],['cq_elb_pt2r',56],['cq_elb_pc2d',57],['cq_elb_pc2r',58],['cq_elb_pb2d',59],['cq_elb_pb2r',60],
+               ['cq_elb_pt3d',61],['cq_elb_pt3r',62],['cq_elb_pc3d',63],['cq_elb_pc3r',64],['cq_elb_pb3d',65],['cq_elb_pb3r',66],
+               ['cq_elb_pt4d',67],['cq_elb_pt4r',68],['cq_elb_pc4d',69],['cq_elb_pc4r',70],['cq_elb_pb4d',71],['cq_elb_pb4r',72]],
     'CQ_FBI': [['cq_fbi_r1label',9],['cq_fbi_r1i',10],['cq_fbi_r1ind',11],['cq_fbi_r1it',12],['cq_fbi_r1m',13],['cq_fbi_r1l',14],
                ['cq_fbi_r2label',15],['cq_fbi_r2i',16],['cq_fbi_r2ind',17],['cq_fbi_r2it',18],['cq_fbi_r2m',19],['cq_fbi_r2l',20],
                ['cq_fbi_r3label',21],['cq_fbi_r3i',22],['cq_fbi_r3ind',23],['cq_fbi_r3it',24],['cq_fbi_r3m',25],['cq_fbi_r3l',26],
@@ -3632,6 +3640,15 @@ function _fillCQSheet(xml,rec,dev,asl){
     s('B79',rec.cq_elb_pt1d||''); s('E79',rec.cq_elb_pt1r||'');
     s('H79',rec.cq_elb_pc1d||''); s('K79',rec.cq_elb_pc1r||'');
     s('N79',rec.cq_elb_pb1d||''); s('R79',rec.cq_elb_pb1r||'');
+    s('B80',rec.cq_elb_pt2d||''); s('E80',rec.cq_elb_pt2r||'');
+    s('H80',rec.cq_elb_pc2d||''); s('K80',rec.cq_elb_pc2r||'');
+    s('N80',rec.cq_elb_pb2d||''); s('R80',rec.cq_elb_pb2r||'');
+    s('B81',rec.cq_elb_pt3d||''); s('E81',rec.cq_elb_pt3r||'');
+    s('H81',rec.cq_elb_pc3d||''); s('K81',rec.cq_elb_pc3r||'');
+    s('N81',rec.cq_elb_pb3d||''); s('R81',rec.cq_elb_pb3r||'');
+    s('B82',rec.cq_elb_pt4d||''); s('E82',rec.cq_elb_pt4r||'');
+    s('H82',rec.cq_elb_pc4d||''); s('K82',rec.cq_elb_pc4r||'');
+    s('N82',rec.cq_elb_pb4d||''); s('R82',rec.cq_elb_pb4r||'');
     xml=_patchCell(xml,'R92',rec.cq_elb_pot_esito==='OK'?'X':'');
     xml=_patchCell(xml,'S92',rec.cq_elb_pot_esito==='KO'?'X':'');
     xml=_patchCell(xml,'T92',rec.cq_elb_pot_esito==='NA'?'X':'');
