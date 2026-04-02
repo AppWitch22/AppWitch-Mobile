@@ -867,6 +867,10 @@ body.logged-in h1,body.logged-in .subtitle{display:none}
         <input type="text" id="sess-new-title" placeholder="Nome nuova sessione (es. Cardiologia 24/03)" maxlength="80">
         <button onclick="createSession()">+ Nuova</button>
       </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <span style="font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;white-space:nowrap">Data verifica</span>
+        <input type="date" id="sess-new-date" style="font-size:13px;padding:7px 10px;border:1.5px solid var(--border2);border-radius:var(--rad);background:var(--bg3);color:var(--text);outline:none">
+      </div>
       <textarea id="sess-new-attesi" placeholder="Dispositivi attesi (opzionale): 0001234, 0002345..." style="width:100%;height:60px;font-size:13px;padding:8px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text);resize:vertical;outline:none;display:block"></textarea>
     </div>
     <div class="sess-list" id="sess-list">
@@ -973,7 +977,7 @@ function loadMPSaved(rec){
     if(val)setMP(p.n,val);
   });
   const e=document.getElementById('mp-tecnico');if(e)e.value=rec.mp_tecnico||'';
-  const d=document.getElementById('mp-data');if(d)d.value=rec.mp_data||'';
+  const d=document.getElementById('mp-data');if(d)d.value=currentSessionDate||rec.mp_data||'';
   const d2=document.getElementById('mp-data2');if(d2)d2.value=rec.mp_data2||'';
   const n=document.getElementById('mp-note');if(n)n.value=rec.mp_note||'-';
   const c=document.getElementById('mp-codice');if(c)c.value=rec.codice||'';
@@ -1197,7 +1201,7 @@ function updateTabs(){
 }
 
 function fillMPHeader(d){
-  const t=new Date().toISOString().split('T')[0];
+  const t=currentSessionDate||new Date().toISOString().split('T')[0];
   document.getElementById('mp-codice').value=d.c;
   document.getElementById('mp-data').value=t;
   document.getElementById('mp-note').value='-';
@@ -1213,7 +1217,7 @@ const lv=(id)=>{const e=document.getElementById(id);return e?e.textContent:'';};
 const sl=(id,v)=>{if(v)document.getElementById(id).textContent=v;};
 
 function fillVSE(d){
-  const t=new Date().toISOString().split('T')[0];
+  const t=currentSessionDate||new Date().toISOString().split('T')[0];
   sv('f-codice',d.c);sv('f-data',t);sv('f-note','-');
   sv('f-ten',d.ten);sr('rg-tdp',d.tdp);sv('f-frq',d.frq);sr('rg-fdp',d.fdp);
   sv('f-pot',d.pot);sr('rg-pdp',d.pdp);sv('f-mar',d.mar);sv('f-fud',d.fud);sv('f-fur',d.fur);
@@ -1248,7 +1252,7 @@ function fillVSE(d){
 }
 
 function restoreVSE(rec){
-  sv('f-data',rec.data);sv('f-note',rec.note);
+  sv('f-data',currentSessionDate||rec.data);sv('f-note',rec.note);
   sv('f-ten',rec.ten);sr('rg-tdp',rec.tdp);sv('f-frq',rec.frq);sr('rg-fdp',rec.fdp);
   sv('f-pot',rec.pot);sr('rg-pdp',rec.pdp);sv('f-mar',rec.mar);sv('f-fud',rec.fud);sv('f-fur',rec.fur);
   sr('rg-cls',rec.cls);sr('rg-cdp',rec.cdp);sr('rg-pa',rec.pat);sr('rg-padp',rec.pad);
@@ -2028,7 +2032,7 @@ function setVSP(l,val){
 }
 
 function fillVSPHeader(d){
-  const t=new Date().toISOString().split('T')[0];
+  const t=currentSessionDate||new Date().toISOString().split('T')[0];
   sv('vsp-codice',d.c); sv('vsp-data',t); sv('vsp-note','-');
   sv('vsp-data2',t); sv('vsp-tecnico',d.ver||'');
 }
@@ -2059,7 +2063,7 @@ function collectVSP(){
 function loadVSPSaved(rec){
   if(!rec||!rec.vsp_type) return;
   buildVSPPoints(rec.vsp_type);
-  sv('vsp-data',rec.vsp_data||''); sv('vsp-note',rec.vsp_note||'-');
+  sv('vsp-data',currentSessionDate||rec.vsp_data||''); sv('vsp-note',rec.vsp_note||'-');
   sv('vsp-tecnico',rec.vsp_tecnico||''); sv('vsp-data2',rec.vsp_data2||'');
   (VSP_POINTS[rec.vsp_type]||[]).forEach(p=>{if(rec['vsp_'+p.l]) setVSP(p.l,rec['vsp_'+p.l]);});
   const extra=VSP_EXTRA[rec.vsp_type];
@@ -2391,7 +2395,7 @@ function setCQ(pid,val){
 }
 
 function fillCQHeader(d){
-  const t=new Date().toISOString().split('T')[0];
+  const t=currentSessionDate||new Date().toISOString().split('T')[0];
   sv('cq-codice',d.c); sv('cq-data',t); sv('cq-note','-');
   sv('cq-data2',t); sv('cq-tecnico',d.ver||'');
 }
@@ -2423,7 +2427,7 @@ function collectCQ(){
 function loadCQSaved(rec){
   if(!rec||!rec.cq_type) return;
   buildCQPoints(rec.cq_type);
-  sv('cq-data',rec.cq_data||''); sv('cq-note',rec.cq_note||'-');
+  sv('cq-data',currentSessionDate||rec.cq_data||''); sv('cq-note',rec.cq_note||'-');
   sv('cq-tecnico',rec.cq_tecnico||''); sv('cq-data2',rec.cq_data2||'');
   sv('cq-strum',rec.cq_strum||''); sv('cq-strum-mod',rec.cq_strum_mod||'');
   sv('cq-strum-ser',rec.cq_strum_ser||''); sv('cq-strum-cert',rec.cq_strum_cert||'');
@@ -2740,6 +2744,7 @@ function adminMsg(text, ok) {
 // ── PERSISTENZA SESSIONI ──────────────────────────────────────
 let currentSessionId    = null;   // UUID sessione attiva
 let currentSessionTitle = null;   // Titolo sessione attiva
+let currentSessionDate  = null;   // Data verifica della sessione attiva (YYYY-MM-DD)
 let attesi = new Set();         // codici dispositivi attesi nella sessione corrente
 let syncPending = false;        // ci sono modifiche da sincronizzare
 let syncTimer   = null;         // timer auto-save
@@ -2770,18 +2775,21 @@ async function createSession() {
   const attesiList = attesiTxt
     ? attesiTxt.split(/[\s,;]+/).map(c => c.replace(/\D/g,'').padStart(7,'0')).filter(c => c.length === 7 && DB[c])
     : [];
+  const today = new Date().toISOString().split('T')[0];
+  const dataV = document.getElementById('sess-new-date').value || today;
   const resp  = await fetch(`${SUPA_URL}/rest/v1/sessioni`, {
     method: 'POST',
     headers: supaHdrs(token),
-    body: JSON.stringify({ titolo: title, utente_id: currentUser.id, asl: asl })
+    body: JSON.stringify({ titolo: title, utente_id: currentUser.id, asl: asl, data_verifica: dataV })
   });
   if (!resp.ok) { toast('Errore creazione sessione', 'warn'); return; }
   const rows = await resp.json();
   const sess = Array.isArray(rows) ? rows[0] : rows;
   document.getElementById('sess-new-title').value = '';
   document.getElementById('sess-new-attesi').value = '';
+  document.getElementById('sess-new-date').value = '';
   // Attiva la sessione (imposta currentSessionId e attesi)
-  await activateSession(sess.id, sess.titolo);
+  await activateSession(sess.id, sess.titolo, dataV);
   // Se ci sono attesi, aggiungili e sincronizza
   if (attesiList.length) {
     attesiList.forEach(c => attesi.add(c));
@@ -2794,7 +2802,7 @@ async function createSession() {
 }
 
 // ── Attiva una sessione (carica i dati in memoria) ────────────
-async function activateSession(id, titolo) {
+async function activateSession(id, titolo, dataVerifica) {
   // Salva sessione corrente prima di cambiare
   if (currentSessionId && Object.keys(saved).length > 0) {
     await syncSessionNow();
@@ -2806,6 +2814,7 @@ async function activateSession(id, titolo) {
   document.getElementById('form-area').style.display = 'none';
   currentSessionId    = id;
   currentSessionTitle = titolo || null;
+  currentSessionDate  = dataVerifica || null;
   // Carica schede (include la scheda speciale __attesi__ per i dispositivi attesi)
   const token = await supaToken();
   const schedeResp = await fetch(
@@ -3006,6 +3015,8 @@ async function addAttesiToSession() {
 async function openSessModal() {
   document.getElementById('sess-modal').classList.add('open');
   document.getElementById('sess-attesi-section').style.display = currentSessionId ? 'block' : 'none';
+  const dateEl = document.getElementById('sess-new-date');
+  if(dateEl && !dateEl.value) dateEl.value = new Date().toISOString().split('T')[0];
   await loadSessList();
 }
 function closeSessModal() {
@@ -3051,7 +3062,7 @@ async function loadSessList() {
     const data = s.data_aggiornamento
       ? new Date(s.data_aggiornamento).toLocaleDateString('it-IT', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})
       : '—';
-    return `<div class="sess-item${isActive?' active-sess':''}" data-sid="${esc(s.id)}" data-titolo="${esc(s.titolo)}">
+    return `<div class="sess-item${isActive?' active-sess':''}" data-sid="${esc(s.id)}" data-titolo="${esc(s.titolo)}" data-data="${esc(s.data_verifica||'')}">`
       <div class="sess-item-info">
         <div class="sess-item-title">${esc(s.titolo)}</div>
         <div class="sess-item-meta">Aggiornata: ${data}</div>
@@ -3064,7 +3075,7 @@ async function loadSessList() {
     </div>`;
   }).join('');
   list.querySelectorAll('.sess-item').forEach(el => {
-    el.addEventListener('click', () => activateSession(el.dataset.sid, el.dataset.titolo));
+    el.addEventListener('click', () => activateSession(el.dataset.sid, el.dataset.titolo, el.dataset.data||null));
     const expBtn = el.querySelector('[data-exp]');
     if (expBtn) expBtn.addEventListener('click', e => { e.stopPropagation(); exportSessioneByID(el.dataset.sid, el.dataset.titolo); });
     const delBtn = el.querySelector('[data-del]');
