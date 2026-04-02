@@ -3498,7 +3498,7 @@ function _fillVSSheet(xml,rec,dev){
   s('A10',dev.c);s('K10',dev.n||'');
   s('D13',dev.b||'');s('N13',dev.rep||'');s('D14',dev.m||'');
   s('N14','');s('D15',dev.mat||'');s('N15',dev.loc||'');s('D16','');
-  s('E18',rec.ten||'');s('E19',rec.frq||'');s('O19',rec.cls||'');
+  s('E18',rec.ten||'');s('O18',rec.fud||'');s('R18',rec.fur||'');s('E19',rec.frq||'');s('O19',rec.cls||'');
   s('E20',rec.pot||'');s('O20',rec.pat||'');
   s('E21',rec.mar||'');s('K21',rec.def||'');s('Q21',rec.fnz||'');
   s('A25',rec.giu||'POSITIVO');
@@ -3518,6 +3518,8 @@ function _fillVSSheet(xml,rec,dev){
    ['pbl','J100'],['pbm','L100'],['ibl','P100'],['ibm','R100'],
    ['pcl','J101'],['pcm','L101'],['icl','P101'],['icm','R101']
   ].forEach(([k,a])=>{const n=toN(rec[k]);if(n!=null)s(a,n,true);});
+  // P100 (PI BF limite): riscrivi come testo senza stile → allineamento sinistra
+  if(rec.ibl!=null&&rec.ibl!==''){const v=String(toN(rec.ibl)??rec.ibl);xml=_patchCell(xml,'P100',v,false);xml=xml.replace(/(<c r="P100") s="\d+"/,'$1');}
   s('D109',rec.str||'');s('L109',rec.nrs||'');
   if(rec.sct){const n=/^\d{4}-\d{2}-\d{2}$/.test(rec.sct)?_toExcelDate(rec.sct):toN(rec.sct);if(n)s('D111',n,true);else s('D111',rec.sct);}
   s('Q115',ds,true);
