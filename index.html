@@ -3518,8 +3518,8 @@ function _fillVSSheet(xml,rec,dev){
    ['pbl','J100'],['pbm','L100'],['ibl','P100'],['ibm','R100'],
    ['pcl','J101'],['pcm','L101'],['icl','P101'],['icm','R101']
   ].forEach(([k,a])=>{const n=toN(rec[k]);if(n!=null)s(a,n,true);});
-  // P100 (PI BF limite): riscrivi come testo senza stile → allineamento sinistra
-  if(rec.ibl!=null&&rec.ibl!==''){const v=String(toN(rec.ibl)??rec.ibl);xml=_patchCell(xml,'P100',v,false);xml=xml.replace(/(<c r="P100") s="\d+"/,'$1');}
+  // P100 (PI BF limite): copia stile di J100 (stesso font/bordi, non centrato)
+  {const mJ=xml.match(/<c r="J100" s="(\d+)"/);if(mJ)xml=xml.replace(/(<c r="P100") s="\d+"/,'$1 s="'+mJ[1]+'"');}
   s('D109',rec.str||'');s('L109',rec.nrs||'');
   if(rec.sct){const n=/^\d{4}-\d{2}-\d{2}$/.test(rec.sct)?_toExcelDate(rec.sct):toN(rec.sct);if(n)s('D111',n,true);else s('D111',rec.sct);}
   s('Q115',ds,true);
