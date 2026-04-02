@@ -586,11 +586,15 @@ body.logged-in h1,body.logged-in .subtitle{display:none}
           <div class="field"><label>Tensione D/P</label><div class="rg" id="rg-tdp"><div class="rb" data-v="Dichiarato" onclick="pick(this)">Dichiarato</div><div class="rb" data-v="Presunto" onclick="pick(this)">Presunto</div></div></div>
           <div class="field"><label>Frequenza</label><input type="text" id="f-frq"></div>
           <div class="field"><label>Frequenza D/P</label><div class="rg" id="rg-fdp"><div class="rb" data-v="Dichiarato" onclick="pick(this)">Dichiarato</div><div class="rb" data-v="Presunto" onclick="pick(this)">Presunto</div></div></div>
-          <div class="field"><label>Potenza</label><input type="text" id="f-pot"></div>
-          <div class="field"><label>Potenza D/P</label><div class="rg" id="rg-pdp"><div class="rb" data-v="Dichiarato" onclick="pick(this)">Dichiarato</div><div class="rb" data-v="Presunto" onclick="pick(this)">Presunto</div><div class="rb na" data-v="" onclick="pick(this)">N/A</div></div></div>
+          <div style="grid-column:1/-1;display:flex;gap:12px;align-items:end">
+            <div class="field" style="flex:1"><label>Potenza</label><input type="text" id="f-pot"></div>
+            <div class="field" style="flex:2"><label>Potenza D/P</label><div class="rg" id="rg-pdp"><div class="rb" data-v="Dichiarato" onclick="pick(this)">Dichiarato</div><div class="rb" data-v="Presunto" onclick="pick(this)">Presunto</div><div class="rb na" data-v="" onclick="pick(this)">N/A</div></div></div>
+          </div>
           <div class="field"><label>Marchio</label><input type="text" id="f-mar"></div>
-          <div class="field"><label>Fusibili dichiarati</label><select id="f-fud" class="sel-field"><option value="">—</option><option value="Si">Sì</option><option value="No">No</option><option value="Interni">Fusibili interni</option></select></div>
-          <div class="field"><label>Fusibili riscontrati</label><input type="text" id="f-fur"></div>
+          <div style="grid-column:1/-1;display:flex;gap:12px;align-items:end">
+            <div class="field" style="flex:1"><label>Fusibili dichiarati</label><select id="f-fud" class="sel-field"><option value="">—</option><option value="Si">Sì</option><option value="No">No</option><option value="Interni">Fusibili interni</option></select></div>
+            <div class="field" style="flex:1"><label>Fusibili riscontrati</label><input type="text" id="f-fur"></div>
+          </div>
           <div class="field"><label>Classe</label><div class="rg" id="rg-cls"><div class="rb" data-v="I" onclick="pick(this);uM()">I</div><div class="rb" data-v="II" onclick="pick(this);uM()">II</div><div class="rb" data-v="AI" onclick="pick(this);uM()">AI</div></div></div>
           <div class="field"><label>Classe D/P</label><div class="rg" id="rg-cdp"><div class="rb" data-v="Dichiarato" onclick="pick(this)">Dichiarato</div><div class="rb" data-v="Presunto" onclick="pick(this)">Presunto</div></div></div>
           <div class="field"><label>PA Tipo</label><div class="rg" id="rg-pa"><div class="rb" data-v="B" onclick="pick(this);uM()">B</div><div class="rb" data-v="BF" onclick="pick(this);uM()">BF</div><div class="rb" data-v="CF" onclick="pick(this);uM()">CF</div><div class="rb na" data-v="" onclick="pick(this);uM()">N/A</div></div></div>
@@ -609,7 +613,7 @@ body.logged-in h1,body.logged-in .subtitle{display:none}
           <div class="field"><label>Integrità cavo</label><div class="rg" id="rg-icv"><div class="rb ok" data-v="Conforme" onclick="pick(this)">Conf.</div><div class="rb ko" data-v="Non conforme" onclick="pick(this)">Non conf.</div></div></div>
           <div class="field"><label>Integrità spina</label><div class="rg" id="rg-isp"><div class="rb ok" data-v="Conforme" onclick="pick(this)">Conf.</div><div class="rb ko" data-v="Non conforme" onclick="pick(this)">Non conf.</div></div></div>
           <div class="field"><label>Interruttore rete</label><div class="rg" id="rg-int"><div class="rb ok" data-v="Presente" onclick="pick(this)">Presente</div><div class="rb ko" data-v="Assente" onclick="pick(this)">Assente</div><div class="rb na" data-v="" onclick="pick(this)">N/A</div></div></div>
-          <div class="field"><label>Parte applicata</label><input type="text" id="f-pdc"></div>
+          <div class="field"><label>Tipo parte applicata</label><input type="text" id="f-pdc"></div>
           <div class="field"><label>Integr. connettori</label><div class="rg" id="rg-icn"><div class="rb ok" data-v="Conforme" onclick="pick(this)">Conf.</div><div class="rb ko" data-v="Non conforme" onclick="pick(this)">Non conf.</div></div></div>
           <div class="field"><label>Prot. conduttori</label><div class="rg" id="rg-prc"><div class="rb ok" data-v="Conforme" onclick="pick(this)">Conf.</div><div class="rb ko" data-v="Non conforme" onclick="pick(this)">Non conf.</div></div></div>
           <div class="field"><label>Integr. conduttori</label><div class="rg" id="rg-icd"><div class="rb ok" data-v="Conforme" onclick="pick(this)">Conf.</div><div class="rb ko" data-v="Non conforme" onclick="pick(this)">Non conf.</div></div></div>
@@ -641,16 +645,6 @@ body.logged-in h1,body.logged-in .subtitle{display:none}
           Classe AI (Alimentazione Interna) — terra e dispersione involucro non applicabili. Con PA BF/CF compilare solo la sezione dispersione PA.
         </div>
 
-        <!-- TERRA DI PROTEZIONE (solo Classe I, non Impianto Fisso) -->
-        <div class="mblk" id="blk-terra">
-          <div class="msub">Terra di protezione — Classe I</div>
-          <div class="mrow">
-            <div class="field"><label>Limite (mΩ)</label><div class="mlim" id="lim-tr">300</div></div>
-            <div class="field"><label>Resistenza PE (mΩ)</label><input type="number" id="f-trm" inputmode="decimal" oninput="cv('f-trm','lim-tr','e-tr');aG()"></div>
-            <div class="esito" id="e-tr"></div>
-          </div>
-        </div>
-
         <!-- RESISTENZA DI ISOLAMENTO -->
         <div class="mblk" id="blk-isol">
           <div class="msub">Resistenza di isolamento</div>
@@ -663,6 +657,16 @@ body.logged-in h1,body.logged-in .subtitle{display:none}
             <div class="field"><label>PA / Massa</label></div>
             <div class="field"><label>Misurata (MΩ)</label><input type="number" id="f-ris-pa" inputmode="decimal"></div>
             <div style="width:60px"></div>
+          </div>
+        </div>
+
+        <!-- TERRA DI PROTEZIONE (solo Classe I, non Impianto Fisso) -->
+        <div class="mblk" id="blk-terra">
+          <div class="msub">Terra di protezione — Classe I</div>
+          <div class="mrow">
+            <div class="field"><label>Limite (mΩ)</label><div class="mlim" id="lim-tr">300</div></div>
+            <div class="field"><label>Resistenza PE (mΩ)</label><input type="number" id="f-trm" inputmode="decimal" oninput="cv('f-trm','lim-tr','e-tr');aG()"></div>
+            <div class="esito" id="e-tr"></div>
           </div>
         </div>
 
@@ -1256,8 +1260,9 @@ function restoreVSE(rec){
   sv('f-trm',rec.trm);sv('f-pnm',rec.pnm);sv('f-pim',rec.pim);
   sv('f-pbm',rec.pbm);sv('f-ibm',rec.ibm);sv('f-pcm',rec.pcm);sv('f-icm',rec.icm);
   sG(rec.giu||'POSITIVO');sr('rg-vt',rec.vt);sr('rg-vd',rec.vd);sv('f-mot',rec.mot);
-  sv('f-str',rec.str);sv('f-nrs',rec.nrs);sv('f-ver',rec.ver);sv('f-vrc',rec.vrc);sv('f-sct',rec.sct?rec.sct.toString().split(' ')[0]:rec.sct);
+  sv('f-str',rec.str);sv('f-nrs',rec.nrs);sv('f-ver',rec.ver);sv('f-dat2',rec.dat2);sv('f-vrc',rec.vrc);sv('f-sct',rec.sct?rec.sct.toString().split(' ')[0]:rec.sct);
   sv('f-ris-inv',rec.ris_inv);sv('f-ris-pa',rec.ris_pa);
+  sr('rg-norma',rec.norma||'62353');
   uM();
 }
 
