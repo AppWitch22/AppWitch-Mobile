@@ -2465,6 +2465,24 @@ function buildCQPoints(type){
         html+=`<div class="sec" style="margin-bottom:10px"><div class="sec-hdr">${sec.sec}</div><div class="cq-matrix"><table class="cq-table"><thead><tr><th>#</th><th>Taglio Dic.</th><th>Taglio Ris.</th><th>Coagulo Dic.</th><th>Coagulo Ris.</th><th>Bipolare Dic.</th><th>Bipolare Ris.</th></tr></thead><tbody>`;
         ROWS_POT.forEach(r=>{html+=`<tr><td class="cq-row-label">${r.n}</td><td><input type="text" id="${r.pt}" inputmode="decimal"></td><td><input type="text" id="${r.pr}" inputmode="decimal"></td><td><input type="text" id="${r.ct}" inputmode="decimal"></td><td><input type="text" id="${r.cr}" inputmode="decimal"></td><td><input type="text" id="${r.bt}" inputmode="decimal"></td><td><input type="text" id="${r.br}" inputmode="decimal"></td></tr>`;});
         html+=`</tbody></table></div><input type="hidden" id="cq_elb_pot_esito"><div class="cq-esito-row"><span class="cq-esito-label">Potenze rientranti nei limiti (max +/- 20%)</span><div class="rg" id="rg-cq_elb_pot_esito"><div class="rb ok" data-v="OK" onclick="pick(this);document.getElementById('cq_elb_pot_esito').value='OK'">OK</div><div class="rb ko" data-v="KO" onclick="pick(this);document.getElementById('cq_elb_pot_esito').value='KO'">KO</div><div class="rb na" data-v="NA" onclick="pick(this);document.getElementById('cq_elb_pot_esito').value='NA'">NA</div></div></div></div>`;
+      } else if(sec.sec==='Energia erogata (J) — Impostata / Misurata'){
+        const inp=(id)=>`<input type="text" id="${id}" inputmode="decimal" style="width:100%;box-sizing:border-box;text-align:center;font-size:13px;border-radius:5px;padding:4px 2px;border:1.5px solid var(--border2)">`;
+        const thH=`text-align:center;font-size:12px;font-weight:700;color:#C2500A;padding:4px 8px 8px`;
+        const tdL=`padding:4px 4px 4px 0;font-size:13px;white-space:nowrap;text-align:right`;
+        const tdC=`padding:4px 6px`;
+        html+=`<div class="sec" style="margin-bottom:10px"><div class="sec-hdr">Energia erogata (J)</div><div style="padding:0 14px 12px">
+          <table style="border-collapse:collapse;width:100%">
+            <colgroup><col style="width:25%"><col><col></colgroup>
+            <thead><tr>
+              <th style="padding:0"></th>
+              <th style="${thH}">Impostata (J)</th>
+              <th style="${thH}">Misurata (J)</th>
+            </tr></thead>
+            <tbody>
+              ${[1,2,3,4,5,6].map(n=>`<tr><td style="${tdL}">Misura ${n}</td><td style="${tdC}">${inp('cq_def_e'+n+'i')}</td><td style="${tdC}">${inp('cq_def_e'+n+'m')}</td></tr>`).join('')}
+            </tbody>
+          </table>
+        </div></div>`;
       } else {
         html+=`<div class="sec" style="margin-bottom:10px"><div class="sec-hdr">${sec.sec}</div><div class="sec-body" style="grid-template-columns:repeat(auto-fill,minmax(160px,1fr))">${sec.fields.map(f=>`<div class="field"><label>${f.l}</label><input type="text" id="${f.id}" inputmode="decimal"></div>`).join('')}</div></div>`;
       }
