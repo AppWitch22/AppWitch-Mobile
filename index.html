@@ -209,6 +209,7 @@ body.logged-in h1,body.logged-in .subtitle{display:none}
 .mrow{display:grid;grid-template-columns:1fr 1fr 60px;gap:8px;align-items:end;margin-bottom:8px}
 .mlim{font-size:14px;padding:9px 11px;background:var(--bg2);border-radius:var(--rad);border:1px solid var(--border);color:var(--text3)}
 .esito{font-size:13px;font-weight:700;text-align:center;padding-top:6px}
+.unit{text-transform:none}
 .msub{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--text2);margin:10px 0 8px}
 .ai-info{background:var(--warn-bg);border:1px solid rgba(138,92,0,.2);border-radius:var(--rad);padding:9px 12px;font-size:13px;color:var(--warn);margin:0 14px 14px}
 .badge-ai{font-size:11px;padding:2px 8px;border-radius:20px;background:var(--warn-bg);color:var(--warn)}
@@ -674,43 +675,43 @@ body.logged-in h1,body.logged-in .subtitle{display:none}
         <div class="mblk" id="blk-disp-inv">
           <div class="msub" id="msub-disp-inv">Corrente dispersione apparecchio<br>Involucro</div>
           <div class="mrow">
-            <div class="field"><label>PN Limite (mA)</label><div class="mlim" id="lim-pn">500</div></div>
-            <div class="field"><label>PN Misurata (mA)</label><input type="number" id="f-pnm" inputmode="decimal" oninput="cv('f-pnm','lim-pn','e-pn');aG()"></div>
+            <div class="field"><label>PN Limite (<span class="unit">mA</span>)</label><div class="mlim" id="lim-pn">500</div></div>
+            <div class="field"><label>PN Misurata (<span class="unit">mA</span>)</label><input type="number" id="f-pnm" inputmode="decimal" oninput="cv('f-pnm','lim-pn','e-pn');aG()"></div>
             <div class="esito" id="e-pn"></div>
           </div>
           <div class="mrow">
-            <div class="field"><label>PI Limite (mA)</label><div class="mlim" id="lim-pi">500</div></div>
-            <div class="field"><label>PI Misurata (mA)</label><input type="number" id="f-pim" inputmode="decimal" oninput="cv('f-pim','lim-pi','e-pi');aG()"></div>
+            <div class="field"><label>PI Limite (<span class="unit">mA</span>)</label><div class="mlim" id="lim-pi">500</div></div>
+            <div class="field"><label>PI Misurata (<span class="unit">mA</span>)</label><input type="number" id="f-pim" inputmode="decimal" oninput="cv('f-pim','lim-pi','e-pi');aG()"></div>
             <div class="esito" id="e-pi"></div>
           </div>
         </div>
 
         <!-- DISPERSIONE PA BF (solo se PA = BF) -->
         <div class="mblk" id="blk-pa-bf" style="display:none">
-          <div class="msub">Corrente dispersione PA<br>Tipo BF (limite ≤ 5000 mA)</div>
+          <div class="msub">Corrente dispersione PA<br>Tipo BF (limite ≤ 5000 <span class="unit">mA</span>)</div>
           <div class="mrow">
-            <div class="field"><label>PN Limite (mA)</label><div class="mlim" id="lim-pnbf">5000</div></div>
-            <div class="field"><label>PN Misurata (mA)</label><input type="number" id="f-pbm" inputmode="decimal" oninput="cv('f-pbm','lim-pnbf','e-pnbf');aG()"></div>
+            <div class="field"><label>PN Limite (<span class="unit">mA</span>)</label><div class="mlim" id="lim-pnbf">5000</div></div>
+            <div class="field"><label>PN Misurata (<span class="unit">mA</span>)</label><input type="number" id="f-pbm" inputmode="decimal" oninput="cv('f-pbm','lim-pnbf','e-pnbf');aG()"></div>
             <div class="esito" id="e-pnbf"></div>
           </div>
           <div class="mrow">
-            <div class="field"><label>PI Limite (mA)</label><div class="mlim" id="lim-pibf">5000</div></div>
-            <div class="field"><label>PI Misurata (mA)</label><input type="number" id="f-ibm" inputmode="decimal" oninput="cv('f-ibm','lim-pibf','e-pibf');aG()"></div>
+            <div class="field"><label>PI Limite (<span class="unit">mA</span>)</label><div class="mlim" id="lim-pibf">5000</div></div>
+            <div class="field"><label>PI Misurata (<span class="unit">mA</span>)</label><input type="number" id="f-ibm" inputmode="decimal" oninput="cv('f-ibm','lim-pibf','e-pibf');aG()"></div>
             <div class="esito" id="e-pibf"></div>
           </div>
         </div>
 
         <!-- DISPERSIONE PA CF (solo se PA = CF) -->
         <div class="mblk" id="blk-pa-cf" style="display:none">
-          <div class="msub">Corrente dispersione PA<br>Tipo CF (limite ≤ 50 mA)</div>
+          <div class="msub">Corrente dispersione PA<br>Tipo CF (limite ≤ 50 <span class="unit">mA</span>)</div>
           <div class="mrow">
-            <div class="field"><label>PN Limite (mA)</label><div class="mlim" id="lim-pncf">50</div></div>
-            <div class="field"><label>PN Misurata (mA)</label><input type="number" id="f-pcm" inputmode="decimal" oninput="cv('f-pcm','lim-pncf','e-pncf');aG()"></div>
+            <div class="field"><label>PN Limite (<span class="unit">mA</span>)</label><div class="mlim" id="lim-pncf">50</div></div>
+            <div class="field"><label>PN Misurata (<span class="unit">mA</span>)</label><input type="number" id="f-pcm" inputmode="decimal" oninput="cv('f-pcm','lim-pncf','e-pncf');aG()"></div>
             <div class="esito" id="e-pncf"></div>
           </div>
           <div class="mrow">
-            <div class="field"><label>PI Limite (mA)</label><div class="mlim" id="lim-picf">50</div></div>
-            <div class="field"><label>PI Misurata (mA)</label><input type="number" id="f-icm" inputmode="decimal" oninput="cv('f-icm','lim-picf','e-picf');aG()"></div>
+            <div class="field"><label>PI Limite (<span class="unit">mA</span>)</label><div class="mlim" id="lim-picf">50</div></div>
+            <div class="field"><label>PI Misurata (<span class="unit">mA</span>)</label><input type="number" id="f-icm" inputmode="decimal" oninput="cv('f-icm','lim-picf','e-picf');aG()"></div>
             <div class="esito" id="e-picf"></div>
           </div>
         </div>
@@ -1331,10 +1332,10 @@ function uM(){
   if(limPI) limPI.textContent = limInv;
   const msubInv = document.getElementById('msub-disp-inv');
   if(msubInv) msubInv.innerHTML = is61010
-    ? 'Corrente dispersione apparecchio<br>Involucro (IEC 61010, lim. 3500 mA)'
+    ? 'Corrente dispersione apparecchio<br>Involucro (IEC 61010, lim. 3500 <span class="unit">mA</span>)'
     : isCls1
-      ? 'Corrente dispersione apparecchio<br>Involucro (Cl.I, lim. 500 mA)'
-      : 'Corrente dispersione apparecchio<br>Involucro (Cl.II, lim. 100 mA)';
+      ? 'Corrente dispersione apparecchio<br>Involucro (Cl.I, lim. 500 <span class="unit">mA</span>)'
+      : 'Corrente dispersione apparecchio<br>Involucro (Cl.II, lim. 100 <span class="unit">mA</span>)';
   const inpPnm = document.getElementById('f-pnm');
   const inpPim = document.getElementById('f-pim');
   if(inpPnm){ inpPnm.disabled=isFisso||isAI; if(isFisso||isAI){inpPnm.value='';inpPnm.placeholder='N/A';}else inpPnm.placeholder=''; }
