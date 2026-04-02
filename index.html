@@ -1609,7 +1609,7 @@ function exportXLSX(){
       R1[91]='8 Strumentazione';R1[96]='TECNICO ESECUTORE';R1[97]='Esiti';R1[100]='5 Tempi ritardo esiti';R1[104]='6 Raccomandazioni';
       let ci=3;def.forEach(p=>{R2[ci]=p.l;ci+=p.opts.length;});
       ['E1i','E1m','E2i','E2m','E3i','E3m','E4i','E4m','E5i','E5m'].forEach((v,i)=>R3[50+i]=v);
-      R2[60]='DAE';R3[60]='Mis';
+      R2[60]='DAE';R3[60]='Imp';R2[61]='DAE';R3[61]='Mis';
       ['A-r','A-b','A-M','B-r','B-b','B-M','C-r','C-b','C-M','D-r','D-b','D-M'].forEach((v,i)=>R3[64+i]=v);
       R2[79]='A';R3[79]='Ril';R3[80]='Max';R2[83]='B';R3[83]='Ril';R3[84]='Max';R2[87]='C';R3[87]='Ril';R3[88]='Max';
       ['Strum','Mod','Serie','Cert','Scad'].forEach((v,i)=>R2[91+i]=v);
@@ -1620,7 +1620,8 @@ function exportXLSX(){
         row[0]=r.vsp_codice||'';row[1]=r.vsp_data||'';row[2]=r.vsp_note||'';
         let ci2=3;def.forEach(p=>{const val=r['vsp_'+p.l]||'';p.opts.forEach(o=>{row[ci2++]=(val===o?'X':null);});});
         ['def_e1i','def_e1m','def_e2i','def_e2m','def_e3i','def_e3m','def_e4i','def_e4m','def_e5i','def_e5m'].forEach((f,i)=>{const v=r[f];if(v)row[50+i]=v;});
-        if(r['def_dae_mis'])row[60]=r['def_dae_mis'];
+        if(r['def_dae_imp'])row[60]=r['def_dae_imp'];
+        if(r['def_dae_mis'])row[61]=r['def_dae_mis'];
         ['def_tc_ar','def_tc_ab','def_tc_am','def_tc_br','def_tc_bb','def_tc_bm','def_tc_cr','def_tc_cb','def_tc_cm','def_tc_dr','def_tc_db','def_tc_dm'].forEach((f,i)=>{const v=r[f];if(v)row[64+i]=v;});
         [['def_tr_ar',79],['def_tr_am',80],['def_tr_br',83],['def_tr_bm',84],['def_tr_cr',87],['def_tr_cm',88]].forEach(([f,c])=>{const v=r[f];if(v)row[c]=v;});
         ['def_strum','def_mod','def_ser','def_cert','def_scad'].forEach((f,i)=>{const v=r[f];if(v)row[91+i]=v;});
@@ -1838,7 +1839,7 @@ const VSP_EXTRA = {
       {id:'def_e3i',l:'E3 Impostato (J)'},{id:'def_e3m',l:'E3 Misurato (J)'},
       {id:'def_e4i',l:'E4 Impostato (J)'},{id:'def_e4m',l:'E4 Misurato (J)'},
       {id:'def_e5i',l:'E5 Impostato (J)'},{id:'def_e5m',l:'E5 Misurato (J)'},
-      {id:'def_dae_mis',l:'DAE Misurato (J)'},
+      {id:'def_dae_imp',l:'DAE Impostato (J)'},{id:'def_dae_mis',l:'DAE Misurato (J)'},
       {id:'def_e_esito',l:'Esito energia',type:'rb',opts:['NA','OK','KO'],labels:['NA','OK','KO']},
     ]},
     {sec:'Tempi di carica alla massima energia', fields:[
@@ -2000,25 +2001,27 @@ function buildVSPPoints(type){
         html+=`<tr><td style="${td};font-size:11px" colspan="3">Correnti di dispersione in HF rientranti nei limiti — 1% di P misurata su carico di 200 Ω</td><td style="${tc}"><input type="hidden" id="elb_bip_esito"><div class="rg" id="rg-elb_bip_esito"><div class="rb ok" data-v="OK" onclick="pick(this);document.getElementById('elb_bip_esito').value='OK'">OK</div><div class="rb ko" data-v="KO" onclick="pick(this);document.getElementById('elb_bip_esito').value='KO'">KO</div><div class="rb na" data-v="NA" onclick="pick(this);document.getElementById('elb_bip_esito').value='NA'">NA</div></div></td></tr>`;
         html+=`</tbody></table></div></div>`;
       } else if(sec.sec==='Precisione energia erogata'){
-        const inp=(id)=>`<input type="text" id="${id}" inputmode="decimal" style="width:62px;text-align:center;font-size:12px;border-radius:6px">`;
+        const inp=(id)=>`<input type="text" id="${id}" inputmode="decimal" style="width:60px;text-align:center;font-size:12px;border-radius:5px">`;
         const rbE=`<input type="hidden" id="def_e_esito"><div class="rg" id="rg-def_e_esito"><div class="rb na" data-v="NA" onclick="pick(this);document.getElementById('def_e_esito').value='NA'">N/A</div><div class="rb ok" data-v="OK" onclick="pick(this);document.getElementById('def_e_esito').value='OK'">OK</div><div class="rb ko" data-v="KO" onclick="pick(this);document.getElementById('def_e_esito').value='KO'">KO</div></div>`;
-        const thH=`style="text-align:center;font-size:11px;font-weight:700;color:#C2500A;padding:0 4px 6px"`;
-        const gcols=`display:grid;grid-template-columns:72px 1fr 1fr;align-items:center`;
-        const box=`border:1.5px solid var(--border2);border-radius:8px;padding:8px 10px`;
+        const thH=`style="text-align:center;font-size:11px;font-weight:700;color:#C2500A;padding:0 4px 5px"`;
+        const gc4=`display:grid;grid-template-columns:88px 62px 1fr 1fr;align-items:center`;
+        const outerBox=`border:1.5px solid var(--border2);border-radius:8px;padding:8px 10px`;
+        const lblBox=`border:1.5px solid var(--border2);border-radius:6px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;padding:6px 4px;text-align:center;min-height:36px`;
         html+=`<div class="sec" style="margin-bottom:10px"><div class="sec-hdr">Precisione energia erogata</div><div style="padding:0 14px 12px">
-          <div style="${gcols};margin-bottom:4px">
-            <div></div><div ${thH}>Impostato (J)</div><div ${thH}>Misurato (J)</div>
+          <div style="${gc4};margin-bottom:4px">
+            <div></div><div></div><div ${thH}>Impostato (J)</div><div ${thH}>Misurato (J)</div>
           </div>
-          <div style="${box};margin-bottom:8px">
-            <div style="${gcols};row-gap:6px">
-              <div style="grid-row:1/6;font-weight:700;font-size:13px;text-align:center">MANUALE</div>
-              ${[1,2,3,4,5].map(n=>`<div style="display:flex;align-items:center;justify-content:center;gap:4px"><span style="font-size:11px;color:var(--text3);white-space:nowrap">Misura ${n}</span>${inp('def_e'+n+'i')}</div><div style="text-align:center">${inp('def_e'+n+'m')}</div>`).join('')}
+          <div style="${outerBox};margin-bottom:8px">
+            <div style="${gc4};row-gap:5px">
+              <div style="grid-row:1/6;${lblBox}">MANUALE</div>
+              ${[1,2,3,4,5].map(n=>`<div style="font-size:11px;padding:0 4px;white-space:nowrap">Misura ${n}</div><div style="text-align:center">${inp('def_e'+n+'i')}</div><div style="text-align:center">${inp('def_e'+n+'m')}</div>`).join('')}
             </div>
           </div>
-          <div style="${box};margin-bottom:10px">
-            <div style="${gcols}">
-              <div style="font-weight:700;font-size:13px;text-align:center">DAE</div>
+          <div style="${outerBox};margin-bottom:10px">
+            <div style="${gc4}">
+              <div style="${lblBox}">DAE</div>
               <div></div>
+              <div style="text-align:center">${inp('def_dae_imp')}</div>
               <div style="text-align:center">${inp('def_dae_mis')}</div>
             </div>
           </div>
@@ -2039,7 +2042,7 @@ function buildVSPPoints(type){
         html+=`<div class="sec" style="margin-bottom:10px"><div class="sec-hdr">Tempi di carica alla massima energia</div><div style="overflow-x:auto;padding:0 14px 12px">
           ${hiddenMax}
           <table style="border-collapse:collapse;width:100%"><thead><tr>
-            <th style="${thT}"></th><th style="${thT}">Tipo di carica</th><th style="${thT}">Tempo a rete (s)</th><th style="${thT}">Tempo a batteria (s)</th><th style="${thT}">Tempo massimo (s)</th><th style="${thT}">[N/A]</th>
+            <th style="${thT}"></th><th style="${thT}">Tipo di carica</th><th style="${thT}">Tempo rilevato<br>a rete (s)</th><th style="${thT}">Tempo rilevato<br>a batteria (s)</th><th style="${thT}">Tempo massimo (s)</th><th style="${thT}">[NA]</th>
           </tr></thead><tbody>
             <tr>
               <td style="${tdK}">A</td>
@@ -3413,7 +3416,8 @@ async function importPresetsFromExcel(input) {
         if(tipo==='VSP_DEF'){
           // ci=50 here; energy manuale col 50-59, DAE col 60, skip 61-63
           ['def_e1i','def_e1m','def_e2i','def_e2m','def_e3i','def_e3m','def_e4i','def_e4m','def_e5i','def_e5m'].forEach((f,i)=>{ const v=_rc(row,50+i); if(v) dati[f]=v; });
-          const daeMis=_rc(row,60); if(daeMis) dati['def_dae_mis']=daeMis;
+          const daeImp=_rc(row,60); if(daeImp) dati['def_dae_imp']=daeImp;
+          const daeMis=_rc(row,61); if(daeMis) dati['def_dae_mis']=daeMis;
           // Tempi carica col 64-75, tempi ritardo col 79-88 (with gaps)
           ['def_tc_ar','def_tc_ab','def_tc_am','def_tc_br','def_tc_bb','def_tc_bm','def_tc_cr','def_tc_cb','def_tc_cm','def_tc_dr','def_tc_db','def_tc_dm'].forEach((f,i)=>{ const v=_rc(row,64+i); if(v) dati[f]=v; });
           _fm(row,[['def_tr_ar',79],['def_tr_am',80],['def_tr_br',83],['def_tr_bm',84],['def_tr_cr',87],['def_tr_cm',88]],dati);
