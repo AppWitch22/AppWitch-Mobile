@@ -1601,18 +1601,19 @@ function exportXLSX(){
     let R1,R2,R3,rows;
 
     if(vtype==='VSP_DEF'){
-      // 97 cols: checkboxes col 3-49 (18 pts, mixed opts), extra col 50-95, tecnico col 96
-      const NC=97;
+      // 105 cols: checkboxes col 3-49, extra col 50-95, tecnico col 96, nuovi esiti col 97-104
+      const NC=105;
       R1=Array(NC).fill(null);R2=Array(NC).fill(null);R3=Array(NC).fill(null);
       R1[0]='CODICE';R1[1]='DATA';R1[2]='NOTE';R1[3]='2 Controlli visivi';
       R1[50]='3 Energia erogata';R1[64]='4 Tempi carica';R1[79]='5 Tempi ritardo';
-      R1[91]='8 Strumentazione';R1[96]='TECNICO ESECUTORE';
+      R1[91]='8 Strumentazione';R1[96]='TECNICO ESECUTORE';R1[97]='Esiti';R1[102]='6 Raccomandazioni';
       let ci=3;def.forEach(p=>{R2[ci]=p.l;ci+=p.opts.length;});
       ['E1i','E1m','E2i','E2m','E3i','E3m','E4i','E4m','E5i','E5m'].forEach((v,i)=>R3[50+i]=v);
       R2[60]='DAE';R3[60]='Mis';
       ['A-r','A-b','A-M','B-r','B-b','B-M','C-r','C-b','C-M','D-r','D-b','D-M'].forEach((v,i)=>R3[64+i]=v);
       R2[79]='A';R3[79]='Ril';R3[80]='Max';R2[83]='B';R3[83]='Ril';R3[84]='Max';R2[87]='C';R3[87]='Ril';R3[88]='Max';
       ['Strum','Mod','Serie','Cert','Scad'].forEach((v,i)=>R2[91+i]=v);
+      [['E-esito',97],['TC-esito',98],['TR-A-esito',99],['TR-B-esito',100],['TR-C-esito',101],['Rac-A',102],['Rac-B',103],['Rac-C',104]].forEach(([v,c])=>R2[c]=v);
       ci=3;def.forEach(p=>{p.opts.forEach(o=>{R3[ci++]=o;});});
       rows=vspKeys.map(k=>{
         const r=saved[k];const row=Array(NC).fill(null);
@@ -1623,7 +1624,9 @@ function exportXLSX(){
         ['def_tc_ar','def_tc_ab','def_tc_am','def_tc_br','def_tc_bb','def_tc_bm','def_tc_cr','def_tc_cb','def_tc_cm','def_tc_dr','def_tc_db','def_tc_dm'].forEach((f,i)=>{const v=r[f];if(v)row[64+i]=v;});
         [['def_tr_ar',79],['def_tr_am',80],['def_tr_br',83],['def_tr_bm',84],['def_tr_cr',87],['def_tr_cm',88]].forEach(([f,c])=>{const v=r[f];if(v)row[c]=v;});
         ['def_strum','def_mod','def_ser','def_cert','def_scad'].forEach((f,i)=>{const v=r[f];if(v)row[91+i]=v;});
-        row[96]=r.vsp_tecnico||'';return row;
+        row[96]=r.vsp_tecnico||'';
+        [['def_e_esito',97],['def_tc_esito',98],['def_tr_a_esito',99],['def_tr_b_esito',100],['def_tr_c_esito',101],['def_rac_a',102],['def_rac_b',103],['def_rac_c',104]].forEach(([f,c])=>{const v=r[f];if(v)row[c]=v;});
+        return row;
       });
     } else if(vtype==='VSP_ELB'){
       // 106 cols: targa col 3-17, checkboxes col 18-35, corrente col 36-55, strum col 100-104, tecnico col 105
@@ -1829,26 +1832,31 @@ const VSP_POINTS = {
 // Extra numeric fields for DEF and ELB
 const VSP_EXTRA = {
   'VSP_DEF': [
-    {sec:'Precisione energia erogata — Manuale', fields:[
-      {id:'def_e1i',l:'Energia 1 Impostato (J)'},{id:'def_e1m',l:'Energia 1 Misurato (J)'},
-      {id:'def_e2i',l:'Energia 2 Impostato (J)'},{id:'def_e2m',l:'Energia 2 Misurato (J)'},
-      {id:'def_e3i',l:'Energia 3 Impostato (J)'},{id:'def_e3m',l:'Energia 3 Misurato (J)'},
-      {id:'def_e4i',l:'Energia 4 Impostato (J)'},{id:'def_e4m',l:'Energia 4 Misurato (J)'},
-      {id:'def_e5i',l:'Energia 5 Impostato (J)'},{id:'def_e5m',l:'Energia 5 Misurato (J)'},
-    ]},
-    {sec:'Precisione energia erogata — DAE', fields:[
+    {sec:'Precisione energia erogata', fields:[
+      {id:'def_e1i',l:'E1 Impostato (J)'},{id:'def_e1m',l:'E1 Misurato (J)'},
+      {id:'def_e2i',l:'E2 Impostato (J)'},{id:'def_e2m',l:'E2 Misurato (J)'},
+      {id:'def_e3i',l:'E3 Impostato (J)'},{id:'def_e3m',l:'E3 Misurato (J)'},
+      {id:'def_e4i',l:'E4 Impostato (J)'},{id:'def_e4m',l:'E4 Misurato (J)'},
+      {id:'def_e5i',l:'E5 Impostato (J)'},{id:'def_e5m',l:'E5 Misurato (J)'},
       {id:'def_dae_mis',l:'DAE Misurato (J)'},
+      {id:'def_e_esito',l:'Esito energia',type:'rb',opts:['NA','OK','KO'],labels:['NA','OK','KO']},
     ]},
     {sec:'Tempi di carica alla massima energia', fields:[
-      {id:'def_tc_ar',l:'Config A — Rete (s)'},{id:'def_tc_ab',l:'Config A — Batteria (s)'},{id:'def_tc_am',l:'Config A — Max (s)'},
-      {id:'def_tc_br',l:'Config B — Rete (s)'},{id:'def_tc_bb',l:'Config B — Batteria (s)'},{id:'def_tc_bm',l:'Config B — Max (s)'},
-      {id:'def_tc_cr',l:'Config C — Rete (s)'},{id:'def_tc_cb',l:'Config C — Batteria (s)'},{id:'def_tc_cm',l:'Config C — Max (s)'},
-      {id:'def_tc_dr',l:'Config D — Rete (s)'},{id:'def_tc_db',l:'Config D — Batteria (s)'},{id:'def_tc_dm',l:'Config D — Max (s)'},
+      {id:'def_tc_ar',l:'A — Rete (s)'},{id:'def_tc_ab',l:'A — Batteria (s)'},{id:'def_tc_am',l:'A — Max (s)'},
+      {id:'def_tc_br',l:'B — Rete (s)'},{id:'def_tc_bb',l:'B — Batteria (s)'},{id:'def_tc_bm',l:'B — Max (s)'},
+      {id:'def_tc_cr',l:'C — Rete (s)'},{id:'def_tc_cb',l:'C — Batteria (s)'},{id:'def_tc_cm',l:'C — Max (s)'},
+      {id:'def_tc_dr',l:'D — Rete (s)'},{id:'def_tc_db',l:'D — Batteria (s)'},{id:'def_tc_dm',l:'D — Max (s)'},
+      {id:'def_tc_esito',l:'Esito tempi carica',type:'rb',opts:['NA','OK'],labels:['NA (batt. assente)','OK']},
     ]},
     {sec:'Tempi di ritardo e ripristino', fields:[
-      {id:'def_tr_ar',l:'Config A — Rilevato (s)'},{id:'def_tr_am',l:'Config A — Massimo (s)'},
-      {id:'def_tr_br',l:'Config B — Rilevato (s)'},{id:'def_tr_bm',l:'Config B — Massimo (s)'},
-      {id:'def_tr_cr',l:'Config C — Rilevato (s)'},{id:'def_tr_cm',l:'Config C — Massimo (s)'},
+      {id:'def_tr_ar',l:'A — Rilevato (s)'},{id:'def_tr_am',l:'A — Max (s)'},{id:'def_tr_a_esito',l:'A — Esito',type:'rb',opts:['NA','OK'],labels:['NA','OK']},
+      {id:'def_tr_br',l:'B — Rilevato (s)'},{id:'def_tr_bm',l:'B — Max (s)'},{id:'def_tr_b_esito',l:'B — Esito',type:'rb',opts:['NA','OK'],labels:['NA','OK']},
+      {id:'def_tr_cr',l:'C — Rilevato (s)'},{id:'def_tr_cm',l:'C — Max (s)'},{id:'def_tr_c_esito',l:'C — Esito',type:'rb',opts:['NA','OK'],labels:['NA','OK']},
+    ]},
+    {sec:'Raccomandazioni', fields:[
+      {id:'def_rac_a',l:'A — Verifica prescrizioni parti applicate di tipo BF o CF',type:'rb',opts:['NA','OK','KO'],labels:['NA','OK','KO']},
+      {id:'def_rac_b',l:'B — Verifica prescrizioni parti applicate elettrodi ECG separati di tipo CF',type:'rb',opts:['NA','OK','KO'],labels:['NA','OK','KO']},
+      {id:'def_rac_c',l:'C — Verifica prescrizioni parti applicate a prova di defibrillazione',type:'rb',opts:['NA','OK','KO'],labels:['NA','OK','KO']},
     ]},
     {sec:'Strumentazione utilizzata', fields:[
       {id:'def_strum',l:'Strumento'},{id:'def_mod',l:'Modello'},
@@ -1989,6 +1997,81 @@ function buildVSPPoints(type){
         html+=`<tr><td style="${td}" rowspan="2">Elettrodo bipolare</td><td style="${tc};font-size:11px" colspan="2">Elettrodo 1<br>${inp('elb_iso1n')}&nbsp;${inp('elb_iso1t')}</td><td style="${tc};font-size:11px" colspan="2">Elettrodo 2 — Uscita isolata<br>${inp('elb_iso2n')}&nbsp;${inp('elb_iso2t')}</td></tr>`;
         html+=`<tr><td style="${td};font-size:11px" colspan="3">Correnti di dispersione in HF rientranti nei limiti — 1% di P misurata su carico di 200 Ω</td><td style="${tc}"><input type="hidden" id="elb_bip_esito"><div class="rg" id="rg-elb_bip_esito"><div class="rb ok" data-v="OK" onclick="pick(this);document.getElementById('elb_bip_esito').value='OK'">OK</div><div class="rb ko" data-v="KO" onclick="pick(this);document.getElementById('elb_bip_esito').value='KO'">KO</div><div class="rb na" data-v="NA" onclick="pick(this);document.getElementById('elb_bip_esito').value='NA'">NA</div></div></td></tr>`;
         html+=`</tbody></table></div></div>`;
+      } else if(sec.sec==='Precisione energia erogata'){
+        const inp=(id)=>`<input type="text" id="${id}" inputmode="decimal" style="width:64px;text-align:center">`;
+        const rbE=`<input type="hidden" id="def_e_esito"><div class="rg" id="rg-def_e_esito"><div class="rb na" data-v="NA" onclick="pick(this);document.getElementById('def_e_esito').value='NA'">NA</div><div class="rb ok" data-v="OK" onclick="pick(this);document.getElementById('def_e_esito').value='OK'">OK</div><div class="rb ko" data-v="KO" onclick="pick(this);document.getElementById('def_e_esito').value='KO'">KO</div></div>`;
+        const thE=`padding:5px 8px;text-align:center;border-bottom:2px solid #C2500A;font-weight:700;white-space:nowrap;font-size:12px`;
+        const tdC=`padding:5px 6px;text-align:center`;
+        const tdL=`padding:5px 8px;white-space:nowrap;font-size:12px`;
+        html+=`<div class="sec" style="margin-bottom:10px"><div class="sec-hdr">Precisione energia erogata</div><div style="overflow-x:auto;padding:0 14px 12px">
+          <table style="border-collapse:collapse;width:100%"><thead><tr>
+            <th style="${thE}">Tipo</th><th style="${thE}">Impostato (J)</th><th style="${thE}">Misurato (J)</th>
+          </tr></thead><tbody>
+            <tr><td style="${tdL}">E1 — Manuale</td><td style="${tdC}">${inp('def_e1i')}</td><td style="${tdC}">${inp('def_e1m')}</td></tr>
+            <tr><td style="${tdL}">E2 — Manuale</td><td style="${tdC}">${inp('def_e2i')}</td><td style="${tdC}">${inp('def_e2m')}</td></tr>
+            <tr><td style="${tdL}">E3 — Manuale</td><td style="${tdC}">${inp('def_e3i')}</td><td style="${tdC}">${inp('def_e3m')}</td></tr>
+            <tr><td style="${tdL}">E4 — Manuale</td><td style="${tdC}">${inp('def_e4i')}</td><td style="${tdC}">${inp('def_e4m')}</td></tr>
+            <tr><td style="${tdL}">E5 — Manuale</td><td style="${tdC}">${inp('def_e5i')}</td><td style="${tdC}">${inp('def_e5m')}</td></tr>
+            <tr><td style="${tdL}">DAE</td><td style="${tdC};color:var(--text3)">—</td><td style="${tdC}">${inp('def_dae_mis')}</td></tr>
+          </tbody></table>
+          <div style="font-size:11px;color:var(--text3);padding:5px 0 4px">Tolleranza: ±15% di E impostata, ±3J E misurata</div>
+          <div style="display:flex;align-items:center;gap:8px"><span style="font-size:12px;font-weight:600">Esito:</span>${rbE}</div>
+        </div></div>`;
+      } else if(sec.sec==='Tempi di carica alla massima energia'){
+        const inp=(id,ph)=>`<input type="text" id="${id}" inputmode="decimal" placeholder="${ph||''}" style="width:54px;text-align:center">`;
+        const rbTC=`<input type="hidden" id="def_tc_esito"><div class="rg" id="rg-def_tc_esito"><div class="rb na" data-v="NA" onclick="pick(this);document.getElementById('def_tc_esito').value='NA'">NA (batt. assente)</div><div class="rb ok" data-v="OK" onclick="pick(this);document.getElementById('def_tc_esito').value='OK'">OK</div></div>`;
+        const thT=`padding:5px 6px;text-align:center;border-bottom:2px solid #C2500A;font-weight:700;white-space:nowrap;font-size:11px`;
+        const tdC=`padding:4px 5px;text-align:center`;
+        const tdK=`padding:4px 8px;font-weight:700;white-space:nowrap;font-size:12px`;
+        const tdD=`padding:4px 8px;font-size:11px`;
+        const cfgs=[
+          ['A','def_tc_ar','def_tc_ab','def_tc_am','15','Defibrillatore pronto alla defibrillazione'],
+          ['B','def_tc_br','def_tc_bb','def_tc_bm','25','Pronto dall\'accensione dell\'apparecchio'],
+          ['C','def_tc_cr','def_tc_cb','def_tc_cm','30','Pronto dopo DAE (dall\'accensione)'],
+          ['D','def_tc_dr','def_tc_db','def_tc_dm','40','Pronto dopo rilevamento ritmo DAE'],
+        ];
+        html+=`<div class="sec" style="margin-bottom:10px"><div class="sec-hdr">Tempi di carica alla massima energia</div><div style="overflow-x:auto;padding:0 14px 12px">
+          <table style="border-collapse:collapse;width:100%"><thead><tr>
+            <th style="${thT}">Conf.</th><th style="${thT}">Tipo di carica</th><th style="${thT}">Rete (s)</th><th style="${thT}">Batteria (s)</th><th style="${thT}">Max (s)</th>
+          </tr></thead><tbody>`;
+        cfgs.forEach(([k,r,b,m,maxV,desc])=>{
+          html+=`<tr><td style="${tdK}">${k}</td><td style="${tdD}">${desc}</td><td style="${tdC}">${inp(r)}</td><td style="${tdC}">${inp(b)}</td><td style="${tdC}">${inp(m,maxV)}</td></tr>`;
+        });
+        html+=`</tbody></table>
+          <div style="display:flex;align-items:center;gap:8px;margin-top:8px"><span style="font-size:12px;font-weight:600">Esito:</span>${rbTC}</div>
+        </div></div>`;
+      } else if(sec.sec==='Tempi di ritardo e ripristino'){
+        const inp=(id)=>`<input type="text" id="${id}" inputmode="decimal" style="width:54px;text-align:center">`;
+        const rb=(id)=>`<input type="hidden" id="${id}"><div class="rg" id="rg-${id}"><div class="rb na" data-v="NA" onclick="pick(this);document.getElementById('${id}').value='NA'">NA</div><div class="rb ok" data-v="OK" onclick="pick(this);document.getElementById('${id}').value='OK'">OK</div></div>`;
+        const thR=`padding:5px 6px;text-align:center;border-bottom:2px solid #C2500A;font-weight:700;white-space:nowrap;font-size:11px`;
+        const tdK=`padding:4px 8px;font-weight:700;white-space:nowrap;font-size:12px`;
+        const tdD=`padding:4px 8px;font-size:11px`;
+        const tdC=`padding:4px 5px;text-align:center`;
+        const ritardi=[
+          ['A','def_tr_ar','def_tr_am','def_tr_a_esito','Massimo ritardo picco onda R → uscita defibrillatore'],
+          ['B','def_tr_br','def_tr_bm','def_tr_b_esito','Massimo ripristino monitoraggio cardiaco dopo scarica'],
+          ['C','def_tr_cr','def_tr_cm','def_tr_c_esito','Massimo riconoscimento ritmo DAE dopo scarica'],
+        ];
+        html+=`<div class="sec" style="margin-bottom:10px"><div class="sec-hdr">Tempi di ritardo e ripristino</div><div style="overflow-x:auto;padding:0 14px 12px">
+          <table style="border-collapse:collapse;width:100%"><thead><tr>
+            <th style="${thR}">Conf.</th><th style="${thR}">Tipo</th><th style="${thR}">Rilevato (s)</th><th style="${thR}">Max (s)</th><th style="${thR}">Esito</th>
+          </tr></thead><tbody>`;
+        ritardi.forEach(([k,r,m,e,desc])=>{
+          html+=`<tr><td style="${tdK}">${k}</td><td style="${tdD}">${desc}</td><td style="${tdC}">${inp(r)}</td><td style="${tdC}">${inp(m)}</td><td style="${tdC}">${rb(e)}</td></tr>`;
+        });
+        html+=`</tbody></table></div></div>`;
+      } else if(sec.sec==='Raccomandazioni'){
+        html+=`<div class="sec" style="margin-bottom:10px"><div class="sec-hdr">Raccomandazioni</div><div style="padding:0 14px 12px">`;
+        sec.fields.forEach(f=>{
+          const opts=f.opts||['NA','OK','KO'];
+          const lbls=f.labels||opts;
+          const rbHtml=opts.map((v,i)=>{
+            const cls=v==='OK'?'rb ok':v==='KO'?'rb ko':'rb na';
+            return `<div class="${cls}" data-v="${v}" onclick="pick(this);document.getElementById('${f.id}').value='${v}'">${lbls[i]}</div>`;
+          }).join('');
+          html+=`<input type="hidden" id="${f.id}"><div class="field" style="margin-bottom:8px"><label style="font-size:12px">${f.l}</label><div class="rg" id="rg-${f.id}">${rbHtml}</div></div>`;
+        });
+        html+=`</div></div>`;
       } else {
         html+=`<div class="sec" style="margin-bottom:10px"><div class="sec-hdr">${sec.sec}</div><div class="sec-body" style="grid-template-columns:repeat(auto-fill,minmax(180px,1fr))">`;
         sec.fields.forEach(f=>{
@@ -3304,6 +3387,8 @@ async function importPresetsFromExcel(input) {
           // Strumentazione col 91-95, tecnico col 96
           ['def_strum','def_mod','def_ser','def_cert','def_scad'].forEach((f,i)=>{ const v=f==='def_scad'?_rxldate(row,91+i):_rc(row,91+i); if(v) dati[f]=v; });
           if(row[96]) dati.vsp_tecnico=String(row[96]);
+          // Nuovi esiti col 97-104
+          [['def_e_esito',97],['def_tc_esito',98],['def_tr_a_esito',99],['def_tr_b_esito',100],['def_tr_c_esito',101],['def_rac_a',102],['def_rac_b',103],['def_rac_c',104]].forEach(([f,c])=>{ const v=_rc(row,c); if(v) dati[f]=v; });
         } else {
           // CEN, ECG: tecnico immediately after checkboxes
           if(row[ci]) dati.vsp_tecnico=String(row[ci]);
@@ -3613,13 +3698,25 @@ function _fillVSPSheet(xml,rec,dev){
     // 5 energie: F/I/L/O/R righe 69 (impostato) e 70 (misurato)
     ['F','I','L','O','R'].forEach((c,i)=>{s(c+'69',r['def_e'+(i+1)+'i']);s(c+'70',r['def_e'+(i+1)+'m']);});
     s('F72',r.def_dae_mis);
+    // Esito energia (R73=NA, S73=OK, T73=KO)
+    const ee=r.def_e_esito||'';
+    s('R73',ee==='NA'?'X':'');s('S73',ee==='OK'?'X':'');s('T73',ee==='KO'?'X':'');
+    // Tempi carica
     s('N79',r.def_tc_ar); s('P79',r.def_tc_ab);
     s('N80',r.def_tc_br); s('P80',r.def_tc_bb);
     s('N81',r.def_tc_cr); s('P81',r.def_tc_cb);
     s('N83',r.def_tc_dr); s('P83',r.def_tc_db);
+    // Esito tempi carica: NA→T79+T81, OK→S85
+    const tc=r.def_tc_esito||'';
+    s('T79',tc==='NA'?'X':''); s('T81',tc==='NA'?'X':''); s('S85',tc==='OK'?'X':'');
+    // Tempi ritardo
     s('O90',r.def_tr_ar); s('Q90',r.def_tr_am);
     s('O91',r.def_tr_br); s('Q91',r.def_tr_bm);
     s('O92',r.def_tr_cr); s('Q92',r.def_tr_cm);
+    // Esiti tempi ritardo (S=NA, T=OK)
+    const ta=r.def_tr_a_esito||'';s('S90',ta==='NA'?'X':'');s('T90',ta==='OK'?'X':'');
+    const tb=r.def_tr_b_esito||'';s('S91',tb==='NA'?'X':'');s('T91',tb==='OK'?'X':'');
+    const tc2=r.def_tr_c_esito||'';s('S92',tc2==='NA'?'X':'');s('T92',tc2==='OK'?'X':'');
     s('A105',r.def_strum); s('E105',r.def_mod); s('I105',r.def_ser); s('M105',r.def_cert);
     if(r.def_scad){const nd=/^\d{4}-\d{2}-\d{2}$/.test(r.def_scad)?_toExcelDate(r.def_scad):parseFloat(r.def_scad);if(!isNaN(nd))s('Q105',nd,true);else s('Q105',r.def_scad);}
   }
