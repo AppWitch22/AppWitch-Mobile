@@ -3502,7 +3502,7 @@ function _fillVSSheet(xml,rec,dev){
   s('E20',rec.pot||'');s('O20',rec.pat||'');
   s('E21',rec.mar||'');s('K21',rec.def||'');s('Q21',rec.fnz||'');
   s('A25',rec.giu||'POSITIVO');
-  s('A32',(rec.trm||'')+'mohm');s('K32',(rec.pnm||'')+'\u03bcA');
+  s('A32',(rec.trm||'')+'mohm');s('K32',(rec.pnm||'')+'mA');
   s('D47',rec.ver||'');s('Q54',ds,true);s('P63',dev.c);
   s('B67',rec.spi||'');s('K67',rec.msp||'');
   s('E70',rec.cav||'');s('I71',rec.icv||'');
