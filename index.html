@@ -2000,14 +2000,14 @@ function buildVSPPoints(type){
         html+=`<tr><td style="${td};font-size:11px" colspan="3">Correnti di dispersione in HF rientranti nei limiti — 1% di P misurata su carico di 200 Ω</td><td style="${tc}"><input type="hidden" id="elb_bip_esito"><div class="rg" id="rg-elb_bip_esito"><div class="rb ok" data-v="OK" onclick="pick(this);document.getElementById('elb_bip_esito').value='OK'">OK</div><div class="rb ko" data-v="KO" onclick="pick(this);document.getElementById('elb_bip_esito').value='KO'">KO</div><div class="rb na" data-v="NA" onclick="pick(this);document.getElementById('elb_bip_esito').value='NA'">NA</div></div></td></tr>`;
         html+=`</tbody></table></div></div>`;
       } else if(sec.sec==='Precisione energia erogata'){
-        const inp=(id)=>`<input type="text" id="${id}" inputmode="decimal" style="width:64px;text-align:center;font-size:12px;border-radius:5px">`;
+        const inp=(id)=>`<input type="text" id="${id}" inputmode="decimal" style="width:100%;box-sizing:border-box;text-align:center;font-size:13px;border-radius:5px;padding:4px 2px">`;
         const rbE=`<input type="hidden" id="def_e_esito"><div class="rg" id="rg-def_e_esito"><div class="rb na" data-v="NA" onclick="pick(this);document.getElementById('def_e_esito').value='NA'">N/A</div><div class="rb ok" data-v="OK" onclick="pick(this);document.getElementById('def_e_esito').value='OK'">OK</div><div class="rb ko" data-v="KO" onclick="pick(this);document.getElementById('def_e_esito').value='KO'">KO</div></div>`;
-        const thH=`text-align:center;font-size:11px;font-weight:700;color:#C2500A;padding:3px 4px 6px`;
-        const tdL=`padding:3px 6px;font-size:12px;white-space:nowrap`;
-        const tdC=`padding:3px 4px;text-align:center`;
+        const thH=`text-align:center;font-size:12px;font-weight:700;color:#C2500A;padding:4px 8px 8px`;
+        const tdL=`padding:4px 8px;font-size:13px;white-space:nowrap`;
+        const tdC=`padding:4px 6px`;
         html+=`<div class="sec" style="margin-bottom:10px"><div class="sec-hdr">Precisione energia erogata</div><div style="padding:0 14px 12px">
           <table style="border-collapse:collapse;width:100%">
-            <colgroup><col style="width:80px"><col style="width:62px"><col><col></colgroup>
+            <colgroup><col style="width:15%"><col style="width:20%"><col><col></colgroup>
             <thead><tr>
               <th colspan="2" style="padding:0"></th>
               <th style="${thH}">Impostato (J)</th>
@@ -2015,7 +2015,7 @@ function buildVSPPoints(type){
             </tr></thead>
             <tbody>
               <tr>
-                <td rowspan="5" style="font-weight:700;font-size:13px;text-align:center;vertical-align:middle;padding:6px 4px">MANUALE</td>
+                <td rowspan="5" style="font-weight:700;font-size:14px;text-align:center;vertical-align:middle;padding:6px 8px">MANUALE</td>
                 <td style="${tdL}">Misura 1</td><td style="${tdC}">${inp('def_e1i')}</td><td style="${tdC}">${inp('def_e1m')}</td>
               </tr>
               <tr><td style="${tdL}">Misura 2</td><td style="${tdC}">${inp('def_e2i')}</td><td style="${tdC}">${inp('def_e2m')}</td></tr>
@@ -2023,13 +2023,13 @@ function buildVSPPoints(type){
               <tr><td style="${tdL}">Misura 4</td><td style="${tdC}">${inp('def_e4i')}</td><td style="${tdC}">${inp('def_e4m')}</td></tr>
               <tr><td style="${tdL}">Misura 5</td><td style="${tdC}">${inp('def_e5i')}</td><td style="${tdC}">${inp('def_e5m')}</td></tr>
               <tr>
-                <td style="font-weight:700;font-size:13px;text-align:center;vertical-align:middle;padding:6px 4px">DAE</td>
+                <td style="font-weight:700;font-size:14px;text-align:center;vertical-align:middle;padding:6px 8px">DAE</td>
                 <td colspan="2"></td>
                 <td style="${tdC}">${inp('def_dae_mis')}</td>
               </tr>
             </tbody>
           </table>
-          <div style="font-size:11px;color:var(--text3);margin-top:6px;margin-bottom:6px">Tolleranza: ±15% di E impostata, ±3J E misurata</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:8px;margin-bottom:6px">Tolleranza: ±15% di E impostata, ±3J E misurata</div>
           <div style="display:flex;align-items:center;gap:8px"><span style="font-size:12px;font-weight:600">Esito:</span>${rbE}</div>
         </div></div>`;
       } else if(sec.sec==='Tempi di carica alla massima energia'){
