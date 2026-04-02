@@ -2033,7 +2033,7 @@ function buildVSPPoints(type){
           <div style="display:flex;align-items:center;gap:8px"><span style="font-size:12px;font-weight:600">Esito:</span>${rbE}</div>
         </div></div>`;
       } else if(sec.sec==='Tempi di carica alla massima energia'){
-        const inp=(id)=>`<input type="text" id="${id}" inputmode="decimal" style="width:52px;text-align:center;font-size:12px">`;
+        const inp=(id)=>`<input type="text" id="${id}" inputmode="decimal" style="width:100%;box-sizing:border-box;text-align:center;font-size:13px;border-radius:5px;padding:4px 2px;border:1.5px solid var(--border2)">`;
         const btnNA=(id)=>`<input type="hidden" id="${id}"><div class="rg" id="rg-${id}" style="justify-content:center"><div class="rb na" data-v="X" onclick="pick(this);document.getElementById('${id}').value=this.classList.contains('sel')?'X':''">N/A</div></div>`;
         const btnOK=`<input type="hidden" id="def_tc_ok"><div class="rg" id="rg-def_tc_ok" style="display:inline-flex"><div class="rb ok" data-v="X" onclick="pick(this);document.getElementById('def_tc_ok').value=this.classList.contains('sel')?'X':''">OK</div></div>`;
         const thT=`padding:5px 6px;text-align:center;border-bottom:2px solid #C2500A;font-weight:700;white-space:nowrap;font-size:11px`;
@@ -2081,7 +2081,7 @@ function buildVSPPoints(type){
           </div>
         </div></div>`;
       } else if(sec.sec==='Tempi di ritardo e ripristino'){
-        const inp=(id)=>`<input type="text" id="${id}" inputmode="decimal" style="width:54px;text-align:center">`;
+        const inp=(id)=>`<input type="text" id="${id}" inputmode="decimal" style="width:100%;box-sizing:border-box;text-align:center;font-size:13px;border-radius:5px;padding:4px 2px;border:1.5px solid var(--border2)">`;
         const rb=(id)=>`<input type="hidden" id="${id}"><div class="rg" id="rg-${id}"><div class="rb na" data-v="NA" onclick="pick(this);document.getElementById('${id}').value='NA'">NA</div><div class="rb ok" data-v="OK" onclick="pick(this);document.getElementById('${id}').value='OK'">OK</div></div>`;
         const thR=`padding:5px 6px;text-align:center;border-bottom:2px solid #C2500A;font-weight:700;white-space:nowrap;font-size:11px`;
         const tdK=`padding:4px 8px;font-weight:700;white-space:nowrap;font-size:12px`;
