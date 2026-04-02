@@ -1266,7 +1266,7 @@ function restoreVSE(rec){
   uM();
 }
 
-function pick(el){el.closest('.rg').querySelectorAll('.rb').forEach(b=>b.classList.remove('sel'));el.classList.add('sel');dirty=true;uP();}
+function pick(el){const already=el.classList.contains('sel');el.closest('.rg').querySelectorAll('.rb').forEach(b=>b.classList.remove('sel'));if(!already)el.classList.add('sel');dirty=true;uP();}
 
 function uM(){
   const cls   = gr('rg-cls');
