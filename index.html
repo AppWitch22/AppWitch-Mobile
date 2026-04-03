@@ -2730,6 +2730,10 @@ async function doLogout() {
   document.getElementById('login-screen').style.display = 'flex';
   document.getElementById('user-bar').style.display = 'none';
   document.body.classList.remove('logged-in');
+  const lBtn = document.getElementById('l-btn');
+  if (lBtn) { lBtn.disabled = false; lBtn.textContent = 'Accedi'; }
+  const lErr = document.getElementById('l-err');
+  if (lErr) lErr.style.display = 'none';
 }
 
 async function checkSession() {
