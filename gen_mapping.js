@@ -154,12 +154,12 @@ Object.entries(cqCkRows).forEach(([pid, riga]) => {
   cqDef.push(row('', '', '', 'NA', `T${riga}`, 'X se selezionato'));
 });
 
-// Energia erogata (6 misure, righe 73-78) + esito per riga (NA/OK)
+// Energia erogata (6 misure, righe 73-78) + esito per riga (OK/KO)
 for (let i = 1; i <= 6; i++) {
   cqDef.push(row('Energia erogata', `cq_def_e${i}i`, `E${i} Impostata (J)`, '(numero)', `A${72+i}`, ''));
   cqDef.push(row('', `cq_def_e${i}m`, `E${i} Misurata (J)`, '(numero)', `I${72+i}`, ''));
-  cqDef.push(row('', `cq_def_e${i}_esito`, `E${i} Esito`, 'NA', '?', 'Cella da verificare nel template'));
-  cqDef.push(row('', '', '', 'OK', '?', 'Cella da verificare nel template'));
+  cqDef.push(row('', `cq_def_e${i}_esito`, `E${i} Esito`, 'OK', `Q${72+i}`, 'X se selezionato'));
+  cqDef.push(row('', '', '', 'KO', `S${72+i}`, 'X se selezionato'));
 }
 
 // Strumentazione

@@ -2291,12 +2291,12 @@ const CQ_PROVA={
   'CQ_DEF':[
     {sec:'Tipologia e opzioni',fields:[{id:'cq_def_tipo_man',l:'Manuale (X)'},{id:'cq_def_tipo_dae',l:'DAE (X)'},{id:'cq_def_opt_pac',l:'Pacing (X)'},{id:'cq_def_opt_nibp',l:'NIBP (X)'},{id:'cq_def_opt_spo2',l:'SPO2 (X)'}]},
     {sec:'Energia erogata (J) — Impostata / Misurata',fields:[
-      {id:'cq_def_e1i',l:'E1 Impostata'},{id:'cq_def_e1m',l:'E1 Misurata'},{id:'cq_def_e1_esito',l:'E1 Esito',type:'rb',opts:['NA','OK']},
-      {id:'cq_def_e2i',l:'E2 Impostata'},{id:'cq_def_e2m',l:'E2 Misurata'},{id:'cq_def_e2_esito',l:'E2 Esito',type:'rb',opts:['NA','OK']},
-      {id:'cq_def_e3i',l:'E3 Impostata'},{id:'cq_def_e3m',l:'E3 Misurata'},{id:'cq_def_e3_esito',l:'E3 Esito',type:'rb',opts:['NA','OK']},
-      {id:'cq_def_e4i',l:'E4 Impostata'},{id:'cq_def_e4m',l:'E4 Misurata'},{id:'cq_def_e4_esito',l:'E4 Esito',type:'rb',opts:['NA','OK']},
-      {id:'cq_def_e5i',l:'E5 Impostata'},{id:'cq_def_e5m',l:'E5 Misurata'},{id:'cq_def_e5_esito',l:'E5 Esito',type:'rb',opts:['NA','OK']},
-      {id:'cq_def_e6i',l:'E6 Impostata'},{id:'cq_def_e6m',l:'E6 Misurata'},{id:'cq_def_e6_esito',l:'E6 Esito',type:'rb',opts:['NA','OK']},
+      {id:'cq_def_e1i',l:'E1 Impostata'},{id:'cq_def_e1m',l:'E1 Misurata'},{id:'cq_def_e1_esito',l:'E1 Esito',type:'rb',opts:['OK','KO']},
+      {id:'cq_def_e2i',l:'E2 Impostata'},{id:'cq_def_e2m',l:'E2 Misurata'},{id:'cq_def_e2_esito',l:'E2 Esito',type:'rb',opts:['OK','KO']},
+      {id:'cq_def_e3i',l:'E3 Impostata'},{id:'cq_def_e3m',l:'E3 Misurata'},{id:'cq_def_e3_esito',l:'E3 Esito',type:'rb',opts:['OK','KO']},
+      {id:'cq_def_e4i',l:'E4 Impostata'},{id:'cq_def_e4m',l:'E4 Misurata'},{id:'cq_def_e4_esito',l:'E4 Esito',type:'rb',opts:['OK','KO']},
+      {id:'cq_def_e5i',l:'E5 Impostata'},{id:'cq_def_e5m',l:'E5 Misurata'},{id:'cq_def_e5_esito',l:'E5 Esito',type:'rb',opts:['OK','KO']},
+      {id:'cq_def_e6i',l:'E6 Impostata'},{id:'cq_def_e6m',l:'E6 Misurata'},{id:'cq_def_e6_esito',l:'E6 Esito',type:'rb',opts:['OK','KO']},
     ]},
   ],
   'CQ_ECG':[
@@ -2468,7 +2468,7 @@ function buildCQPoints(type){
         html+=`</tbody></table></div><input type="hidden" id="cq_elb_pot_esito"><div class="cq-esito-row"><span class="cq-esito-label">Potenze rientranti nei limiti (max +/- 20%)</span><div class="rg" id="rg-cq_elb_pot_esito"><div class="rb ok" data-v="OK" onclick="pick(this);document.getElementById('cq_elb_pot_esito').value='OK'">OK</div><div class="rb ko" data-v="KO" onclick="pick(this);document.getElementById('cq_elb_pot_esito').value='KO'">KO</div><div class="rb na" data-v="NA" onclick="pick(this);document.getElementById('cq_elb_pot_esito').value='NA'">NA</div></div></div></div>`;
       } else if(sec.sec==='Energia erogata (J) — Impostata / Misurata'){
         const inp=(id)=>`<input type="text" id="${id}" inputmode="decimal" style="width:100%;box-sizing:border-box;text-align:center;font-size:13px;border-radius:5px;padding:4px 2px;border:1.5px solid var(--border2)">`;
-        const esito=(n)=>`<input type="hidden" id="cq_def_e${n}_esito"><div class="rg" id="rg-cq_def_e${n}_esito" style="justify-content:flex-end;flex-wrap:nowrap"><div class="rb na" data-v="NA" onclick="pick(this);document.getElementById('cq_def_e${n}_esito').value=this.classList.contains('sel')?'NA':''">NA</div><div class="rb ok" data-v="OK" onclick="pick(this);document.getElementById('cq_def_e${n}_esito').value=this.classList.contains('sel')?'OK':''">OK</div></div>`;
+        const esito=(n)=>`<input type="hidden" id="cq_def_e${n}_esito"><div class="rg" id="rg-cq_def_e${n}_esito" style="justify-content:flex-end;flex-wrap:nowrap"><div class="rb ok" data-v="OK" onclick="pick(this);document.getElementById('cq_def_e${n}_esito').value=this.classList.contains('sel')?'OK':''">OK</div><div class="rb ko" data-v="KO" onclick="pick(this);document.getElementById('cq_def_e${n}_esito').value=this.classList.contains('sel')?'KO':''">KO</div></div>`;
         const thH=`text-align:center;font-size:12px;font-weight:700;color:#C2500A;padding:4px 8px 8px`;
         const tdL=`padding:4px 4px 4px 0;font-size:13px;white-space:nowrap;text-align:right`;
         const tdC=`padding:4px 6px`;
@@ -3858,9 +3858,14 @@ function _fillCQSheet(xml,rec,dev,asl){
 
   // Misure per tipo
   if(tipo==='CQ_DEF'){
-    // Energia erogata: impostata→A(73-78), misurata→I(73-78)
-    // Esito per riga (NA/OK): celle da verificare nel template — TODO dopo prossimo mapping
-    for(let i=1;i<=6;i++){s('A'+(72+i),rec['cq_def_e'+i+'i']||'');s('I'+(72+i),rec['cq_def_e'+i+'m']||'');}
+    // Energia erogata: impostata→A(73-78), misurata→I(73-78), esito OK→Q(73-78), KO→S(73-78)
+    for(let i=1;i<=6;i++){
+      s('A'+(72+i),rec['cq_def_e'+i+'i']||'');
+      s('I'+(72+i),rec['cq_def_e'+i+'m']||'');
+      const ev=rec['cq_def_e'+i+'_esito']||'';
+      s('Q'+(72+i),ev==='OK'?'X':'');
+      s('S'+(72+i),ev==='KO'?'X':'');
+    }
     const tm=rec.cq_def_tipo_man,td=rec.cq_def_tipo_dae;
     if(tm)xml=_sc(xml,'K15',tm==='X'?'X':'');
     if(td)xml=_sc(xml,'P15',td==='X'?'X':'');
