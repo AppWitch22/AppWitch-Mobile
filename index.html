@@ -2007,7 +2007,7 @@ function buildVSPPoints(type){
         const thH=`text-align:center;font-size:12px;font-weight:700;color:#C2500A;padding:4px 8px 8px`;
         const tdL=`padding:4px 4px 4px 0;font-size:13px;white-space:nowrap;text-align:right`;
         const tdC=`padding:4px 6px`;
-        html+=`<div class="sec" style="margin-bottom:10px"><div class="sec-hdr">Precisione energia erogata</div><div style="padding:0 14px 12px">
+        html+=`<div class="sec" style="margin-bottom:10px"><div class="sec-hdr">Precisione energia erogata<span style="font-size:10px;font-weight:400;text-transform:none;letter-spacing:0;color:var(--text3)">Tolleranza: ±15% di E impostata, ±3J E misurata</span></div><div style="padding:0 14px 12px">
           <table style="border-collapse:collapse;width:100%">
             <colgroup><col style="width:15%"><col style="width:18%"><col><col></colgroup>
             <thead><tr>
@@ -2031,7 +2031,6 @@ function buildVSPPoints(type){
               </tr>
             </tbody>
           </table>
-          <div style="font-size:11px;color:var(--text3);margin-top:8px;margin-bottom:6px">Tolleranza: ±15% di E impostata, ±3J E misurata</div>
           <div style="display:flex;align-items:center;gap:8px"><span style="font-size:12px;font-weight:600">Esito:</span>${rbE}</div>
         </div></div>`;
       } else if(sec.sec==='Tempi di carica alla massima energia'){
@@ -2472,7 +2471,7 @@ function buildCQPoints(type){
         const thH=`text-align:center;font-size:12px;font-weight:700;color:#C2500A;padding:4px 8px 8px`;
         const tdL=`padding:4px 4px 4px 0;font-size:13px;white-space:nowrap;text-align:right`;
         const tdC=`padding:4px 6px`;
-        html+=`<div class="sec" style="margin-bottom:10px"><div class="sec-hdr">Energia erogata (J)</div><div style="padding:0 14px 12px">
+        html+=`<div class="sec" style="margin-bottom:10px"><div class="sec-hdr">Energia erogata (J)<span style="font-size:10px;font-weight:400;text-transform:none;letter-spacing:0;color:var(--text3)">Tolleranza: ±15% di E impostata, ±3J E misurata</span></div><div style="padding:0 14px 12px">
           <table style="border-collapse:collapse;width:100%">
             <colgroup><col style="width:25%"><col><col></colgroup>
             <thead><tr>
