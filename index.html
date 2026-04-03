@@ -3743,8 +3743,8 @@ function _fillVSPSheet(xml,rec,dev){
   const date=rec.vsp_data||new Date().toISOString().slice(0,10);
   const ds=_toExcelDate(date);
 
-  // Numero inventario
-  s('L11',dev.c);
+  // Numero inventario → N11 (top-left del merge N11:T11)
+  s('N11',dev.c);
 
   // Checkpoints: colonne R/S/T mappate su opts[] del punto
   const start=_VSP_START[tipo]||21;
