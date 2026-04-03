@@ -3645,6 +3645,27 @@ function _sc(xml,addr,val,isNum){
   return xml.slice(0,re)+nc+xml.slice(re);
 }
 
+// _si: come _sc ma crea la riga se non esiste (necessario per celle non presenti nel template)
+function _si(xml,addr,val,isNum){
+  if(val===''||val===null||val===undefined)return xml;
+  if(xml.indexOf('<c r="'+addr+'"')!==-1)return _patchCell(xml,addr,val,isNum);
+  const m=addr.match(/^([A-Z]+)(\d+)$/);if(!m)return xml;
+  const rowNum=parseInt(m[2]);
+  let nc;
+  if(isNum){nc='<c r="'+addr+'"><v>'+val+'</v></c>';}
+  else{const e=String(val).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');nc='<c r="'+addr+'" t="inlineStr"><is><t>'+e+'</t></is></c>';}
+  const ri=xml.indexOf('<row r="'+m[2]+'"');
+  if(ri!==-1){
+    const re=xml.indexOf('</row>',ri);if(re===-1)return xml;
+    return xml.slice(0,re)+nc+xml.slice(re);
+  }
+  // Riga non trovata: trova il punto di inserimento corretto (prima della prima riga > rowNum)
+  let insertPos=xml.indexOf('</sheetData>');if(insertPos===-1)return xml;
+  const rowRe=/<row r="(\d+)"/g;let match;
+  while((match=rowRe.exec(xml))!==null){if(parseInt(match[1])>rowNum){insertPos=match.index;break;}}
+  return xml.slice(0,insertPos)+'<row r="'+m[2]+'">'+nc+'</row>'+xml.slice(insertPos);
+}
+
 function _fillVSSheet(xml,rec,dev){
   const s=(a,v,n)=>{xml=_patchCell(xml,a,v,n);};
   const date=rec.data||new Date().toISOString().slice(0,10);
@@ -3754,19 +3775,20 @@ function _fillVSPSheet(xml,rec,dev){
   // Campi extra per DEF
   if(tipo==='VSP_DEF'){
     const r=rec;
+    const si=(a,v,n)=>{xml=_si(xml,a,v,n);};
     // 5 energie: F/I/L/O/R righe 69 (impostato) e 70 (misurato)
     ['F','I','L','O','R'].forEach((c,i)=>{s(c+'69',r['def_e'+(i+1)+'i']);s(c+'70',r['def_e'+(i+1)+'m']);});
     s('F72',r.def_dae_mis);
-    // Esito energia (R74=NA, S74=OK, T74=KO)
+    // Esito energia (R74=NA, S74=OK, T74=KO) — riga assente nel template → _si
     const ee=r.def_e_esito||'';
-    s('R74',ee==='NA'?'X':'');s('S74',ee==='OK'?'X':'');s('T74',ee==='KO'?'X':'');
+    si('R74',ee==='NA'?'X':'');si('S74',ee==='OK'?'X':'');si('T74',ee==='KO'?'X':'');
     // Tempi carica
     s('N79',r.def_tc_ar); s('P79',r.def_tc_ab);
     s('N80',r.def_tc_br); s('P80',r.def_tc_bb);
     s('N81',r.def_tc_cr); s('P81',r.def_tc_cb);
     s('N83',r.def_tc_dr); s('P83',r.def_tc_db);
-    // Esito tempi carica: N/A A+B→T79, N/A C+D→T81, OK→T85
-    s('T79',r.def_tc_ab_na==='X'?'X':''); s('T81',r.def_tc_cd_na==='X'?'X':''); s('T85',r.def_tc_ok==='X'?'X':'');
+    // Esito tempi carica: N/A A+B→T79, N/A C+D→T81, OK→T85 — colonna T assente → _si
+    si('T79',r.def_tc_ab_na==='X'?'X':''); si('T81',r.def_tc_cd_na==='X'?'X':''); si('T85',r.def_tc_ok==='X'?'X':'');
     // Tempi ritardo
     s('O90',r.def_tr_ar); s('Q90',r.def_tr_am);
     s('O91',r.def_tr_br); s('Q91',r.def_tr_bm);
