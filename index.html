@@ -2031,7 +2031,7 @@ function buildVSPPoints(type){
               </tr>
             </tbody>
           </table>
-          <div style="display:flex;align-items:center;gap:8px"><span style="font-size:12px;font-weight:600">Esito:</span>${rbE}</div>
+          <div style="display:flex;align-items:center;gap:8px;margin-top:10px;padding-top:10px;border-top:2px solid var(--border2)"><span style="font-size:12px;font-weight:600;color:var(--text2)">Esito sezione:</span>${rbE}</div>
         </div></div>`;
       } else if(sec.sec==='Tempi di carica alla massima energia'){
         const inp=(id)=>`<input type="text" id="${id}" inputmode="decimal" style="width:100%;box-sizing:border-box;text-align:center;font-size:13px;border-radius:5px;padding:4px 2px;border:1.5px solid var(--border2)">`;
@@ -3763,8 +3763,8 @@ function _fillVSPSheet(xml,rec,dev){
     s('N80',r.def_tc_br); s('P80',r.def_tc_bb);
     s('N81',r.def_tc_cr); s('P81',r.def_tc_cb);
     s('N83',r.def_tc_dr); s('P83',r.def_tc_db);
-    // Esito tempi carica: N/A A+B→T79, N/A C+D→T81, OK→S85
-    s('T79',r.def_tc_ab_na==='X'?'X':''); s('T81',r.def_tc_cd_na==='X'?'X':''); s('S85',r.def_tc_ok==='X'?'X':'');
+    // Esito tempi carica: N/A A+B→T79, N/A C+D→T81, OK→S86
+    s('T79',r.def_tc_ab_na==='X'?'X':''); s('T81',r.def_tc_cd_na==='X'?'X':''); s('S86',r.def_tc_ok==='X'?'X':'');
     // Tempi ritardo
     s('O90',r.def_tr_ar); s('Q90',r.def_tr_am);
     s('O91',r.def_tr_br); s('Q91',r.def_tr_bm);
