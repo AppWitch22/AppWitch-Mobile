@@ -2291,12 +2291,12 @@ const CQ_PROVA={
   'CQ_DEF':[
     {sec:'Tipologia e opzioni',fields:[{id:'cq_def_tipo_man',l:'Manuale (X)'},{id:'cq_def_tipo_dae',l:'DAE (X)'},{id:'cq_def_opt_pac',l:'Pacing (X)'},{id:'cq_def_opt_nibp',l:'NIBP (X)'},{id:'cq_def_opt_spo2',l:'SPO2 (X)'}]},
     {sec:'Energia erogata (J) — Impostata / Misurata',fields:[
-      {id:'cq_def_e1i',l:'E1 Impostata'},{id:'cq_def_e1m',l:'E1 Misurata'},
-      {id:'cq_def_e2i',l:'E2 Impostata'},{id:'cq_def_e2m',l:'E2 Misurata'},
-      {id:'cq_def_e3i',l:'E3 Impostata'},{id:'cq_def_e3m',l:'E3 Misurata'},
-      {id:'cq_def_e4i',l:'E4 Impostata'},{id:'cq_def_e4m',l:'E4 Misurata'},
-      {id:'cq_def_e5i',l:'E5 Impostata'},{id:'cq_def_e5m',l:'E5 Misurata'},
-      {id:'cq_def_e6i',l:'E6 Impostata'},{id:'cq_def_e6m',l:'E6 Misurata'},
+      {id:'cq_def_e1i',l:'E1 Impostata'},{id:'cq_def_e1m',l:'E1 Misurata'},{id:'cq_def_e1_esito',l:'E1 Esito',type:'rb',opts:['NA','OK']},
+      {id:'cq_def_e2i',l:'E2 Impostata'},{id:'cq_def_e2m',l:'E2 Misurata'},{id:'cq_def_e2_esito',l:'E2 Esito',type:'rb',opts:['NA','OK']},
+      {id:'cq_def_e3i',l:'E3 Impostata'},{id:'cq_def_e3m',l:'E3 Misurata'},{id:'cq_def_e3_esito',l:'E3 Esito',type:'rb',opts:['NA','OK']},
+      {id:'cq_def_e4i',l:'E4 Impostata'},{id:'cq_def_e4m',l:'E4 Misurata'},{id:'cq_def_e4_esito',l:'E4 Esito',type:'rb',opts:['NA','OK']},
+      {id:'cq_def_e5i',l:'E5 Impostata'},{id:'cq_def_e5m',l:'E5 Misurata'},{id:'cq_def_e5_esito',l:'E5 Esito',type:'rb',opts:['NA','OK']},
+      {id:'cq_def_e6i',l:'E6 Impostata'},{id:'cq_def_e6m',l:'E6 Misurata'},{id:'cq_def_e6_esito',l:'E6 Esito',type:'rb',opts:['NA','OK']},
     ]},
   ],
   'CQ_ECG':[
@@ -2468,19 +2468,21 @@ function buildCQPoints(type){
         html+=`</tbody></table></div><input type="hidden" id="cq_elb_pot_esito"><div class="cq-esito-row"><span class="cq-esito-label">Potenze rientranti nei limiti (max +/- 20%)</span><div class="rg" id="rg-cq_elb_pot_esito"><div class="rb ok" data-v="OK" onclick="pick(this);document.getElementById('cq_elb_pot_esito').value='OK'">OK</div><div class="rb ko" data-v="KO" onclick="pick(this);document.getElementById('cq_elb_pot_esito').value='KO'">KO</div><div class="rb na" data-v="NA" onclick="pick(this);document.getElementById('cq_elb_pot_esito').value='NA'">NA</div></div></div></div>`;
       } else if(sec.sec==='Energia erogata (J) — Impostata / Misurata'){
         const inp=(id)=>`<input type="text" id="${id}" inputmode="decimal" style="width:100%;box-sizing:border-box;text-align:center;font-size:13px;border-radius:5px;padding:4px 2px;border:1.5px solid var(--border2)">`;
+        const esito=(n)=>`<input type="hidden" id="cq_def_e${n}_esito"><div class="rg" id="rg-cq_def_e${n}_esito" style="justify-content:flex-end;flex-wrap:nowrap"><div class="rb na" data-v="NA" onclick="pick(this);document.getElementById('cq_def_e${n}_esito').value=this.classList.contains('sel')?'NA':''">NA</div><div class="rb ok" data-v="OK" onclick="pick(this);document.getElementById('cq_def_e${n}_esito').value=this.classList.contains('sel')?'OK':''">OK</div></div>`;
         const thH=`text-align:center;font-size:12px;font-weight:700;color:#C2500A;padding:4px 8px 8px`;
         const tdL=`padding:4px 4px 4px 0;font-size:13px;white-space:nowrap;text-align:right`;
         const tdC=`padding:4px 6px`;
         html+=`<div class="sec" style="margin-bottom:10px"><div class="sec-hdr">Energia erogata (J)<span style="font-size:10px;font-weight:400;text-transform:none;letter-spacing:0;color:var(--text3)">Tolleranza: ±15% di E impostata, ±3J E misurata</span></div><div style="padding:0 14px 12px">
           <table style="border-collapse:collapse;width:100%">
-            <colgroup><col style="width:25%"><col><col></colgroup>
+            <colgroup><col style="width:22%"><col><col><col style="width:28%"></colgroup>
             <thead><tr>
               <th style="padding:0"></th>
               <th style="${thH}">Impostata (J)</th>
               <th style="${thH}">Misurata (J)</th>
+              <th style="${thH}">Esito</th>
             </tr></thead>
             <tbody>
-              ${[1,2,3,4,5,6].map(n=>`<tr><td style="${tdL}">Misura ${n}</td><td style="${tdC}">${inp('cq_def_e'+n+'i')}</td><td style="${tdC}">${inp('cq_def_e'+n+'m')}</td></tr>`).join('')}
+              ${[1,2,3,4,5,6].map(n=>`<tr><td style="${tdL}">Misura ${n}</td><td style="${tdC}">${inp('cq_def_e'+n+'i')}</td><td style="${tdC}">${inp('cq_def_e'+n+'m')}</td><td style="${tdC}">${esito(n)}</td></tr>`).join('')}
             </tbody>
           </table>
         </div></div>`;
@@ -3755,16 +3757,16 @@ function _fillVSPSheet(xml,rec,dev){
     // 5 energie: F/I/L/O/R righe 69 (impostato) e 70 (misurato)
     ['F','I','L','O','R'].forEach((c,i)=>{s(c+'69',r['def_e'+(i+1)+'i']);s(c+'70',r['def_e'+(i+1)+'m']);});
     s('F72',r.def_dae_mis);
-    // Esito energia (R73=NA, S73=OK, T73=KO)
+    // Esito energia (R74=NA, S74=OK, T74=KO)
     const ee=r.def_e_esito||'';
-    s('R73',ee==='NA'?'X':'');s('S73',ee==='OK'?'X':'');s('T73',ee==='KO'?'X':'');
+    s('R74',ee==='NA'?'X':'');s('S74',ee==='OK'?'X':'');s('T74',ee==='KO'?'X':'');
     // Tempi carica
     s('N79',r.def_tc_ar); s('P79',r.def_tc_ab);
     s('N80',r.def_tc_br); s('P80',r.def_tc_bb);
     s('N81',r.def_tc_cr); s('P81',r.def_tc_cb);
     s('N83',r.def_tc_dr); s('P83',r.def_tc_db);
-    // Esito tempi carica: N/A A+B→T79, N/A C+D→T81, OK→S86
-    s('T79',r.def_tc_ab_na==='X'?'X':''); s('T81',r.def_tc_cd_na==='X'?'X':''); s('S86',r.def_tc_ok==='X'?'X':'');
+    // Esito tempi carica: N/A A+B→T79, N/A C+D→T81, OK→T85
+    s('T79',r.def_tc_ab_na==='X'?'X':''); s('T81',r.def_tc_cd_na==='X'?'X':''); s('T85',r.def_tc_ok==='X'?'X':'');
     // Tempi ritardo
     s('O90',r.def_tr_ar); s('Q90',r.def_tr_am);
     s('O91',r.def_tr_br); s('Q91',r.def_tr_bm);
@@ -3856,6 +3858,8 @@ function _fillCQSheet(xml,rec,dev,asl){
 
   // Misure per tipo
   if(tipo==='CQ_DEF'){
+    // Energia erogata: impostata→A(73-78), misurata→I(73-78)
+    // Esito per riga (NA/OK): celle da verificare nel template — TODO dopo prossimo mapping
     for(let i=1;i<=6;i++){s('A'+(72+i),rec['cq_def_e'+i+'i']||'');s('I'+(72+i),rec['cq_def_e'+i+'m']||'');}
     const tm=rec.cq_def_tipo_man,td=rec.cq_def_tipo_dae;
     if(tm)xml=_sc(xml,'K15',tm==='X'?'X':'');
