@@ -3881,12 +3881,13 @@ function _fillCQSheet(xml,rec,dev,asl){
   // Misure per tipo
   if(tipo==='CQ_DEF'){
     // Energia erogata: impostata→A(73-78), misurata→I(73-78), esito OK→Q(73-78), KO→S(73-78)
+    // Esito usa _si perché Q/S potrebbero non esistere nel template XML
     for(let i=1;i<=6;i++){
       s('A'+(72+i),rec['cq_def_e'+i+'i']||'');
       s('I'+(72+i),rec['cq_def_e'+i+'m']||'');
       const ev=rec['cq_def_e'+i+'_esito']||'';
-      s('Q'+(72+i),ev==='OK'?'X':'');
-      s('S'+(72+i),ev==='KO'?'X':'');
+      xml=_si(xml,'Q'+(72+i),ev==='OK'?'X':'');
+      xml=_si(xml,'S'+(72+i),ev==='KO'?'X':'');
     }
     const tm=rec.cq_def_tipo_man,td=rec.cq_def_tipo_dae;
     if(tm)xml=_sc(xml,'K15',tm==='X'?'X':'');
