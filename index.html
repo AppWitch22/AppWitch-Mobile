@@ -3856,13 +3856,13 @@ function _fillCQSheet(xml,rec,dev,asl){
   s('D13',dev.m||'');
   s('N13',dev.mat||'');
 
-  // Checkpoints: R=OK, S=KO, T=NA (celle esistono come label statiche)
+  // Checkpoints: R=OK, S=KO, T=NA — usa _si perché le celle potrebbero non esistere nel template
   const ckRows=_CQ_CK_ROWS[tipo]||{};
   Object.entries(ckRows).forEach(([pid,row])=>{
     const val=(rec['cq_vis_'+pid]||'').toUpperCase();
-    xml=_patchCell(xml,'R'+row,val==='OK'?'X':'');
-    xml=_patchCell(xml,'S'+row,val==='KO'?'X':'');
-    xml=_patchCell(xml,'T'+row,val==='NA'?'X':'');
+    xml=_si(xml,'R'+row,val==='OK'?'X':'');
+    xml=_si(xml,'S'+row,val==='KO'?'X':'');
+    xml=_si(xml,'T'+row,val==='NA'?'X':'');
   });
 
   // Date
