@@ -4297,6 +4297,11 @@ async function exportVSP(cod){
 
 async function exportCQ(cod){
   if(!cod){toast('Seleziona un dispositivo','warn');return;}
+  // Aggiorna saved con lo stato corrente del form se il dispositivo è quello attivo
+  if(cur?.c===cod&&cqType){
+    const cqRec=collectCQ();
+    if(cqRec)saved[cod]={...saved[cod],...cqRec,cq_saved:true,cq_type:cqType};
+  }
   const rec=saved[cod];
   if(!rec?.cq_type){toast('Scheda CQ non compilata','warn');return;}
   if(!DB[cod]){toast('Dispositivo non trovato','warn');return;}
@@ -4315,6 +4320,11 @@ async function exportCQ(cod){
 
 async function exportTutti(cod){
   if(!_exportGuard(cod,'Tutti'))return;
+  // Aggiorna saved con lo stato corrente del form se il dispositivo è quello attivo
+  if(cur?.c===cod){
+    if(cqType){const cqRec=collectCQ();if(cqRec)saved[cod]={...saved[cod],...cqRec,cq_saved:true,cq_type:cqType};}
+    if(vspType){const vspRec=collectVSP();if(vspRec)saved[cod]={...saved[cod],...vspRec,vsp_saved:true,vsp_type:vspType};}
+  }
   const rec=saved[cod],dev=DB[cod];
   const asl=currentUser?.profile?.asl||'ASL Benevento';
   try{
