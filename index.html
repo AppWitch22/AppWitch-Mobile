@@ -1748,6 +1748,8 @@ function exportXLSX(){
     const provaAll=[];(CQ_PROVA[ctype]||[]).forEach(sec=>sec.fields.forEach(f=>provaAll.push(f)));
     provaAll.forEach(f=>{const pm=pmap.find(([id])=>id===f.id);if(pm)R2[pm[1]]=f.l;});
     if(pmap.length){const fc=Math.min(...pmap.map(([,c])=>c));if(fc>=c0+visPoints.length*3)R1[fc]='PROVA FUNZIONALE';}
+    // CQ_DEF: aggiungi headers OK/KO per ogni misura energia (2 colonne vuote dopo impostata/misurata)
+    if(ctype==='CQ_DEF'){[1,2,3,4,5,6].forEach(n=>{const b=29+(n-1)*4;R2[b+2]='OK';R2[b+3]='KO';});}
     if(sc!=null){R1[sc]='STRUMENTAZIONE';['Strumento','Modello','Serie','Certificato N.','Scadenza'].forEach((v,i)=>R2[sc+i]=v);}
     R1[tc]='TECNICO ESECUTORE';
     // Build data rows
@@ -1759,6 +1761,8 @@ function exportXLSX(){
         row[c]=(val==='OK'?'X':null);row[c+1]=(val==='KO'?'X':null);row[c+2]=(val==='NA'?'X':null);
       });
       pmap.forEach(([f,c])=>{const v=r[f];if(v!=null&&v!=='')row[c]=v;});
+      // CQ_DEF: esiti energia erogata (OK→X / KO→X nelle 2 colonne dopo impostata/misurata)
+      if(ctype==='CQ_DEF'){[1,2,3,4,5,6].forEach(n=>{const b=29+(n-1)*4,ev=r['cq_def_e'+n+'_esito']||'';row[b+2]=(ev==='OK'?'X':null);row[b+3]=(ev==='KO'?'X':null);});}
       if(sc!=null){['cq_strum','cq_strum_mod','cq_strum_ser','cq_strum_cert','cq_strum_scad'].forEach((f,i)=>{const v=r[f];if(v)row[sc+i]=v;});}
       row[tc]=r.cq_tecnico||'';
       return row;
@@ -2516,6 +2520,7 @@ function fillCQPreset(cod,type){
   sv('cq-strum-cert',preset['cq_strum_cert']||'');
   sv('cq-strum-scad',preset['cq_strum_scad']||'');
   sv('cq-tecnico',preset['cq_tecnico']||gv('cq-tecnico'));
+  if(preset['cq_note']) sv('cq-note',preset['cq_note']);
 }
 
 function toggleCQ(pid){const b=document.getElementById('cq-btns-'+pid);if(b)b.style.display=b.style.display==='none'?'flex':'none';}
@@ -3535,9 +3540,12 @@ async function importPresetsFromExcel(input) {
       });
       // Prova fields (explicit column positions)
       _fm(row,pmap,dati);
+      // CQ_DEF: esiti energia erogata (2 colonne OK/KO dopo ogni coppia impostata/misurata)
+      if(tipo==='CQ_DEF'){[1,2,3,4,5,6].forEach(n=>{const b=29+(n-1)*4;if(row[b+2]) dati['cq_def_e'+n+'_esito']='OK';else if(row[b+3]) dati['cq_def_e'+n+'_esito']='KO';});}
       // Strumentazione + tecnico
       if(sc!=null) cqSf.forEach((f,i)=>{ const v=f==='cq_strum_scad'?_rxldate(row,sc+i):_rc(row,sc+i); if(v) dati[f]=v; });
       if(tc!=null&&row[tc]) dati.cq_tecnico=String(row[tc]);
+      if(row[2]) dati.cq_note=String(row[2]);
       return Object.keys(dati).length ? {codice,tipo,dati} : null;
     }).filter(Boolean);
     total += await importBatch(`preset_cq_${aslKey}`, payload);
@@ -3607,6 +3615,9 @@ function _fmtDD_MM_YY(dateStr){
   const[y,m,d]=dateStr.split('-');return d+'-'+m+'-'+y.slice(2);
 }
 
+// Helper: converte lettere colonna in numero (A=1, Z=26, AA=27, ...)
+function _colToNum(col){return col.split('').reduce((n,c)=>n*26+c.charCodeAt(0)-64,0);}
+
 // Modifica celle via string manipulation (evita corruzione namespace XML)
 // Gestisce sia celle self-closing (<c r="X" s="1"/>) che celle con chiusura (</c>)
 function _patchCell(xml, addr, val, isNum){
@@ -3646,18 +3657,28 @@ function _sc(xml,addr,val,isNum){
 }
 
 // _si: come _sc ma crea la riga se non esiste (necessario per celle non presenti nel template)
+// Inserisce la cella in posizione ordinata per colonna (evita corruzione xlsx)
 function _si(xml,addr,val,isNum){
   if(val===''||val===null||val===undefined)return xml;
   if(xml.indexOf('<c r="'+addr+'"')!==-1)return _patchCell(xml,addr,val,isNum);
   const m=addr.match(/^([A-Z]+)(\d+)$/);if(!m)return xml;
   const rowNum=parseInt(m[2]);
+  const targetCol=_colToNum(m[1]);
   let nc;
   if(isNum){nc='<c r="'+addr+'"><v>'+val+'</v></c>';}
   else{const e=String(val).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');nc='<c r="'+addr+'" t="inlineStr"><is><t>'+e+'</t></is></c>';}
   const ri=xml.indexOf('<row r="'+m[2]+'"');
   if(ri!==-1){
     const re=xml.indexOf('</row>',ri);if(re===-1)return xml;
-    return xml.slice(0,re)+nc+xml.slice(re);
+    // Trova il punto di inserimento ordinato per colonna
+    const rowSlice=xml.slice(ri,re);
+    const cellRe=/<c r="([A-Z]+)\d+"/g;
+    let insertAt=re;
+    let cm;
+    while((cm=cellRe.exec(rowSlice))!==null){
+      if(_colToNum(cm[1])>targetCol){insertAt=ri+cm.index;break;}
+    }
+    return xml.slice(0,insertAt)+nc+xml.slice(insertAt);
   }
   // Riga non trovata: trova il punto di inserimento corretto (prima della prima riga > rowNum)
   let insertPos=xml.indexOf('</sheetData>');if(insertPos===-1)return xml;
