@@ -4058,8 +4058,8 @@ function _fillCQSheet(xml,rec,dev,asl){
     s('E35',rec.cq_ans_vii||''); s('I35',rec.cq_ans_viv||''); s('M35',rec.cq_ans_vim||''); s('Q35',rec.cq_ans_vil||'');
     xml=_patchCell(xml,'S35',rec.cq_ans_vi_esito==='OK'?'X':'');
     xml=_patchCell(xml,'T35',rec.cq_ans_vi_esito==='KO'?'X':'');
-    xml=_si(xml,'R39',rec.cq_ans_esito==='OK'?'X':'');
-    xml=_si(xml,'S39',rec.cq_ans_esito==='KO'?'X':'');
+    xml=_si(xml,'S39',rec.cq_ans_esito==='OK'?'X':'');
+    xml=_si(xml,'T39',rec.cq_ans_esito==='KO'?'X':'');
   }
   else if(tipo==='CQ_MON'){
     for(let i=1;i<=5;i++){s('A'+(29+i),rec['cq_mon_e'+i+'i']||'');s('G'+(29+i),rec['cq_mon_e'+i+'ind']||'');s('M'+(29+i),rec['cq_mon_e'+i+'lim']||'');}
