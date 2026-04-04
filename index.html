@@ -2576,7 +2576,7 @@ function loadCQSaved(rec){
   sv('cq-strum-ser',rec.cq_strum_ser||''); sv('cq-strum-cert',rec.cq_strum_cert||'');
   sv('cq-strum-scad',rec.cq_strum_scad||'');
   (CQ_VIS[rec.cq_type]||[]).forEach(p=>{const pid=p.replace('.','_');if(rec['cq_vis_'+pid])setCQ(pid,rec['cq_vis_'+pid]);});
-  (CQ_PROVA[rec.cq_type]||[]).forEach(sec=>sec.fields.forEach(f=>{if(f.type==='rb'){sr('rg-'+f.id,rec[f.id]||'');}else{const el=document.getElementById(f.id);if(el&&rec[f.id])el.value=rec[f.id];}}));
+  (CQ_PROVA[rec.cq_type]||[]).forEach(sec=>sec.fields.forEach(f=>{if(f.type==='rb'){sr('rg-'+f.id,rec[f.id]||'');const hid=document.getElementById(f.id);if(hid)hid.value=rec[f.id]||'';}else{const el=document.getElementById(f.id);if(el&&rec[f.id])el.value=rec[f.id];}}));
 }
 
 
