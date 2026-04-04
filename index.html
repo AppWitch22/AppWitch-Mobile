@@ -2204,7 +2204,7 @@ const CQ_VIS={
   'CQ_FBI':['1.1','1.2'],
   'CQ_ECT':['1.1','1.2','1.3','1.4','1.5','1.6','1.7','1.8'],
   'CQ_MON':['1.1','1.2','1.3'],
-  'CQ_ANS':['1.1','1.2','1.3','1.4','1.5'],
+  'CQ_ANS':['1.1','1.2','1.3','1.4'],
   'CQ_SPM':['1.1','1.2','1.3','1.4','1.5','1.6','1.7','1.8'],
   'CQ_VPO':['1.1','1.2','1.3','1.4'],
 };
@@ -2402,6 +2402,7 @@ const CQ_PROVA={
       {id:'cq_ans_comp',l:'Compliance'},{id:'cq_ans_res',l:'Resistenza'},{id:'cq_ans_ie',l:'I:E'},
       {id:'cq_ans_fri',l:'Freq.resp. Impostato'},{id:'cq_ans_frv',l:'Freq.resp. Visualizzato'},{id:'cq_ans_frm',l:'Freq.resp. Misurato'},{id:'cq_ans_frl',l:'Freq.resp. Limite'},{id:'cq_ans_fr_esito',l:'Freq.resp. Esito',type:'rb'},
       {id:'cq_ans_vii',l:'Vol.ist. Impostato'},{id:'cq_ans_viv',l:'Vol.ist. Visualizzato'},{id:'cq_ans_vim',l:'Vol.ist. Misurato'},{id:'cq_ans_vil',l:'Vol.ist. Limite'},{id:'cq_ans_vi_esito',l:'Vol.ist. Esito',type:'rb'},
+      {id:'cq_ans_esito',l:'Esito di tutte le prove eseguite',type:'rb'},
     ]},
   ],
   'CQ_SPM':[
@@ -2416,6 +2417,7 @@ const CQ_PROVA={
       {id:'cq_ans_comp',l:'Compliance'},{id:'cq_ans_res',l:'Resistenza'},{id:'cq_ans_ie',l:'I:E'},
       {id:'cq_ans_fri',l:'Freq.resp. Impostato'},{id:'cq_ans_frv',l:'Freq.resp. Visualizzato'},{id:'cq_ans_frm',l:'Freq.resp. Misurato'},{id:'cq_ans_frl',l:'Freq.resp. Limite'},{id:'cq_ans_fr_esito',l:'Freq.resp. Esito',type:'rb'},
       {id:'cq_ans_vii',l:'Vol.ist. Impostato'},{id:'cq_ans_viv',l:'Vol.ist. Visualizzato'},{id:'cq_ans_vim',l:'Vol.ist. Misurato'},{id:'cq_ans_vil',l:'Vol.ist. Limite'},{id:'cq_ans_vi_esito',l:'Vol.ist. Esito',type:'rb'},
+      {id:'cq_ans_esito',l:'Esito di tutte le prove eseguite',type:'rb'},
     ]},
   ],
 };
@@ -2532,6 +2534,10 @@ function buildCQPoints(type){
                   <td style="${tdP}">${inp('cq_ans_vim')}</td>
                   <td style="${tdP}">${inp('cq_ans_vil')}</td>
                   <td style="${tdP}">${esito('cq_ans_vi_esito')}</td>
+                </tr>
+                <tr style="background:var(--bg2)">
+                  <td colspan="5" style="${tdP};font-size:12px;font-weight:700;color:var(--accent)">1.5 &nbsp;Esito di tutte le prove eseguite</td>
+                  <td style="${tdP}">${esito('cq_ans_esito')}</td>
                 </tr>
               </tbody>
             </table>
@@ -3867,7 +3873,7 @@ function _fillMPSheet(xml,rec,dev,asl){
 const _VSP_START={VSP_CEN:21,VSP_DEF:21,VSP_ECG:21,VSP_ELB:26};
 
 const _CQ_CK_ROWS={
-  CQ_ANS:{'1_1':16,'1_2':18,'1_3':20,'1_4':22,'1_5':39},
+  CQ_ANS:{'1_1':16,'1_2':18,'1_3':20,'1_4':22},
   CQ_CEN:{'1_1':16,'1_2':18,'1_3':20,'1_4':22,'1_5':24},
   CQ_DEF:{'1_1':20,'1_2':22,'1_3':25,'1_4':27,'1_5':30,'1_6':32,'1_7':34},
   CQ_ECG:{'1_1':16,'1_2':18,'1_3':20,'1_4':22,'1_5':24,'1_6':26,'1_7':28},
@@ -4052,6 +4058,8 @@ function _fillCQSheet(xml,rec,dev,asl){
     s('E35',rec.cq_ans_vii||''); s('I35',rec.cq_ans_viv||''); s('M35',rec.cq_ans_vim||''); s('Q35',rec.cq_ans_vil||'');
     xml=_patchCell(xml,'S35',rec.cq_ans_vi_esito==='OK'?'X':'');
     xml=_patchCell(xml,'T35',rec.cq_ans_vi_esito==='KO'?'X':'');
+    xml=_si(xml,'R39',rec.cq_ans_esito==='OK'?'X':'');
+    xml=_si(xml,'S39',rec.cq_ans_esito==='KO'?'X':'');
   }
   else if(tipo==='CQ_MON'){
     for(let i=1;i<=5;i++){s('A'+(29+i),rec['cq_mon_e'+i+'i']||'');s('G'+(29+i),rec['cq_mon_e'+i+'ind']||'');s('M'+(29+i),rec['cq_mon_e'+i+'lim']||'');}
