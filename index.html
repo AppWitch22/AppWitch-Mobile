@@ -4010,7 +4010,11 @@ function _fillCQSheet(xml,rec,dev,asl){
     xml=_patchCell(xml,'T92',rec.cq_elb_pot_esito==='NA'?'X':'');
   }
   else if(tipo==='CQ_ECT'){
-    s('A42',rec.cq_ect_s1||''); s('A43',rec.cq_ect_s2||''); s('A44',rec.cq_ect_s3||''); s('A45',rec.cq_ect_s4||'');
+    ['s1','s2','s3','s4'].forEach((sk,i)=>{
+      const inv=rec['cq_ect_'+sk]||''; const row=42+i;
+      s('A'+row,inv);
+      const d=DB[inv]; s('G'+row,d?.n||''); s('N'+row,d?.m||'');
+    });
     s('M69',rec.cq_ect_m1s1||''); s('O69',rec.cq_ect_m1s2||''); s('Q69',rec.cq_ect_m1s3||''); s('S69',rec.cq_ect_m1s4||'');
     s('M70',rec.cq_ect_m2as1||''); s('O70',rec.cq_ect_m2as2||''); s('Q70',rec.cq_ect_m2as3||''); s('S70',rec.cq_ect_m2as4||'');
     s('M72',rec.cq_ect_m2bs1||''); s('O72',rec.cq_ect_m2bs2||''); s('Q72',rec.cq_ect_m2bs3||''); s('S72',rec.cq_ect_m2bs4||'');
