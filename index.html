@@ -2499,7 +2499,7 @@ function buildCQPoints(type){
         html+=`<div class="sec" style="margin-bottom:10px"><div class="sec-hdr">${sec.sec}</div><div style="padding:0 10px 12px;overflow-x:auto">
           <table style="border-collapse:collapse;width:100%;min-width:420px">
             <colgroup><col style="width:18%"><col><col><col><col><col></colgroup>
-            <thead><tr><th style="${thH}">Nome</th><th style="${thH}">Imp.</th><th style="${thH}">Ind.</th><th style="${thH}">Term.</th><th style="${thH}">Mis.</th><th style="${thH}">Limiti</th></tr></thead>
+            <thead><tr><th style="${thH}">Temperatura</th><th style="${thH}">Impostata</th><th style="${thH}">Indicata</th><th style="${thH}">Indicata Termografo</th><th style="${thH}">Misurata</th><th style="${thH}">Limiti</th></tr></thead>
             <tbody>${rows.map(([fl,fi,find,fit,fm,flim],ri)=>`<tr><td style="${tdC}">${inp(fl.id,'text')}</td><td style="${tdC}">${inp(fi.id)}</td><td style="${tdC}">${inp(find.id)}</td><td style="${tdC}">${inp(fit.id)}</td><td style="${tdC}">${inp(fm.id)}</td><td style="${tdC}">${inp(flim.id,'text')}</td></tr>`).join('')}</tbody>
           </table>
         </div></div>`;
