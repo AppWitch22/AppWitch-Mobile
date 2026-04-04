@@ -2490,6 +2490,19 @@ function buildCQPoints(type){
             </tbody>
           </table>
         </div></div>`;
+      } else if(sec.sec.includes('Termografo')){
+        // Tabella CQ_FBI: 4 ripiani × 6 colonne (Nome | Impostata | Indicata | Termografo | Misurata | Limiti)
+        const inp=(id,mode='decimal')=>`<input type="text" id="${id}" inputmode="${mode}" style="width:100%;box-sizing:border-box;text-align:center;font-size:12px;border-radius:5px;padding:3px 2px;border:1.5px solid var(--border2)">`;
+        const thH=`text-align:center;font-size:11px;font-weight:700;color:#C2500A;padding:4px 4px 8px`;
+        const tdC=`padding:3px 4px`;
+        const rows=[];for(let i=0;i<sec.fields.length;i+=6)rows.push(sec.fields.slice(i,i+6));
+        html+=`<div class="sec" style="margin-bottom:10px"><div class="sec-hdr">${sec.sec}</div><div style="padding:0 10px 12px;overflow-x:auto">
+          <table style="border-collapse:collapse;width:100%;min-width:420px">
+            <colgroup><col style="width:18%"><col><col><col><col><col></colgroup>
+            <thead><tr><th style="${thH}">Nome</th><th style="${thH}">Imp.</th><th style="${thH}">Ind.</th><th style="${thH}">Term.</th><th style="${thH}">Mis.</th><th style="${thH}">Limiti</th></tr></thead>
+            <tbody>${rows.map(([fl,fi,find,fit,fm,flim],ri)=>`<tr><td style="${tdC}">${inp(fl.id,'text')}</td><td style="${tdC}">${inp(fi.id)}</td><td style="${tdC}">${inp(find.id)}</td><td style="${tdC}">${inp(fit.id)}</td><td style="${tdC}">${inp(fm.id)}</td><td style="${tdC}">${inp(flim.id,'text')}</td></tr>`).join('')}</tbody>
+          </table>
+        </div></div>`;
       } else if(sec.sec.includes('/ Indicato /') || sec.sec.includes('/ Indicato /')){
         // Tabella generica 3 colonne: Impostato / Indicato / Limite
         const inp=(id)=>`<input type="text" id="${id}" inputmode="decimal" style="width:100%;box-sizing:border-box;text-align:center;font-size:13px;border-radius:5px;padding:4px 2px;border:1.5px solid var(--border2)">`;
