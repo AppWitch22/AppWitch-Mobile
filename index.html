@@ -2490,6 +2490,20 @@ function buildCQPoints(type){
             </tbody>
           </table>
         </div></div>`;
+      } else if(sec.sec==='Prova funzionale ECG — Impostato / Indicato / Limite'){
+        const inp=(id)=>`<input type="text" id="${id}" inputmode="decimal" style="width:100%;box-sizing:border-box;text-align:center;font-size:13px;border-radius:5px;padding:4px 2px;border:1.5px solid var(--border2)">`;
+        const thH=`text-align:center;font-size:12px;font-weight:700;color:#C2500A;padding:4px 8px 8px`;
+        const tdL=`padding:4px 4px 4px 0;font-size:13px;white-space:nowrap;text-align:right;width:20%`;
+        const tdC=`padding:4px 6px`;
+        html+=`<div class="sec" style="margin-bottom:10px"><div class="sec-hdr">Prova funzionale ECG</div><div style="padding:0 14px 12px">
+          <table style="border-collapse:collapse;width:100%">
+            <colgroup><col style="width:18%"><col><col><col></colgroup>
+            <thead><tr><th style="padding:0"></th><th style="${thH}">Impostato</th><th style="${thH}">Indicato</th><th style="${thH}">Limite</th></tr></thead>
+            <tbody>
+              ${[1,2,3,4,5].map(n=>`<tr><td style="${tdL}">M${n}</td><td style="${tdC}">${inp('cq_ecg_v'+n+'i')}</td><td style="${tdC}">${inp('cq_ecg_v'+n+'ind')}</td><td style="${tdC}">${inp('cq_ecg_v'+n+'lim')}</td></tr>`).join('')}
+            </tbody>
+          </table>
+        </div></div>`;
       } else if(sec.sec==='Giri — Impostato / Misurato'||sec.sec==='Temperatura — Impostata / Misurata'){
         const isTem=sec.sec.startsWith('Temperatura');
         const label=isTem?'T':'G';
