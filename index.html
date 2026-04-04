@@ -2400,8 +2400,8 @@ const CQ_PROVA={
   'CQ_ANS':[
     {sec:'Controlli funzionali',fields:[
       {id:'cq_ans_comp',l:'Compliance'},{id:'cq_ans_res',l:'Resistenza'},{id:'cq_ans_ie',l:'I:E'},
-      {id:'cq_ans_fri',l:'Freq.resp. Impostato'},{id:'cq_ans_frv',l:'Freq.resp. Visualizzato'},{id:'cq_ans_frm',l:'Freq.resp. Misurato'},{id:'cq_ans_frl',l:'Freq.resp. Limite'},
-      {id:'cq_ans_vii',l:'Vol.ist. Impostato'},{id:'cq_ans_viv',l:'Vol.ist. Visualizzato'},{id:'cq_ans_vim',l:'Vol.ist. Misurato'},{id:'cq_ans_vil',l:'Vol.ist. Limite'},
+      {id:'cq_ans_fri',l:'Freq.resp. Impostato'},{id:'cq_ans_frv',l:'Freq.resp. Visualizzato'},{id:'cq_ans_frm',l:'Freq.resp. Misurato'},{id:'cq_ans_frl',l:'Freq.resp. Limite'},{id:'cq_ans_fr_esito',l:'Freq.resp. Esito',type:'rb'},
+      {id:'cq_ans_vii',l:'Vol.ist. Impostato'},{id:'cq_ans_viv',l:'Vol.ist. Visualizzato'},{id:'cq_ans_vim',l:'Vol.ist. Misurato'},{id:'cq_ans_vil',l:'Vol.ist. Limite'},{id:'cq_ans_vi_esito',l:'Vol.ist. Esito',type:'rb'},
     ]},
   ],
   'CQ_SPM':[
@@ -2414,8 +2414,8 @@ const CQ_PROVA={
   'CQ_VPO':[
     {sec:'Controlli funzionali',fields:[
       {id:'cq_ans_comp',l:'Compliance'},{id:'cq_ans_res',l:'Resistenza'},{id:'cq_ans_ie',l:'I:E'},
-      {id:'cq_ans_fri',l:'Freq.resp. Impostato'},{id:'cq_ans_frv',l:'Freq.resp. Visualizzato'},{id:'cq_ans_frm',l:'Freq.resp. Misurato'},{id:'cq_ans_frl',l:'Freq.resp. Limite'},
-      {id:'cq_ans_vii',l:'Vol.ist. Impostato'},{id:'cq_ans_viv',l:'Vol.ist. Visualizzato'},{id:'cq_ans_vim',l:'Vol.ist. Misurato'},{id:'cq_ans_vil',l:'Vol.ist. Limite'},
+      {id:'cq_ans_fri',l:'Freq.resp. Impostato'},{id:'cq_ans_frv',l:'Freq.resp. Visualizzato'},{id:'cq_ans_frm',l:'Freq.resp. Misurato'},{id:'cq_ans_frl',l:'Freq.resp. Limite'},{id:'cq_ans_fr_esito',l:'Freq.resp. Esito',type:'rb'},
+      {id:'cq_ans_vii',l:'Vol.ist. Impostato'},{id:'cq_ans_viv',l:'Vol.ist. Visualizzato'},{id:'cq_ans_vim',l:'Vol.ist. Misurato'},{id:'cq_ans_vil',l:'Vol.ist. Limite'},{id:'cq_ans_vi_esito',l:'Vol.ist. Esito',type:'rb'},
     ]},
   ],
 };
@@ -2490,6 +2490,53 @@ function buildCQPoints(type){
             </tbody>
           </table>
         </div></div>`;
+      } else if(sec.sec==='Controlli funzionali'){
+        // Tabella CQ_ANS/CQ_VPO: impostazioni paziente + misure Freq.resp / Vol.ist con OK/KO
+        const inp=(id)=>`<input type="text" id="${id}" inputmode="decimal" style="width:100%;box-sizing:border-box;text-align:center;font-size:12px;border-radius:5px;padding:4px 2px;border:1.5px solid var(--border2)">`;
+        const esito=(id)=>`<input type="hidden" id="${id}"><div class="rg" id="rg-${id}" style="flex-wrap:nowrap;gap:3px;justify-content:center">
+          <div class="rb ok" data-v="OK" style="font-size:11px;padding:3px 6px" onclick="pick(this);document.getElementById('${id}').value='OK'">OK</div>
+          <div class="rb ko" data-v="KO" style="font-size:11px;padding:3px 6px" onclick="pick(this);document.getElementById('${id}').value='KO'">KO</div>
+        </div>`;
+        const thH=`text-align:center;font-size:11px;font-weight:700;color:#C2500A;padding:6px 4px 8px;border-bottom:2px solid var(--border2)`;
+        const tdP=`padding:6px 4px;vertical-align:middle;border-bottom:1px solid var(--border2)`;
+        html+=`<div class="sec" style="margin-bottom:10px"><div class="sec-hdr">${sec.sec}</div>
+          <div style="padding:10px 14px 6px;display:flex;gap:12px;flex-wrap:wrap">
+            <div style="flex:1;min-width:120px"><label style="font-size:11px;color:var(--text2);display:block;margin-bottom:3px">Compliance</label>${inp('cq_ans_comp')}</div>
+            <div style="flex:1;min-width:100px"><label style="font-size:11px;color:var(--text2);display:block;margin-bottom:3px">Resistenza</label>${inp('cq_ans_res')}</div>
+            <div style="flex:1;min-width:80px"><label style="font-size:11px;color:var(--text2);display:block;margin-bottom:3px">I:E</label>${inp('cq_ans_ie')}</div>
+          </div>
+          <div style="padding:0 10px 12px;overflow-x:auto">
+            <table style="border-collapse:collapse;width:100%;min-width:480px">
+              <colgroup><col style="width:20%"><col><col><col><col style="width:13%"><col style="width:14%"></colgroup>
+              <thead><tr>
+                <th style="${thH};text-align:left">Parametro</th>
+                <th style="${thH}">Impostato</th>
+                <th style="${thH}">Visualizzato</th>
+                <th style="${thH}">Misurato</th>
+                <th style="${thH}">Limite</th>
+                <th style="${thH}">Esito</th>
+              </tr></thead>
+              <tbody>
+                <tr>
+                  <td style="${tdP};font-size:11px;font-weight:600;color:var(--accent)">FREQUENZA RESPIRATORIA</td>
+                  <td style="${tdP}">${inp('cq_ans_fri')}</td>
+                  <td style="${tdP}">${inp('cq_ans_frv')}</td>
+                  <td style="${tdP}">${inp('cq_ans_frm')}</td>
+                  <td style="${tdP}">${inp('cq_ans_frl')}</td>
+                  <td style="${tdP}">${esito('cq_ans_fr_esito')}</td>
+                </tr>
+                <tr>
+                  <td style="${tdP};font-size:11px;font-weight:600;color:var(--accent)">VOLUME ISTANTANEO</td>
+                  <td style="${tdP}">${inp('cq_ans_vii')}</td>
+                  <td style="${tdP}">${inp('cq_ans_viv')}</td>
+                  <td style="${tdP}">${inp('cq_ans_vim')}</td>
+                  <td style="${tdP}">${inp('cq_ans_vil')}</td>
+                  <td style="${tdP}">${esito('cq_ans_vi_esito')}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>`;
       } else if(sec.sec.includes('Sonda 1/2/3/4')){
         // Tabella CQ_ECT: Prova | Riferimento | S1 | S2 | S3 | S4
         const inp=(id)=>`<input type="text" id="${id}" inputmode="decimal" style="width:100%;box-sizing:border-box;text-align:center;font-size:12px;border-radius:5px;padding:4px 2px;border:1.5px solid var(--border2)">`;
@@ -4000,7 +4047,11 @@ function _fillCQSheet(xml,rec,dev,asl){
   else if(tipo==='CQ_ANS'||tipo==='CQ_VPO'){
     s('E30',rec.cq_ans_comp||''); s('I30',rec.cq_ans_res||''); s('M30',rec.cq_ans_ie||'');
     s('E33',rec.cq_ans_fri||''); s('I33',rec.cq_ans_frv||''); s('M33',rec.cq_ans_frm||''); s('Q33',rec.cq_ans_frl||'');
+    xml=_patchCell(xml,'S33',rec.cq_ans_fr_esito==='OK'?'X':'');
+    xml=_patchCell(xml,'T33',rec.cq_ans_fr_esito==='KO'?'X':'');
     s('E35',rec.cq_ans_vii||''); s('I35',rec.cq_ans_viv||''); s('M35',rec.cq_ans_vim||''); s('Q35',rec.cq_ans_vil||'');
+    xml=_patchCell(xml,'S35',rec.cq_ans_vi_esito==='OK'?'X':'');
+    xml=_patchCell(xml,'T35',rec.cq_ans_vi_esito==='KO'?'X':'');
   }
   else if(tipo==='CQ_MON'){
     for(let i=1;i<=5;i++){s('A'+(29+i),rec['cq_mon_e'+i+'i']||'');s('G'+(29+i),rec['cq_mon_e'+i+'ind']||'');s('M'+(29+i),rec['cq_mon_e'+i+'lim']||'');}
