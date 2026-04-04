@@ -2490,6 +2490,37 @@ function buildCQPoints(type){
             </tbody>
           </table>
         </div></div>`;
+      } else if(sec.sec.includes('Sonda 1/2/3/4')){
+        // Tabella CQ_ECT: Prova | Riferimento | S1 | S2 | S3 | S4
+        const inp=(id)=>`<input type="text" id="${id}" inputmode="decimal" style="width:100%;box-sizing:border-box;text-align:center;font-size:12px;border-radius:5px;padding:4px 2px;border:1.5px solid var(--border2)">`;
+        const thH=`text-align:center;font-size:11px;font-weight:700;color:#C2500A;padding:6px 4px 8px;border-bottom:2px solid var(--border2)`;
+        const tdP=`padding:6px 4px;vertical-align:top;border-bottom:1px solid var(--border2)`;
+        const ECT_ROWS=[
+          {l:'1) Uniformità immagine',rif:'buona / scarsa',ids:['cq_ect_m1s1','cq_ect_m1s2','cq_ect_m1s3','cq_ect_m1s4']},
+          {l:'2a) Accuratezza calibri:<br>Orizzontale (Laterale)',rif:'Buono = Errore &lt; 2mm<br>Scarso = Errore &gt; 2mm',ids:['cq_ect_m2as1','cq_ect_m2as2','cq_ect_m2as3','cq_ect_m2as4']},
+          {l:'2b) Accuratezza calibri:<br>Verticale (Assiale)',rif:'Buono = Errore &lt; 1.5mm<br>Scarso = Errore &gt; 1.5mm',ids:['cq_ect_m2bs1','cq_ect_m2bs2','cq_ect_m2bs3','cq_ect_m2bs4']},
+          {l:'3a) Risoluzione assiale',rif:'Buono = Errore &lt;1mm oltre 4MHz<br>Buono = Errore &lt;2mm fino 4MHz',ids:['cq_ect_m3as1','cq_ect_m3as2','cq_ect_m3as3','cq_ect_m3as4']},
+          {l:'3b) Risoluzione laterale',rif:'Buono = Errore &lt;1mm<br>dal valore di ultima verifica',ids:['cq_ect_m3bs1','cq_ect_m3bs2','cq_ect_m3bs3','cq_ect_m3bs4']},
+          {l:'4a) Dimensioni masse Ipoecogene &quot;pseudocisti&quot;',rif:'Buono = rapporto &gt; 0,8<br>Accettab. = rapp. tra 0,6 e 0,8<br>Scarso = rapporto &lt; 0,6<br>prof. 8cm — diam. 8mm',ids:['cq_ect_m4as1','cq_ect_m4as2','cq_ect_m4as3','cq_ect_m4as4']},
+          {l:'4b) Dimensioni masse Ipoecogene &quot;pseudotumori&quot;',rif:'Buono = rapporto &gt; 0,8<br>Accettab. = rapp. tra 0,6 e 0,8<br>Scarso = rapporto &lt; 0,6<br>prof. 8cm — diam. 8mm',ids:['cq_ect_m4bs1','cq_ect_m4bs2','cq_ect_m4bs3','cq_ect_m4bs4']},
+          {l:'5) Zona morta',rif:'Da 1 a 5 mm',ids:['cq_ect_m5s1','cq_ect_m5s2','cq_ect_m5s3','cq_ect_m5s4']},
+          {l:'6) Profondità di penetrazione',rif:'Da 4 a 16 cm',ids:['cq_ect_m6s1','cq_ect_m6s2','cq_ect_m6s3','cq_ect_m6s4']},
+        ];
+        html+=`<div class="sec" style="margin-bottom:10px"><div class="sec-hdr">${sec.sec}</div><div style="padding:0 10px 12px;overflow-x:auto">
+          <table style="border-collapse:collapse;width:100%;min-width:420px">
+            <colgroup><col style="width:28%"><col style="width:30%"><col><col><col><col></colgroup>
+            <thead><tr>
+              <th style="${thH};text-align:left">Prova</th>
+              <th style="${thH};text-align:left">Riferimento</th>
+              <th style="${thH}">S1</th><th style="${thH}">S2</th><th style="${thH}">S3</th><th style="${thH}">S4</th>
+            </tr></thead>
+            <tbody>${ECT_ROWS.map(r=>`<tr>
+              <td style="${tdP};font-size:12px;font-weight:600;color:var(--accent)">${r.l}</td>
+              <td style="${tdP};font-size:11px;color:#64748b;font-style:italic;line-height:1.5">${r.rif}</td>
+              ${r.ids.map(id=>`<td style="${tdP};text-align:center">${inp(id)}</td>`).join('')}
+            </tr>`).join('')}</tbody>
+          </table>
+        </div></div>`;
       } else if(sec.sec.includes('Termografo')){
         // Tabella CQ_FBI: 4 ripiani × 6 colonne (Nome | Impostata | Indicata | Termografo | Misurata | Limiti)
         const inp=(id,mode='decimal')=>`<input type="text" id="${id}" inputmode="${mode}" style="width:100%;box-sizing:border-box;text-align:center;font-size:12px;border-radius:5px;padding:3px 2px;border:1.5px solid var(--border2)">`;
