@@ -387,6 +387,70 @@ body.logged-in h1,body.logged-in .subtitle{display:none}
 .af-panel-footer button{flex:1;padding:5px;font-size:12px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg3);cursor:pointer;color:var(--text2)}
 .anag-filter-actions{display:flex;gap:8px}
 
+/* ── VISTA TABELLA ── */
+#tabella-section{margin-bottom:14px}
+.tbl-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.tbl-toolbar input[type=text]{flex:1;min-width:140px;padding:7px 10px;font-size:13px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg2);color:var(--text)}
+.tbl-counter{font-size:12px;color:var(--text2);white-space:nowrap}
+.tbl-sel-count{font-size:12px;color:var(--info);font-weight:600;white-space:nowrap}
+.tbl-wrap{overflow-x:auto;overflow-y:auto;max-height:calc(100vh - 220px);border:1px solid var(--border);border-radius:var(--rad);position:relative}
+.tbl-table{border-collapse:collapse;width:max-content;min-width:100%;font-size:12px}
+.tbl-table thead{position:sticky;top:0;z-index:10;background:var(--bg3)}
+.tbl-th,.tbl-td{border-right:1px solid var(--border);border-bottom:1px solid var(--border);padding:0;white-space:nowrap}
+.tbl-td{padding:5px 8px;color:var(--text);max-width:200px;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+.tbl-td:hover{background:var(--bg3)}
+.tbl-th-inner{display:flex;align-items:center;gap:0;padding:0}
+.tbl-th-label{flex:1;padding:7px 8px;cursor:pointer;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--text2);user-select:none;white-space:nowrap}
+.tbl-th-label:hover{color:var(--text)}
+.tbl-th-filtered .tbl-th-label{color:var(--info)}
+.tbl-th-flt{border:none;background:none;cursor:pointer;padding:7px 6px;color:var(--text2);font-size:11px;line-height:1;-webkit-tap-highlight-color:transparent}
+.tbl-th-flt:hover,.tbl-th-flt.active{color:var(--info)}
+.tbl-th-chk,.tbl-td-chk{padding:5px 8px;text-align:center;border-right:1px solid var(--border);border-bottom:1px solid var(--border);background:var(--bg3);position:sticky;left:0;z-index:5}
+.tbl-table thead .tbl-th-chk{z-index:15}
+.tbl-row-sel .tbl-td{background:var(--info-bg)}
+.tbl-row-sel .tbl-td-chk{background:var(--info-bg)}
+.tbl-loading{text-align:center;padding:24px;color:var(--text2);font-size:13px;display:none}
+/* filter panel */
+.tbl-filter-panel{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--rad-lg);box-shadow:0 4px 20px rgba(28,15,6,.16);width:240px;max-height:340px;display:flex;flex-direction:column;overflow:hidden}
+.tbl-fp-hdr{padding:8px 12px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text2);border-bottom:1px solid var(--border);flex-shrink:0}
+.tbl-fp-search{margin:6px 8px;padding:5px 8px;font-size:12px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg3);color:var(--text);flex-shrink:0}
+.tbl-fp-actions{display:flex;gap:4px;padding:0 8px 6px;flex-shrink:0}
+.tbl-fp-actions button{flex:1;padding:4px;font-size:11px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg3);cursor:pointer;color:var(--text2)}
+.tbl-fp-list{overflow-y:auto;flex:1;padding-bottom:4px}
+.tbl-fp-item{display:flex;align-items:center;gap:8px;padding:5px 12px;cursor:pointer;font-size:12px;color:var(--text)}
+.tbl-fp-item:hover{background:var(--bg3)}
+.tbl-fp-item input{width:14px;height:14px;cursor:pointer;accent-color:var(--info);flex-shrink:0}
+.tbl-fp-footer{display:flex;gap:6px;padding:8px;border-top:1px solid var(--border);flex-shrink:0}
+.tbl-fp-footer button{flex:1;padding:6px;font-size:12px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg3);cursor:pointer;color:var(--text2)}
+.tbl-fp-footer button:first-child{background:var(--info);border-color:var(--info);color:#fff}
+/* col picker */
+.tbl-col-picker{display:none;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--rad-lg);padding:10px;margin-bottom:10px;max-height:300px;overflow-y:auto}
+.tbl-col-picker.open{display:block}
+.tbl-cp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:4px}
+.tbl-cp-item{display:flex;align-items:center;gap:6px;padding:4px 6px;font-size:12px;cursor:pointer;color:var(--text);border-radius:var(--rad)}
+.tbl-cp-item:hover{background:var(--bg3)}
+.tbl-cp-item input{width:14px;height:14px;cursor:pointer;accent-color:var(--info)}
+/* views */
+.tbl-views-panel{display:none;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--rad-lg);padding:10px;margin-bottom:10px}
+.tbl-views-panel.open{display:block}
+.tbl-view-item{display:flex;align-items:center;justify-content:space-between;padding:5px 8px;font-size:13px;color:var(--text);border-radius:var(--rad);gap:8px}
+.tbl-view-item:hover{background:var(--bg3)}
+.tbl-view-item span{cursor:pointer;flex:1}
+.tbl-view-item button{border:none;background:none;cursor:pointer;color:var(--text2);font-size:14px;padding:2px 4px}
+.tbl-views-add{display:flex;gap:6px;margin-top:8px;padding-top:8px;border-top:1px solid var(--border)}
+.tbl-views-add input{flex:1;padding:5px 8px;font-size:12px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg3);color:var(--text)}
+/* create session modal */
+#tbl-sess-modal{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:11000;display:none;align-items:center;justify-content:center;padding:16px}
+#tbl-sess-modal.open{display:flex}
+.tbl-sess-box{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rad-lg);padding:20px;width:100%;max-width:380px;box-shadow:0 4px 24px rgba(28,15,6,.18)}
+.tbl-sess-box h3{font-size:15px;font-weight:600;margin-bottom:4px}
+.tbl-sess-box .tbl-sess-sub{font-size:12px;color:var(--text2);margin-bottom:14px}
+.tbl-sess-box label{display:block;font-size:12px;font-weight:600;color:var(--text2);margin-bottom:4px;margin-top:10px}
+.tbl-sess-box input{width:100%;padding:8px 10px;font-size:13px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg3);color:var(--text);box-sizing:border-box}
+.tbl-sess-actions{display:flex;gap:8px;margin-top:16px}
+.tbl-sess-actions button{flex:1;padding:9px;font-size:13px;border-radius:var(--rad);border:1px solid var(--border2);cursor:pointer;font-weight:600}
+.tbl-sess-actions .btn-confirm{background:var(--info);border-color:var(--info);color:#fff}
+
 .bottom-nav{display:none}
 </style>
 </head>
@@ -418,6 +482,9 @@ body.logged-in h1,body.logged-in .subtitle{display:none}
     </div>
     <div class="sb-item" id="sb-nav-anagrafica" onclick="sbNav('anagrafica');toggleAnagrafica()">
       <span class="sb-icon"><svg width="16" height="16" viewBox="0 0 14 14" fill="none"><path d="M1.5 11L4 6l3 3 2-5L13 11" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg></span> Anagrafica
+    </div>
+    <div class="sb-item" id="sb-nav-tabella" onclick="sbNav('tabella');toggleTabella()">
+      <span class="sb-icon"><svg width="16" height="16" viewBox="0 0 14 14" fill="none"><rect x="1.5" y="1.5" width="11" height="11" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M1.5 5h11M5 5v7" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg></span> Tabella
     </div>
     <div class="sb-item" id="sb-nav-archivio" onclick="sbNav('archivio');openArchivioModal()">
       <span class="sb-icon"><svg width="16" height="16" viewBox="0 0 14 14" fill="none"><path d="M2 5h10v7a1 1 0 01-1 1H3a1 1 0 01-1-1V5z" stroke="currentColor" stroke-width="1.3"/><path d="M1 2h12v3H1z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><path d="M5.5 8.5h3" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg></span> Archivio
@@ -528,6 +595,55 @@ body.logged-in h1,body.logged-in .subtitle{display:none}
       <button onclick="anagPrev()">◀</button>
       <span id="anag-page-info"></span>
       <button onclick="anagNext()">▶</button>
+    </div>
+  </div>
+
+  <!-- SEZIONE TABELLA UFFICIO -->
+  <div class="card" id="tabella-section" style="display:none">
+    <div class="sess-hdr">
+      <div class="card-title" style="margin-bottom:0">Tabella Dispositivi</div>
+      <div class="sess-btns">
+        <button class="btn-sm" onclick="tblReload()">↺ Ricarica</button>
+        <button class="btn-sm" onclick="toggleTblColPicker();renderTblColPicker()">⊞ Colonne</button>
+        <button class="btn-sm" onclick="toggleTblViews()">☰ Viste</button>
+        <button class="btn-sm" id="btn-crea-sess-tbl" onclick="openCreateSessionFromTable()" disabled>+ Sessione</button>
+      </div>
+    </div>
+    <!-- col picker -->
+    <div class="tbl-col-picker" id="tbl-col-picker">
+      <div class="tbl-cp-grid" id="tbl-col-picker-list"></div>
+    </div>
+    <!-- views panel -->
+    <div class="tbl-views-panel" id="tbl-views-panel">
+      <div id="tbl-views-list"></div>
+      <div class="tbl-views-add">
+        <input type="text" id="tbl-view-name" placeholder="Nome vista...">
+        <button class="btn-sm" onclick="saveTblViewNamed()">Salva vista</button>
+      </div>
+    </div>
+    <!-- toolbar -->
+    <div class="tbl-toolbar">
+      <input type="text" id="tbl-search" placeholder="Cerca in tutte le colonne..." oninput="tblSearch(this.value)">
+      <span class="tbl-sel-count" id="tbl-sel-count"></span>
+      <span class="tbl-counter" id="tbl-row-count"></span>
+    </div>
+    <div class="tbl-loading" id="tbl-loading">Caricamento dati...</div>
+    <div class="tbl-wrap" id="tbl-table-wrap"></div>
+  </div>
+
+  <!-- MODAL CREA SESSIONE DA TABELLA -->
+  <div id="tbl-sess-modal">
+    <div class="tbl-sess-box">
+      <h3>Crea sessione dalla selezione</h3>
+      <div class="tbl-sess-sub" id="tbl-sess-count"></div>
+      <label>Nome sessione</label>
+      <input type="text" id="tbl-sess-title" placeholder="es. Cardiologia 2025-01-10" maxlength="80">
+      <label>Data verifica</label>
+      <input type="date" id="tbl-sess-date">
+      <div class="tbl-sess-actions">
+        <button onclick="closeTblSessModal()">Annulla</button>
+        <button class="btn-confirm" onclick="confirmCreateSessionFromTable()">Crea sessione</button>
+      </div>
     </div>
   </div>
 
@@ -844,6 +960,9 @@ body.logged-in h1,body.logged-in .subtitle{display:none}
   </div>
   <div class="bnav-item" id="bnav-anagrafica" onclick="sbNav('anagrafica');toggleAnagrafica()">
     <div class="bnav-icon">📊</div>Anagrafica
+  </div>
+  <div class="bnav-item" id="bnav-tabella" onclick="sbNav('tabella');toggleTabella()">
+    <div class="bnav-icon">📋</div>Tabella
   </div>
   <div class="bnav-item" id="bnav-archivio" onclick="sbNav('archivio');openArchivioModal()">
     <div class="bnav-icon">☁️</div>Archivio
@@ -4807,7 +4926,7 @@ function toggleSidebar() {
 }
 
 function sbNav(key) {
-  ['verifica','sessione','anagrafica','archivio'].forEach(k => {
+  ['verifica','sessione','anagrafica','tabella','archivio'].forEach(k => {
     const sb = document.getElementById('sb-nav-' + k);
     if (sb) sb.classList.toggle('active', k === key);
   });
@@ -5202,6 +5321,413 @@ async function importAnagraficaFromExcel(input) {
   }
   await initDB();
   toast(total?`Importati ${total} dispositivi`:'Nessun dispositivo importato',total?'ok':'warn');
+}
+
+// ── VISTA TABELLA UFFICIO ─────────────────────────────────────
+
+const TBL_COLS = [
+  {k:'codice',l:'Codice',w:90},
+  {k:'codice_padre',l:'Cod. Padre',w:90},
+  {k:'descrizione_classe',l:'Descrizione',w:200},
+  {k:'costruttore',l:'Costruttore',w:130},
+  {k:'modello',l:'Modello',w:130},
+  {k:'matricola',l:'Matricola',w:110},
+  {k:'civab',l:'CIVAB',w:80},
+  {k:'cliente',l:'Cliente',w:110},
+  {k:'presidio',l:'Presidio',w:110},
+  {k:'reparto',l:'Reparto',w:130},
+  {k:'nuova_area',l:'Nuova Area',w:110},
+  {k:'sede_struttura',l:'Sede Struttura',w:130},
+  {k:'stanza',l:'Stanza',w:80},
+  {k:'dettagli_stato',l:'Stato',w:100},
+  {k:'presenze_effettive',l:'Presenze',w:80},
+  {k:'esito_verifica',l:'Esito',w:80},
+  {k:'esito_verifica_precedente',l:'Esito Prec.',w:90},
+  {k:'proprieta',l:'Proprietà',w:90},
+  {k:'forma_presenza',l:'Forma Pres.',w:110},
+  {k:'data_collaudo',l:'Collaudo',w:90},
+  {k:'data_fine_garanzia',l:'Fine Garanzia',w:100},
+  {k:'manutentore',l:'Manutentore',w:110},
+  {k:'fine_service_comodato',l:'Fine Comodato',w:110},
+  {k:'proposta_dismissione',l:'Prop. Dismis.',w:110},
+  {k:'dismissione_effettiva',l:'Dismis. Eff.',w:110},
+  {k:'verifiche',l:'Verifiche',w:100},
+  {k:'periodicita_vse',l:'Period. VSE',w:90},
+  {k:'vse_2324',l:'VSE 23/24',w:80},
+  {k:'vse_2425',l:'VSE 24/25',w:80},
+  {k:'vse_2526',l:'VSE 25/26',w:80},
+  {k:'data_prossima_vse',l:'Prox. VSE',w:90},
+  {k:'periodicita_vsp',l:'Period. VSP',w:90},
+  {k:'vsp_2324',l:'VSP 23/24',w:80},
+  {k:'vsp_2425',l:'VSP 24/25',w:80},
+  {k:'vsp_2526',l:'VSP 25/26',w:80},
+  {k:'data_prossima_vsp',l:'Prox. VSP',w:90},
+  {k:'periodicita_mp',l:'Period. MP',w:90},
+  {k:'mp_2324',l:'MP 23/24',w:80},
+  {k:'mp_2425',l:'MP 24/25',w:80},
+  {k:'mp_2526',l:'MP 25/26',w:80},
+  {k:'data_prossima_mp',l:'Prox. MP',w:90},
+  {k:'periodicita_cq',l:'Period. CQ',w:90},
+  {k:'cq_2324',l:'CQ 23/24',w:80},
+  {k:'cq_2425',l:'CQ 24/25',w:80},
+  {k:'cq_2526',l:'CQ 25/26',w:80},
+  {k:'data_prossimo_cq',l:'Prox. CQ',w:90},
+  {k:'note_programmate',l:'Note Prog.',w:160},
+  {k:'note_inventario',l:'Note Inv.',w:160},
+];
+
+let tableData       = null;   // null = non ancora caricato
+let tableColFilters = {};     // {colKey: Set<string>}  Set vuoto = nessun filtro
+let tableSortCol    = 'codice';
+let tableSortDir    = 1;      // 1=asc, -1=desc
+let tableHiddenCols = new Set();
+let tableSelected   = new Set();
+let tableViews      = [];     // [{name, hidden:[...]}]
+let tableSearchQ    = '';
+
+function _getTblCols() {
+  const jl = getJollyLabels();
+  const cols = [...TBL_COLS];
+  for (let i=1;i<=10;i++) cols.push({k:'jolly_'+i, l:jl[i-1], w:100});
+  return cols;
+}
+
+async function toggleTabella() {
+  const sec = document.getElementById('tabella-section');
+  const visible = sec.style.display !== 'none' && sec.style.display !== '';
+  sec.style.display = visible ? 'none' : 'block';
+  if (!visible) {
+    loadTableColConfig();
+    if (!tableData) await loadTableData();
+    else renderTableView();
+  }
+}
+
+async function tblReload() {
+  tableData = null;
+  await loadTableData();
+}
+
+async function loadTableData() {
+  const el = document.getElementById('tbl-loading');
+  el.style.display = 'block';
+  document.getElementById('tbl-table-wrap').innerHTML = '';
+  const aslKey = (currentUser?.profile?.asl||'ASL Benevento').toLowerCase().replace('asl ','');
+  const token = await supaToken();
+  let all = [], offset = 0;
+  while (true) {
+    const r = await fetch(
+      `${SUPA_URL}/rest/v1/dispositivi_${aslKey}?select=*&limit=1000&offset=${offset}`,
+      {headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+token,'Range-Unit':'items'}}
+    );
+    if (!r.ok) { toast('Errore caricamento tabella','warn'); break; }
+    const rows = await r.json();
+    all = all.concat(rows);
+    if (rows.length < 1000) break;
+    offset += 1000;
+  }
+  tableData = all;
+  el.style.display = 'none';
+  tableSelected = new Set(all.map(r => r.codice));
+  renderTableView();
+  toast(`${all.length} dispositivi caricati`, 'ok');
+}
+
+function _tblFilteredRows() {
+  if (!tableData) return [];
+  const q = tableSearchQ.toLowerCase();
+  const cols = _getTblCols();
+  return tableData.filter(row => {
+    if (q && !cols.some(c => (row[c.k]||'').toLowerCase().includes(q))) return false;
+    for (const [k, vals] of Object.entries(tableColFilters)) {
+      if (!vals || vals.size === 0) continue;
+      if (!vals.has(row[k]||'')) return false;
+    }
+    return true;
+  }).sort((a,b) => {
+    const av = a[tableSortCol]||'', bv = b[tableSortCol]||'';
+    return av < bv ? -tableSortDir : av > bv ? tableSortDir : 0;
+  });
+}
+
+function renderTableView() {
+  const rows = _tblFilteredRows();
+  const cols = _getTblCols().filter(c => !tableHiddenCols.has(c.k));
+  const selCount = rows.filter(r => tableSelected.has(r.codice)).length;
+  const allSel = rows.length > 0 && rows.every(r => tableSelected.has(r.codice));
+
+  document.getElementById('tbl-sel-count').textContent = selCount > 0 ? `${selCount} selezionati` : '';
+  document.getElementById('btn-crea-sess-tbl').disabled = selCount === 0;
+  document.getElementById('tbl-row-count').textContent = `${rows.length} dispositivi`;
+
+  let thead = '<tr><th class="tbl-th-chk"><input type="checkbox"' + (allSel?' checked':'') + ' onchange="tblToggleAll(this.checked)"></th>';
+  for (const c of cols) {
+    const filtered = tableColFilters[c.k]?.size > 0;
+    const sorted = tableSortCol === c.k;
+    const si = sorted ? (tableSortDir===1?' ▲':' ▼') : '';
+    thead += `<th class="tbl-th${filtered?' tbl-th-filtered':''}" style="min-width:${c.w}px"><div class="tbl-th-inner"><span class="tbl-th-label" onclick="tblSort('${c.k}')">${_esc(c.l)}${si}</span><button class="tbl-th-flt${filtered?' active':''}" onclick="openTblFilter('${c.k}',event)">▾</button></div></th>`;
+  }
+  thead += '</tr>';
+
+  let tbody = '';
+  for (const row of rows) {
+    const sel = tableSelected.has(row.codice);
+    tbody += `<tr class="${sel?'tbl-row-sel':''}" onclick="tblRowClick(event,'${_esc(row.codice)}')">`;
+    tbody += `<td class="tbl-td-chk"><input type="checkbox"${sel?' checked':''} onclick="event.stopPropagation();tblToggleRow('${_esc(row.codice)}',this.checked)"></td>`;
+    for (const c of cols) tbody += `<td class="tbl-td" title="${_esc(row[c.k]||'')}">${_esc(row[c.k]||'')}</td>`;
+    tbody += '</tr>';
+  }
+
+  document.getElementById('tbl-table-wrap').innerHTML =
+    `<table class="tbl-table"><thead>${thead}</thead><tbody>${tbody}</tbody></table>`;
+}
+
+function tblSearch(v) {
+  tableSearchQ = v;
+  renderTableView();
+}
+
+function tblRowClick(e, codice) {
+  if (e.target.tagName === 'INPUT') return;
+  openAnagDetail(codice);
+}
+
+function tblSort(k) {
+  if (tableSortCol === k) tableSortDir *= -1;
+  else { tableSortCol = k; tableSortDir = 1; }
+  renderTableView();
+}
+
+function tblToggleAll(checked) {
+  const rows = _tblFilteredRows();
+  if (checked) rows.forEach(r => tableSelected.add(r.codice));
+  else rows.forEach(r => tableSelected.delete(r.codice));
+  renderTableView();
+}
+
+function tblToggleRow(codice, checked) {
+  if (checked) tableSelected.add(codice);
+  else tableSelected.delete(codice);
+  // aggiorna solo contatore e classe riga senza ricostruire l'intera tabella
+  const rows = _tblFilteredRows();
+  const selCount = rows.filter(r => tableSelected.has(r.codice)).length;
+  document.getElementById('tbl-sel-count').textContent = selCount > 0 ? `${selCount} selezionati` : '';
+  document.getElementById('btn-crea-sess-tbl').disabled = selCount === 0;
+  const allSel = rows.length > 0 && rows.every(r => tableSelected.has(r.codice));
+  const allChk = document.querySelector('#tbl-table-wrap thead input[type=checkbox]');
+  if (allChk) allChk.checked = allSel;
+}
+
+// ── Filtri per colonna ──
+let _tblFilterOpenKey = null;
+let _tblFilterOutside = null;
+
+function openTblFilter(k, e) {
+  e.stopPropagation();
+  closeTblFilter();
+  if (!tableData) return;
+  const cols = _getTblCols();
+  const col = cols.find(c => c.k === k);
+  const activeVals = tableColFilters[k];
+  const uniqueVals = [...new Set(tableData.map(r => r[k]||''))].sort((a,b) => a < b ? -1 : a > b ? 1 : 0);
+
+  const panel = document.createElement('div');
+  panel.id = 'tbl-filter-panel';
+  panel.className = 'tbl-filter-panel';
+  const btn = e.currentTarget;
+  const rect = btn.getBoundingClientRect();
+  const left = Math.min(rect.left, window.innerWidth - 250);
+  panel.style.cssText = `position:fixed;top:${rect.bottom+4}px;left:${left}px;z-index:9000`;
+
+  let listHtml = '';
+  for (const v of uniqueVals) {
+    const chk = !activeVals || activeVals.size === 0 || activeVals.has(v);
+    listHtml += `<label class="tbl-fp-item"><input type="checkbox" value="${_esc(v)}"${chk?' checked':''}><span>${_esc(v||'(vuoto)')}</span></label>`;
+  }
+  panel.innerHTML = `
+    <div class="tbl-fp-hdr">${_esc(col?.l||k)}</div>
+    <input class="tbl-fp-search" type="text" placeholder="Cerca valore..." oninput="tblFpSearch(this.value)">
+    <div class="tbl-fp-actions">
+      <button onclick="tblFpSelAll()">Tutti</button>
+      <button onclick="tblFpSelNone()">Nessuno</button>
+    </div>
+    <div class="tbl-fp-list" id="tbl-fp-list">${listHtml}</div>
+    <div class="tbl-fp-footer">
+      <button onclick="tblFpApply('${k}')">Applica</button>
+      <button onclick="tblFpClear('${k}')">Cancella filtro</button>
+    </div>`;
+  panel._allVals = uniqueVals;
+  document.body.appendChild(panel);
+  _tblFilterOpenKey = k;
+  _tblFilterOutside = (ev) => { if (!panel.contains(ev.target)) closeTblFilter(); };
+  setTimeout(() => document.addEventListener('click', _tblFilterOutside), 0);
+}
+
+function closeTblFilter() {
+  const p = document.getElementById('tbl-filter-panel');
+  if (p) p.remove();
+  if (_tblFilterOutside) { document.removeEventListener('click', _tblFilterOutside); _tblFilterOutside = null; }
+  _tblFilterOpenKey = null;
+}
+
+function tblFpSearch(q) {
+  const ql = q.toLowerCase();
+  document.querySelectorAll('#tbl-fp-list .tbl-fp-item').forEach(el => {
+    el.style.display = el.querySelector('span').textContent.toLowerCase().includes(ql) ? '' : 'none';
+  });
+}
+
+function tblFpSelAll()  { document.querySelectorAll('#tbl-fp-list input').forEach(cb => cb.checked = true); }
+function tblFpSelNone() { document.querySelectorAll('#tbl-fp-list input').forEach(cb => cb.checked = false); }
+
+function tblFpApply(k) {
+  const checked = [...document.querySelectorAll('#tbl-fp-list input:checked')].map(cb => cb.value);
+  const panel = document.getElementById('tbl-filter-panel');
+  const allVals = panel?._allVals || [];
+  if (checked.length === 0 || checked.length === allVals.length) delete tableColFilters[k];
+  else tableColFilters[k] = new Set(checked);
+  closeTblFilter();
+  renderTableView();
+}
+
+function tblFpClear(k) {
+  delete tableColFilters[k];
+  closeTblFilter();
+  renderTableView();
+}
+
+// ── Colonne visibili ──
+function toggleTblColPicker() {
+  document.getElementById('tbl-col-picker').classList.toggle('open');
+  document.getElementById('tbl-views-panel').classList.remove('open');
+}
+
+function renderTblColPicker() {
+  const cols = _getTblCols();
+  let html = '';
+  for (const c of cols) {
+    const vis = !tableHiddenCols.has(c.k);
+    html += `<label class="tbl-cp-item"><input type="checkbox"${vis?' checked':''} onchange="tblToggleCol('${c.k}',this.checked)"><span>${_esc(c.l)}</span></label>`;
+  }
+  document.getElementById('tbl-col-picker-list').innerHTML = html;
+}
+
+function tblToggleCol(k, vis) {
+  if (vis) tableHiddenCols.delete(k);
+  else tableHiddenCols.add(k);
+  saveTableColConfig();
+  renderTableView();
+}
+
+// ── Viste personali ──
+function toggleTblViews() {
+  const p = document.getElementById('tbl-views-panel');
+  p.classList.toggle('open');
+  if (p.classList.contains('open')) { renderTblViews(); }
+  document.getElementById('tbl-col-picker').classList.remove('open');
+}
+
+function renderTblViews() {
+  let html = '';
+  tableViews.forEach((v, i) => {
+    html += `<div class="tbl-view-item"><span onclick="applyTblView(${i})">${_esc(v.name)}</span><button onclick="deleteTblView(${i})">✕</button></div>`;
+  });
+  document.getElementById('tbl-views-list').innerHTML = html || '<div style="font-size:12px;color:var(--text2);padding:4px 0">Nessuna vista salvata</div>';
+}
+
+function saveTblViewNamed() {
+  const name = document.getElementById('tbl-view-name').value.trim();
+  if (!name) { toast('Inserisci un nome per la vista','warn'); return; }
+  tableViews.push({name, hidden:[...tableHiddenCols]});
+  saveTableColConfig();
+  document.getElementById('tbl-view-name').value = '';
+  renderTblViews();
+  toast(`Vista "${name}" salvata`, 'ok');
+}
+
+function applyTblView(i) {
+  const v = tableViews[i]; if (!v) return;
+  tableHiddenCols = new Set(v.hidden);
+  saveTableColConfig();
+  renderTblColPicker();
+  renderTableView();
+  document.getElementById('tbl-views-panel').classList.remove('open');
+  toast(`Vista "${v.name}" applicata`, 'ok');
+}
+
+function deleteTblView(i) {
+  const name = tableViews[i]?.name;
+  tableViews.splice(i, 1);
+  saveTableColConfig();
+  renderTblViews();
+  if (name) toast(`Vista "${name}" eliminata`, 'ok');
+}
+
+function saveTableColConfig() {
+  const uid = currentUser?.id || 'guest';
+  localStorage.setItem('tbl_cfg_'+uid, JSON.stringify({hidden:[...tableHiddenCols], views:tableViews}));
+}
+
+function loadTableColConfig() {
+  const uid = currentUser?.id || 'guest';
+  try {
+    const cfg = JSON.parse(localStorage.getItem('tbl_cfg_'+uid)||'{}');
+    tableHiddenCols = new Set(cfg.hidden || []);
+    tableViews = cfg.views || [];
+  } catch { tableHiddenCols = new Set(); tableViews = []; }
+}
+
+// ── Crea sessione dalla selezione ──
+function openCreateSessionFromTable() {
+  const selRows = _tblFilteredRows().filter(r => tableSelected.has(r.codice));
+  if (!selRows.length) { toast('Nessun dispositivo selezionato','warn'); return; }
+  document.getElementById('tbl-sess-count').textContent = `${selRows.length} dispositivi selezionati`;
+  document.getElementById('tbl-sess-title').value = '';
+  document.getElementById('tbl-sess-date').value = new Date().toISOString().split('T')[0];
+  document.getElementById('tbl-sess-modal').classList.add('open');
+}
+
+function closeTblSessModal() {
+  document.getElementById('tbl-sess-modal').classList.remove('open');
+}
+
+async function confirmCreateSessionFromTable() {
+  const title = document.getElementById('tbl-sess-title').value.trim();
+  if (!title) { toast('Inserisci un nome per la sessione','warn'); return; }
+  const dataV = document.getElementById('tbl-sess-date').value || new Date().toISOString().split('T')[0];
+  const codici = _tblFilteredRows().filter(r => tableSelected.has(r.codice)).map(r => r.codice);
+
+  const token = await supaToken();
+  const asl = currentUser?.profile?.asl || 'ASL Benevento';
+
+  // 1. Crea sessione
+  const r = await fetch(`${SUPA_URL}/rest/v1/sessioni`, {
+    method:'POST', headers:supaHdrs(token),
+    body:JSON.stringify({titolo:title, utente_id:currentUser.id, asl, data_verifica:dataV})
+  });
+  if (!r.ok) { toast('Errore creazione sessione','warn'); return; }
+  const rows = await r.json();
+  const sess = Array.isArray(rows) ? rows[0] : rows;
+
+  // 2. Record attesi
+  await fetch(`${SUPA_URL}/rest/v1/sessione_schede`, {
+    method:'POST',
+    headers:{...supaHdrs(token),'Prefer':'return=minimal'},
+    body:JSON.stringify({sessione_id:sess.id, codice:'__attesi__', dati_vse:{lista:codici}})
+  });
+
+  closeTblSessModal();
+
+  // 3. Attiva sessione e naviga
+  await activateSession(sess.id, sess.titolo, dataV);
+  codici.forEach(c => attesi.add(c));
+  renderSession();
+  await syncSessionNow();
+  await loadSessList();
+
+  document.getElementById('tabella-section').style.display = 'none';
+  sbNav('sessione');
+  toast(`Sessione "${title}" creata con ${codici.length} dispositivi`, 'ok');
 }
 
 // ── ARCHIVIO CLOUD ────────────────────────────────────────────
