@@ -389,8 +389,9 @@ body.logged-in h1,body.logged-in .subtitle{display:none}
 
 /* ── VISTA TABELLA ── */
 #tabella-section{margin-bottom:14px}
-#tabella-section.tbl-fullscreen{position:fixed;inset:0;z-index:5000;margin:0;border-radius:0;display:flex;flex-direction:column;overflow:hidden;background:var(--bg2)}
-#tabella-section.tbl-fullscreen .tbl-wrap{flex:1;max-height:none}
+#tabella-section.tbl-fullscreen{position:fixed;inset:0;z-index:5000;margin:0;border-radius:0;display:flex;flex-direction:column;overflow:hidden;background:var(--bg2);animation:tbl-fs-in .18s ease-out}
+@keyframes tbl-fs-in{from{opacity:.2;transform:scale(.98)}to{opacity:1;transform:scale(1)}}
+#tabella-section.tbl-fullscreen .tbl-wrap{flex:1;min-height:0;max-height:none;overflow-x:auto;overflow-y:auto}
 #tabella-section.tbl-fullscreen .sess-hdr,
 #tabella-section.tbl-fullscreen .tbl-col-picker,
 #tabella-section.tbl-fullscreen .tbl-views-panel,
