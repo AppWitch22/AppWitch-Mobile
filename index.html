@@ -397,7 +397,7 @@ body.logged-in h1,body.logged-in .subtitle{display:none}
 .tbl-table{border-collapse:collapse;width:max-content;min-width:100%;font-size:12px}
 .tbl-table thead{position:sticky;top:0;z-index:10;background:var(--bg3)}
 .tbl-th,.tbl-td{border-right:1px solid var(--border);border-bottom:1px solid var(--border);padding:0;white-space:nowrap}
-.tbl-td{padding:5px 8px;color:var(--text);max-width:200px;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+.tbl-td{padding:5px 8px;color:var(--text);max-width:200px;overflow:hidden;text-overflow:ellipsis;cursor:pointer;height:33px;box-sizing:border-box}
 .tbl-td:hover{background:var(--bg3)}
 .tbl-th-inner{display:flex;align-items:center;gap:0;padding:0}
 .tbl-th-label{flex:1;padding:7px 8px;cursor:pointer;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--text2);user-select:none;white-space:nowrap}
@@ -5384,6 +5384,13 @@ let tableHiddenCols = new Set();
 let tableSelected   = new Set();
 let tableViews      = [];     // [{name, hidden:[...]}]
 let tableSearchQ    = '';
+// virtual scroll
+const TBL_ROW_H   = 33;      // px per riga — deve corrispondere al CSS
+const TBL_BUFFER  = 60;      // righe extra sopra/sotto il viewport
+let _tblRows      = [];      // righe filtrate/ordinate correnti (cache)
+let _tblCols      = [];      // colonne visibili correnti (cache)
+let _tblRaf       = null;    // requestAnimationFrame handle
+let _tblSearchTm  = null;    // debounce handle per la ricerca
 
 function _getTblCols() {
   const jl = getJollyLabels();
@@ -5451,40 +5458,82 @@ function _tblFilteredRows() {
 }
 
 function renderTableView() {
-  const rows = _tblFilteredRows();
-  const cols = _getTblCols().filter(c => !tableHiddenCols.has(c.k));
-  const selCount = rows.filter(r => tableSelected.has(r.codice)).length;
-  const allSel = rows.length > 0 && rows.every(r => tableSelected.has(r.codice));
+  _tblRows = _tblFilteredRows();
+  _tblCols = _getTblCols().filter(c => !tableHiddenCols.has(c.k));
+  const rows = _tblRows, cols = _tblCols;
 
+  const selCount = rows.filter(r => tableSelected.has(r.codice)).length;
+  const allSel   = rows.length > 0 && rows.every(r => tableSelected.has(r.codice));
   document.getElementById('tbl-sel-count').textContent = selCount > 0 ? `${selCount} selezionati` : '';
   document.getElementById('btn-crea-sess-tbl').disabled = selCount === 0;
   document.getElementById('tbl-row-count').textContent = `${rows.length} dispositivi`;
 
+  // thead
   let thead = '<tr><th class="tbl-th-chk"><input type="checkbox"' + (allSel?' checked':'') + ' onchange="tblToggleAll(this.checked)"></th>';
   for (const c of cols) {
     const filtered = tableColFilters[c.k]?.size > 0;
-    const sorted = tableSortCol === c.k;
+    const sorted   = tableSortCol === c.k;
     const si = sorted ? (tableSortDir===1?' ▲':' ▼') : '';
     thead += `<th class="tbl-th${filtered?' tbl-th-filtered':''}" style="min-width:${c.w}px"><div class="tbl-th-inner"><span class="tbl-th-label" onclick="tblSort('${c.k}')">${_esc(c.l)}${si}</span><button class="tbl-th-flt${filtered?' active':''}" onclick="openTblFilter('${c.k}',event)">▾</button></div></th>`;
   }
   thead += '</tr>';
 
-  let tbody = '';
-  for (const row of rows) {
-    const sel = tableSelected.has(row.codice);
-    tbody += `<tr class="${sel?'tbl-row-sel':''}" onclick="tblRowClick(event,'${_esc(row.codice)}')">`;
-    tbody += `<td class="tbl-td-chk"><input type="checkbox"${sel?' checked':''} onclick="event.stopPropagation();tblToggleRow('${_esc(row.codice)}',this.checked)"></td>`;
-    for (const c of cols) tbody += `<td class="tbl-td" title="${_esc(row[c.k]||'')}">${_esc(row[c.k]||'')}</td>`;
-    tbody += '</tr>';
-  }
+  const colCount = cols.length + 1;
+  const wrap = document.getElementById('tbl-table-wrap');
 
-  document.getElementById('tbl-table-wrap').innerHTML =
-    `<table class="tbl-table"><thead>${thead}</thead><tbody>${tbody}</tbody></table>`;
+  // Rimuovi vecchio scroll handler
+  if (wrap._tblScrollFn) wrap.removeEventListener('scroll', wrap._tblScrollFn);
+
+  wrap.innerHTML = `<table class="tbl-table">
+    <thead>${thead}</thead>
+    <tbody><tr id="tbl-virt-top"><td colspan="${colCount}" style="height:0px;padding:0;border:none"></td></tr></tbody>
+    <tbody id="tbl-tbody"></tbody>
+    <tbody><tr id="tbl-virt-bot"><td colspan="${colCount}" style="height:${rows.length*TBL_ROW_H}px;padding:0;border:none"></td></tr></tbody>
+  </table>`;
+
+  wrap._tblScrollFn = () => {
+    if (_tblRaf) cancelAnimationFrame(_tblRaf);
+    _tblRaf = requestAnimationFrame(() => _tblRenderSlice(wrap));
+  };
+  wrap.addEventListener('scroll', wrap._tblScrollFn);
+  wrap.scrollTop = 0;
+  _tblRenderSlice(wrap);
+}
+
+function _tblRenderSlice(wrap) {
+  const rows = _tblRows, cols = _tblCols;
+  const total = rows.length;
+  const tbody = document.getElementById('tbl-tbody');
+  const topEl = document.getElementById('tbl-virt-top');
+  const botEl = document.getElementById('tbl-virt-bot');
+  if (!tbody || !topEl || !botEl) return;
+
+  if (!total) { tbody.innerHTML = ''; return; }
+
+  const scrollTop = wrap.scrollTop;
+  const viewH     = wrap.clientHeight || 500;
+  const startIdx  = Math.max(0,     Math.floor(scrollTop / TBL_ROW_H) - TBL_BUFFER);
+  const endIdx    = Math.min(total, Math.ceil((scrollTop + viewH) / TBL_ROW_H) + TBL_BUFFER);
+
+  topEl.firstChild.style.height = (startIdx * TBL_ROW_H) + 'px';
+  botEl.firstChild.style.height = ((total - endIdx) * TBL_ROW_H) + 'px';
+
+  let html = '';
+  for (let i = startIdx; i < endIdx; i++) {
+    const row = rows[i];
+    const sel = tableSelected.has(row.codice);
+    html += `<tr class="${sel?'tbl-row-sel':''}" data-cod="${_esc(row.codice)}" style="height:${TBL_ROW_H}px" onclick="tblRowClick(event,'${_esc(row.codice)}')">`;
+    html += `<td class="tbl-td-chk"><input type="checkbox"${sel?' checked':''} onclick="event.stopPropagation();tblToggleRow('${_esc(row.codice)}',this.checked)"></td>`;
+    for (const c of cols) html += `<td class="tbl-td" title="${_esc(row[c.k]||'')}">${_esc(row[c.k]||'')}</td>`;
+    html += '</tr>';
+  }
+  tbody.innerHTML = html;
 }
 
 function tblSearch(v) {
   tableSearchQ = v;
-  renderTableView();
+  clearTimeout(_tblSearchTm);
+  _tblSearchTm = setTimeout(renderTableView, 200);
 }
 
 function tblRowClick(e, codice) {
@@ -5499,23 +5548,28 @@ function tblSort(k) {
 }
 
 function tblToggleAll(checked) {
-  const rows = _tblFilteredRows();
-  if (checked) rows.forEach(r => tableSelected.add(r.codice));
-  else rows.forEach(r => tableSelected.delete(r.codice));
-  renderTableView();
+  if (checked) _tblRows.forEach(r => tableSelected.add(r.codice));
+  else _tblRows.forEach(r => tableSelected.delete(r.codice));
+  // aggiorna solo la slice visibile, non ricostruisce l'intera struttura
+  const wrap = document.getElementById('tbl-table-wrap');
+  if (wrap) _tblRenderSlice(wrap);
+  const selCount = _tblRows.filter(r => tableSelected.has(r.codice)).length;
+  document.getElementById('tbl-sel-count').textContent = selCount > 0 ? `${selCount} selezionati` : '';
+  document.getElementById('btn-crea-sess-tbl').disabled = selCount === 0;
 }
 
 function tblToggleRow(codice, checked) {
   if (checked) tableSelected.add(codice);
   else tableSelected.delete(codice);
-  // aggiorna solo contatore e classe riga senza ricostruire l'intera tabella
-  const rows = _tblFilteredRows();
-  const selCount = rows.filter(r => tableSelected.has(r.codice)).length;
+  // Aggiorna solo la riga nel DOM senza ricostruire nulla
+  const tr = document.querySelector(`#tbl-tbody tr[data-cod="${CSS.escape(codice)}"]`);
+  if (tr) tr.classList.toggle('tbl-row-sel', checked);
+  // Aggiorna contatore e "seleziona tutto"
+  const selCount = _tblRows.filter(r => tableSelected.has(r.codice)).length;
   document.getElementById('tbl-sel-count').textContent = selCount > 0 ? `${selCount} selezionati` : '';
   document.getElementById('btn-crea-sess-tbl').disabled = selCount === 0;
-  const allSel = rows.length > 0 && rows.every(r => tableSelected.has(r.codice));
   const allChk = document.querySelector('#tbl-table-wrap thead input[type=checkbox]');
-  if (allChk) allChk.checked = allSel;
+  if (allChk) allChk.checked = _tblRows.length > 0 && selCount === _tblRows.length;
 }
 
 // ── Filtri per colonna ──
