@@ -428,6 +428,7 @@ body.logged-in h1,body.logged-in .subtitle{display:none}
     <button class="sb-btn" id="btn-xlsx" onclick="exportXLSX()" disabled><span class="sb-icon"><svg width="14" height="14" viewBox="0 0 12 12" fill="none"><path d="M2 9h8M6 2v6M4 6l2 2 2-2" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/></svg></span> Esporta Excel</button>
     <button class="sb-btn" id="btn-salva-preset" onclick="saveSessionAsPresets()"><span class="sb-icon"><svg width="14" height="14" viewBox="0 0 12 12" fill="none"><rect x="1.5" y="1.5" width="9" height="9" rx="1.5" stroke="currentColor" stroke-width="1.1"/><path d="M4 1.5v3h4v-3" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/><rect x="3" y="7" width="6" height="3" rx=".5" stroke="currentColor" stroke-width="1"/></svg></span> Salva Preset</button>
     <label class="sb-btn" id="btn-carica-preset" style="cursor:pointer"><span class="sb-icon"><svg width="14" height="14" viewBox="0 0 12 12" fill="none"><path d="M2 9h8M6 7V2M4 4l2-2 2 2" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/></svg></span> Carica Preset<input type="file" accept=".xlsx,.xls" onchange="importPresetsFromExcel(this)" style="display:none"></label>
+    <button class="sb-btn" onclick="exportPresetsToExcel()"><span class="sb-icon"><svg width="14" height="14" viewBox="0 0 12 12" fill="none"><path d="M2 9h8M6 2v6M4 6l2 2 2-2" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/></svg></span> Esporta Preset</button>
     <button class="sb-btn" onclick="uploadSessionToCloud()"><span class="sb-icon"><svg width="14" height="14" viewBox="0 0 12 12" fill="none"><path d="M3.5 8.5A2.5 2.5 0 013 3.5a3 3 0 015.9-.5A2 2 0 019 7.5" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/><path d="M6 10V6M4.5 7.5L6 6l1.5 1.5" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/></svg></span> Carica su Cloud</button>
     <button class="sb-btn" id="btn-export-massivo" onclick="exportSessioneMassiva()" disabled><span class="sb-icon"><svg width="14" height="14" viewBox="0 0 12 12" fill="none"><rect x="1.5" y="1.5" width="9" height="9" rx="1.5" stroke="currentColor" stroke-width="1.1"/><path d="M4 6h4M7 4.5L8.5 6 7 7.5" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/></svg></span> Esporta Sessione</button>
     <button class="sb-btn" onclick="downloadMacroPDF()"><span class="sb-icon"><svg width="14" height="14" viewBox="0 0 12 12" fill="none"><rect x="2" y="1" width="7" height="9" rx="1" stroke="currentColor" stroke-width="1.1"/><path d="M4 4h3M4 6h3M4 8h2" stroke="currentColor" stroke-width="1" stroke-linecap="round"/><path d="M7 1v2.5H9.5" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/></svg></span> Macro PDF</button>
@@ -485,6 +486,7 @@ body.logged-in h1,body.logged-in .subtitle{display:none}
         <button class="btn-sm" id="btn-xlsx-mobile" onclick="exportXLSX()" disabled>⬇ Excel</button>
         <button class="btn-sm" id="btn-salva-preset-m" onclick="saveSessionAsPresets()">💾 Salva Preset</button>
         <label class="btn-sm" id="btn-carica-preset-m" style="cursor:pointer">📥 Carica Preset<input type="file" accept=".xlsx,.xls" onchange="importPresetsFromExcel(this)" style="display:none"></label>
+        <button class="btn-sm" onclick="exportPresetsToExcel()">📤 Esporta Preset</button>
         <button class="btn-sm" onclick="uploadSessionToCloud()">☁️ Carica</button>
         <button class="btn-sm" id="btn-export-massivo-m" onclick="exportSessioneMassiva()" disabled>⬇ Sessione</button>
         <button class="btn-sm" onclick="downloadMacroPDF()">📄 Macro PDF</button>
@@ -3678,6 +3680,253 @@ async function importPresetsFromExcel(input) {
   }
   await loadPresets();
   toast(total ? `Importati ${total} preset da Excel` : 'Nessun preset trovato nel file', total?'ok':'warn');
+}
+
+// ── PRESET: Esporta preset correnti in formato Excel compatibile con import ──
+async function exportPresetsToExcel() {
+  if (currentUser?.profile?.role === 'responsabile') { toast('Operazione non consentita per questo profilo', 'warn'); return; }
+  if (!PRESETS || !Object.keys(PRESETS).length) { toast('Nessun preset in memoria — ricarica prima', 'warn'); return; }
+  if (typeof XLSX === 'undefined') {
+    toast('Caricamento libreria Excel...','warn');
+    await new Promise(res => { const s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js'; s.onload=res; document.head.appendChild(s); });
+  }
+  const wb = XLSX.utils.book_new();
+  const date = new Date().toISOString().split('T')[0];
+  let sheets = 0;
+
+  // ── VSE ──
+  const vseP = PRESETS['PRESET_VSE'] || {};
+  const vseK = Object.keys(vseP);
+  if (vseK.length) {
+    const HVSE=['CODICE','DATA','NOTE','Tensione','Tensione D/P','Frequenza','Frequenza D/P','Potenza','Potenza D/P','Marchio Conformita','Fusibili Dichiarati','Fusibili Riscontrati','Classe','Classe D/P','PA Tipo','Tipo D/P','Funzionamento','Protezione Defibrillatore','Tipo Spina','Smontabile/pressofusa','Marchio Spina','Cavo Alimentazione','IntegritaCavo','Integrita Spina','InterruttoreRete','ParteApplicata','IntegritaConnettori','ProtezioneConduttori','IntegritaConduttori','Manuale Uso','Manuale Servizio','Note Aggiuntive','ClasseMisura','Tensione2','CorrenteAssorbitaMA','TerraProtezioneLimite','TerraProtezioneMisurata','PN Limite','PN Misurata','PI Limite','PI Misurata','PN BF Limite','PN BF Misurata','PI BF Limite','PI BF Misurata','PN CF Limite','PN CF Misurata','PI CF Limite','PI CF Misurata','Giudizio','ValoriMessaTerra','ValoriDispersione','MotiviNonConformita','Colonna vuota','Strumento','NrSerie','Verificatore','Data','VERIFICATO','Scadenza Taratura'];
+    const FVSE=['codice','data','note','ten','tdp','frq','fdp','pot','pdp','mar','fud','fur','cls','cdp','pat','pad','fnz','def','spi','smo','msp','cav','icv','isp','int','pdc','icn','prc','icd','mus','mse','nag','clm','tms','cor','trl','trm','pnl','pnm','pil','pim','pbl','pbm','ibl','ibm','pcl','pcm','icl','icm','giu','vt','vd','mot','','str','nrs','ver','dat2','vrc','sct'];
+    const NUMERIC_VSE=new Set([33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49]);
+    const rows = vseK.map(codice => {
+      const d = vseP[codice] || {};
+      return FVSE.map((f, i) => {
+        const v = f === 'codice' ? codice : f ? (d[f] || '') : '';
+        if (NUMERIC_VSE.has(i) && v !== '') { const n = parseFloat(v); return isNaN(n) ? v : n; }
+        return v;
+      });
+    });
+    const ws = XLSX.utils.aoa_to_sheet([HVSE, ...rows]);
+    ws['!cols'] = HVSE.map(() => ({wch:16}));
+    applyPageSetup(ws);
+    XLSX.utils.book_append_sheet(wb, ws, 'Inserimento_VSE');
+    sheets++;
+  }
+
+  // ── MP ──
+  const mpP = PRESETS['PRESET_MP'] || {};
+  const mpK = Object.keys(mpP);
+  if (mpK.length) {
+    const R1 = ['CODICE','DATA','NOTE'];
+    for (let i=1;i<=19;i++) R1.push(i,null,null);
+    R1.push('Tecnico Esecutore');
+    const R2 = [null,null,null];
+    for (let i=1;i<=19;i++) R2.push('OK','KO','NA');
+    R2.push(null);
+    const rows = mpK.map(codice => {
+      const d = mpP[codice] || {};
+      const row = [codice, d.mp_data||'', d.mp_note||''];
+      for (let i=1;i<=19;i++) row.push(d['mp'+i+'_ok']?'X':null, d['mp'+i+'_ko']?'X':null, d['mp'+i+'_na']?'X':null);
+      row.push(d.mp_tecnico||'');
+      return row;
+    });
+    const ws = XLSX.utils.aoa_to_sheet([R1, R2, ...rows]);
+    const cols = [{wch:10},{wch:12},{wch:20}];
+    for (let i=0;i<19;i++) cols.push({wch:5},{wch:5},{wch:5});
+    cols.push({wch:20});
+    ws['!cols'] = cols;
+    applyPageSetup(ws);
+    XLSX.utils.book_append_sheet(wb, ws, 'Inserimento_MP');
+    sheets++;
+  }
+
+  // ── VSP ──
+  for (const tipo of Object.keys(VSP_POINTS)) {
+    const vspP = PRESETS['PRESET_'+tipo] || {};
+    const vspK = Object.keys(vspP);
+    if (!vspK.length) continue;
+    const def = VSP_POINTS[tipo];
+    let R1, R2, R3, rows;
+
+    if (tipo === 'VSP_DEF') {
+      const NC=107;
+      R1=Array(NC).fill(null);R2=Array(NC).fill(null);R3=Array(NC).fill(null);
+      R1[0]='CODICE';R1[1]='DATA';R1[2]='NOTE';R1[3]='2 Controlli visivi';
+      R1[50]='3 Energia erogata';R1[64]='4 Tempi carica';R1[79]='5 Tempi ritardo';
+      R1[91]='8 Strumentazione';R1[96]='TECNICO ESECUTORE';R1[97]='Esiti';R1[100]='5 Tempi ritardo esiti';R1[104]='6 Raccomandazioni';
+      let ci=3;def.forEach(p=>{R2[ci]=p.l;ci+=p.opts.length;});
+      ['E1i','E1m','E2i','E2m','E3i','E3m','E4i','E4m','E5i','E5m'].forEach((v,i)=>R3[50+i]=v);
+      R2[60]='DAE';R3[60]='Mis';
+      ['A-r','A-b','A-M','B-r','B-b','B-M','C-r','C-b','C-M','D-r','D-b','D-M'].forEach((v,i)=>R3[64+i]=v);
+      R2[79]='A';R3[79]='Ril';R3[80]='Max';R2[83]='B';R3[83]='Ril';R3[84]='Max';R2[87]='C';R3[87]='Ril';R3[88]='Max';
+      ['Strum','Mod','Serie','Cert','Scad'].forEach((v,i)=>R2[91+i]=v);
+      [['E-esito',97],['TC-AB-NA',98],['TC-CD-NA',99],['TC-OK',100],['TR-A-esito',101],['TR-B-esito',102],['TR-C-esito',103],['Rac-A',104],['Rac-B',105],['Rac-C',106]].forEach(([v,c])=>R2[c]=v);
+      ci=3;def.forEach(p=>{p.opts.forEach(o=>{R3[ci++]=o;});});
+      rows = vspK.map(codice => {
+        const d = vspP[codice] || {};
+        const row = Array(NC).fill(null);
+        row[0]=codice; row[1]=d.vsp_data||''; row[2]=d.vsp_note||'';
+        let ci2=3;def.forEach(p=>{const opt=p.opts.find(o=>d['vsp_'+p.l+'_'+o.toLowerCase()])||'';p.opts.forEach(o=>{row[ci2++]=(opt===o?'X':null);});});
+        ['def_e1i','def_e1m','def_e2i','def_e2m','def_e3i','def_e3m','def_e4i','def_e4m','def_e5i','def_e5m'].forEach((f,i)=>{if(d[f])row[50+i]=d[f];});
+        if(d['def_dae_mis'])row[60]=d['def_dae_mis'];
+        ['def_tc_ar','def_tc_ab','def_tc_am','def_tc_br','def_tc_bb','def_tc_bm','def_tc_cr','def_tc_cb','def_tc_cm','def_tc_dr','def_tc_db','def_tc_dm'].forEach((f,i)=>{if(d[f])row[64+i]=d[f];});
+        [['def_tr_ar',79],['def_tr_am',80],['def_tr_br',83],['def_tr_bm',84],['def_tr_cr',87],['def_tr_cm',88]].forEach(([f,c])=>{if(d[f])row[c]=d[f];});
+        ['def_strum','def_mod','def_ser','def_cert','def_scad'].forEach((f,i)=>{if(d[f])row[91+i]=d[f];});
+        row[96]=d.vsp_tecnico||'';
+        [['def_e_esito',97],['def_tc_ab_na',98],['def_tc_cd_na',99],['def_tc_ok',100],['def_tr_a_esito',101],['def_tr_b_esito',102],['def_tr_c_esito',103],['def_rac_a',104],['def_rac_b',105],['def_rac_c',106]].forEach(([f,c])=>{if(d[f])row[c]=d[f];});
+        return row;
+      });
+    } else if (tipo === 'VSP_ELB') {
+      const NC=113;
+      const RC_FIELDS_ELB=['elb_rc_t_ni','elb_rc_t_nm','elb_rc_t_q1i','elb_rc_t_q1m','elb_rc_t_q2i','elb_rc_t_q2m','elb_rc_t_q3i','elb_rc_t_q3m','elb_rc_t_mxi','elb_rc_t_mxm','elb_rc_m_ni','elb_rc_m_nm','elb_rc_m_q1i','elb_rc_m_q1m','elb_rc_m_q2i','elb_rc_m_q2m','elb_rc_m_q3i','elb_rc_m_q3m','elb_rc_m_mxi','elb_rc_m_mxm','elb_rc_c_ni','elb_rc_c_nm','elb_rc_c_q1i','elb_rc_c_q1m','elb_rc_c_q2i','elb_rc_c_q2m','elb_rc_c_q3i','elb_rc_c_q3m','elb_rc_c_mxi','elb_rc_c_mxm','elb_rc_b_ni','elb_rc_b_nm','elb_rc_b_q1i','elb_rc_b_q1m','elb_rc_b_q2i','elb_rc_b_q2m','elb_rc_b_q3i','elb_rc_b_q3m','elb_rc_b_mxi','elb_rc_b_mxm'];
+      R1=Array(NC).fill(null);R2=Array(NC).fill(null);R3=Array(NC).fill(null);
+      R1[0]='CODICE';R1[1]='DATA';R1[2]='NOTE';R1[3]='1 Dati di targa';R1[18]='3 Controlli visivi';
+      R1[36]='4 Corrente disp.';R1[56]='5 Esiti';R1[58]='6 Controlli norme';R1[64]='7 Erogazione';R1[67]='8 Tolleranza uscita';R1[107]='9 Strumentazione';R1[112]='TECNICO ESECUTORE';
+      [['Pbip',3],['Cbip',4],['fHz-bip',5],['fKHz-bip',6],['fMHz-bip',7],['Pmono',8],['Cmono',9],['fHz-mono',10],['fKHz-mono',11],['fMHz-mono',12],['PA',15],['PdT-Esito',16]].forEach(([v,c])=>R2[c]=v);
+      let ci=18;def.forEach(p=>{R2[ci]=p.l;R3[ci]='OK';R3[ci+1]='KO';R3[ci+2]='NA';ci+=3;});
+      [['T',36],['M',37],['C',38],['T',39],['M',40],['C',41],['T',42],['M',43],['C',44],['T',46],['M',47],['C',48]].forEach(([v,c])=>R3[c]=v);
+      ['Carico-el.','','','Att/terra','','','El.neutro','','','','El.attivo','',''].forEach((v,i)=>R2[36+i]=v);
+      ['E1-CN','E2-CN','E1-MT','E2-MT'].forEach((v,i)=>R2[52+i]=v);
+      [['HF-esito',56],['Bip-esito',57],['VP1',58],['VP2',59],['VP3',60],['VP4',61],['VP5',62],['VP6',63],['ER1',64],['ER2',65],['ER3',66]].forEach(([v,c])=>R2[c]=v);
+      RC_FIELDS_ELB.forEach((f,i)=>R2[67+i]=f.replace('elb_rc_','').replace(/_/g,'-'));
+      ['Strum','Mod','Serie','Cert','Scad'].forEach((v,i)=>R2[107+i]=v);
+      rows = vspK.map(codice => {
+        const d = vspP[codice] || {};
+        const row = Array(NC).fill(null);
+        row[0]=codice; row[1]=d.vsp_data||''; row[2]=d.vsp_note||'';
+        [['elb_pbip',3],['elb_cbip',4],['elb_fhz',5],['elb_fkhz',6],['elb_fmhz',7],['elb_pmono',8],['elb_cmono',9],['elb_fhz2',10],['elb_fkhz2',11],['elb_fmhz2',12],['elb_pa',15],['elb_pdt',16]].forEach(([f,c])=>{if(d[f])row[c]=d[f];});
+        let ci2=18;def.forEach(p=>{const opt=p.opts.find(o=>d['vsp_'+p.l+'_'+o.toLowerCase()])||'';p.opts.forEach(o=>{row[ci2++]=(opt===o?'X':null);});});
+        [['elb_ct_t',36],['elb_ct_m',37],['elb_ct_c',38],['elb_at_t',39],['elb_at_m',40],['elb_at_c',41],['elb_en_t',42],['elb_en_m',43],['elb_en_c',44],['elb_ea_t',46],['elb_ea_m',47],['elb_ea_c',48],['elb_iso1n',52],['elb_iso1t',53],['elb_iso2n',54],['elb_iso2t',55]].forEach(([f,c])=>{if(d[f])row[c]=d[f];});
+        [['elb_hf_esito',56],['elb_bip_esito',57],['elb_vp1',58],['elb_vp2',59],['elb_vp3',60],['elb_vp4',61],['elb_vp5',62],['elb_vp6',63],['elb_er1',64],['elb_er2',65],['elb_er3',66]].forEach(([f,c])=>{if(d[f])row[c]=d[f];});
+        RC_FIELDS_ELB.forEach((f,i)=>{if(d[f])row[67+i]=d[f];});
+        ['elb_strum','elb_mod','elb_ser','elb_cert','elb_scad'].forEach((f,i)=>{if(d[f])row[107+i]=d[f];});
+        row[112]=d.vsp_tecnico||'';
+        return row;
+      });
+    } else {
+      // CEN, ECG
+      const chkCols = def.reduce((s,p)=>s+p.opts.length,0);
+      R1=['CODICE','DATA','NOTE','CONTROLLO VISIVO',...Array(chkCols-1).fill(null),'TECNICO ESECUTORE'];
+      R2=[null,null,null]; R3=[null,null,null];
+      def.forEach(p=>{R2.push(p.l,...Array(p.opts.length-1).fill(null));R3.push(...p.opts);});
+      R2.push(null); R3.push(null);
+      rows = vspK.map(codice => {
+        const d = vspP[codice] || {};
+        const row = [codice, d.vsp_data||'', d.vsp_note||''];
+        def.forEach(p=>{const opt=p.opts.find(o=>d['vsp_'+p.l+'_'+o.toLowerCase()])||'';p.opts.forEach(o=>row.push(opt===o?'X':null));});
+        row.push(d.vsp_tecnico||'');
+        return row;
+      });
+    }
+    const wsVsp = XLSX.utils.aoa_to_sheet([R1, R2, R3, ...rows]);
+    applyPageSetup(wsVsp);
+    XLSX.utils.book_append_sheet(wb, wsVsp, 'Inserimento_VSP_'+tipo.replace('VSP_',''));
+    sheets++;
+  }
+
+  // ── CQ ──
+  const _EPMAP={
+    'CQ_DEF':[['cq_def_tipo_man',3],['cq_def_tipo_dae',4],['cq_def_opt_pac',5],['cq_def_opt_nibp',6],['cq_def_opt_spo2',7],
+              ['cq_def_e1i',29],['cq_def_e1m',30],['cq_def_e2i',33],['cq_def_e2m',34],['cq_def_e3i',37],['cq_def_e3m',38],
+              ['cq_def_e4i',41],['cq_def_e4m',42],['cq_def_e5i',45],['cq_def_e5m',46],['cq_def_e6i',49],['cq_def_e6m',50]],
+    'CQ_ECG':[['cq_ecg_v1i',24],['cq_ecg_v1ind',25],['cq_ecg_v1lim',26],['cq_ecg_v2i',29],['cq_ecg_v2ind',30],['cq_ecg_v2lim',31],
+              ['cq_ecg_v3i',34],['cq_ecg_v3ind',35],['cq_ecg_v3lim',36],['cq_ecg_v4i',39],['cq_ecg_v4ind',40],['cq_ecg_v4lim',41],
+              ['cq_ecg_v5i',44],['cq_ecg_v5ind',45],['cq_ecg_v5lim',46]],
+    'CQ_CEN':[['cq_cen_g1i',18],['cq_cen_g1m',19],['cq_cen_g2i',20],['cq_cen_g2m',21],['cq_cen_g3i',22],['cq_cen_g3m',23],
+              ['cq_cen_t1i',24],['cq_cen_t1m',25],['cq_cen_t2i',26],['cq_cen_t2m',27],['cq_cen_t3i',28],['cq_cen_t3m',29]],
+    'CQ_ELB':[['cq_elb_ct_t',33],['cq_elb_ct_c',34],['cq_elb_at_t',35],['cq_elb_at_c',36],['cq_elb_fn_t',37],['cq_elb_fn_c',38],
+              ['cq_elb_en_t',39],['cq_elb_en_c',40],['cq_elb_iso1',44],['cq_elb_iso2',45],
+              ['cq_elb_hf_esito',46],['cq_elb_bip_esito',47],
+              ['cq_elb_pt1d',49],['cq_elb_pt1r',50],['cq_elb_pc1d',51],['cq_elb_pc1r',52],['cq_elb_pb1d',53],['cq_elb_pb1r',54],
+              ['cq_elb_pt2d',55],['cq_elb_pt2r',56],['cq_elb_pc2d',57],['cq_elb_pc2r',58],['cq_elb_pb2d',59],['cq_elb_pb2r',60],
+              ['cq_elb_pt3d',61],['cq_elb_pt3r',62],['cq_elb_pc3d',63],['cq_elb_pc3r',64],['cq_elb_pb3d',65],['cq_elb_pb3r',66],
+              ['cq_elb_pt4d',67],['cq_elb_pt4r',68],['cq_elb_pc4d',69],['cq_elb_pc4r',70],['cq_elb_pb4d',71],['cq_elb_pb4r',72],
+              ['cq_elb_pot_esito',73]],
+    'CQ_FBI':[['cq_fbi_r1label',9],['cq_fbi_r1i',10],['cq_fbi_r1ind',11],['cq_fbi_r1it',12],['cq_fbi_r1m',13],['cq_fbi_r1l',14],
+              ['cq_fbi_r2label',15],['cq_fbi_r2i',16],['cq_fbi_r2ind',17],['cq_fbi_r2it',18],['cq_fbi_r2m',19],['cq_fbi_r2l',20],
+              ['cq_fbi_r3label',21],['cq_fbi_r3i',22],['cq_fbi_r3ind',23],['cq_fbi_r3it',24],['cq_fbi_r3m',25],['cq_fbi_r3l',26],
+              ['cq_fbi_r4label',27],['cq_fbi_r4i',28],['cq_fbi_r4ind',29],['cq_fbi_r4it',30],['cq_fbi_r4m',31],['cq_fbi_r4l',32]],
+    'CQ_ECT':[['cq_ect_s1',27],['cq_ect_s2',28],['cq_ect_s3',29],['cq_ect_s4',30],
+              ['cq_ect_m1s1',31],['cq_ect_m1s2',32],['cq_ect_m1s3',33],['cq_ect_m1s4',34],
+              ['cq_ect_m2as1',35],['cq_ect_m2as2',36],['cq_ect_m2as3',37],['cq_ect_m2as4',38],
+              ['cq_ect_m2bs1',39],['cq_ect_m2bs2',40],['cq_ect_m2bs3',41],['cq_ect_m2bs4',42],
+              ['cq_ect_m3as1',43],['cq_ect_m3as2',44],['cq_ect_m3as3',45],['cq_ect_m3as4',46],
+              ['cq_ect_m3bs1',47],['cq_ect_m3bs2',48],['cq_ect_m3bs3',49],['cq_ect_m3bs4',50],
+              ['cq_ect_m4as1',51],['cq_ect_m4as2',52],['cq_ect_m4as3',53],['cq_ect_m4as4',54],
+              ['cq_ect_m4bs1',55],['cq_ect_m4bs2',56],['cq_ect_m4bs3',57],['cq_ect_m4bs4',58],
+              ['cq_ect_m5s1',59],['cq_ect_m5s2',60],['cq_ect_m5s3',61],['cq_ect_m5s4',62],
+              ['cq_ect_m6s1',63],['cq_ect_m6s2',64],['cq_ect_m6s3',65],['cq_ect_m6s4',66]],
+    'CQ_MON':[['cq_mon_e1i',12],['cq_mon_e1ind',13],['cq_mon_e1lim',14],['cq_mon_e2i',17],['cq_mon_e2ind',18],['cq_mon_e2lim',19],
+              ['cq_mon_e3i',22],['cq_mon_e3ind',23],['cq_mon_e3lim',24],['cq_mon_e4i',27],['cq_mon_e4ind',28],['cq_mon_e4lim',29],
+              ['cq_mon_e5i',32],['cq_mon_e5ind',33],['cq_mon_e5lim',34],
+              ['cq_mon_s1i',37],['cq_mon_s1ind',38],['cq_mon_s1lim',39],['cq_mon_s2i',42],['cq_mon_s2ind',43],['cq_mon_s2lim',44],
+              ['cq_mon_s3i',47],['cq_mon_s3ind',48],['cq_mon_s3lim',49],['cq_mon_s4i',52],['cq_mon_s4ind',53],['cq_mon_s4lim',54],
+              ['cq_mon_s5i',57],['cq_mon_s5ind',58],['cq_mon_s5lim',59],['cq_mon_s6i',62],['cq_mon_s6ind',63],['cq_mon_s6lim',64],
+              ['cq_mon_n1i',67],['cq_mon_n1ind',68],['cq_mon_n1lim',69],['cq_mon_n2i',72],['cq_mon_n2ind',73],['cq_mon_n2lim',74],
+              ['cq_mon_n3i',77],['cq_mon_n3ind',78],['cq_mon_n3lim',79]],
+    'CQ_ANS':[['cq_ans_comp',15],['cq_ans_res',16],['cq_ans_ie',17],['cq_ans_fri',18],['cq_ans_frv',19],['cq_ans_frm',20],['cq_ans_frl',21],
+              ['cq_ans_vii',24],['cq_ans_viv',25],['cq_ans_vim',26],['cq_ans_vil',27]],
+    'CQ_SPM':[['cq_spm_v1i',27],['cq_spm_v1m',28],['cq_spm_v2i',29],['cq_spm_v2m',30],['cq_spm_v3i',31],['cq_spm_v3m',32]],
+    'CQ_VPO':[['cq_ans_comp',15],['cq_ans_res',16],['cq_ans_ie',17],['cq_ans_fri',18],['cq_ans_frv',19],['cq_ans_frm',20],['cq_ans_frl',21],
+              ['cq_ans_vii',24],['cq_ans_viv',25],['cq_ans_vim',26],['cq_ans_vil',27]],
+  };
+  const _EVC0={'CQ_DEF':8};
+  const _EVN={'CQ_ANS':4,'CQ_VPO':4};
+  const _ESC={'CQ_DEF':53,'CQ_ECG':49,'CQ_CEN':30,'CQ_ELB':76,'CQ_FBI':33,'CQ_ECT':67,'CQ_MON':82,'CQ_ANS':30,'CQ_SPM':33,'CQ_VPO':30};
+  const _ETC={'CQ_DEF':58,'CQ_ECG':54,'CQ_CEN':35,'CQ_ELB':92,'CQ_FBI':38,'CQ_ECT':72,'CQ_MON':87,'CQ_ANS':35,'CQ_SPM':38,'CQ_VPO':35};
+
+  for (const tipo of [...new Set([...Object.keys(CQ_VIS),...Object.keys(CQ_PROVA)])]) {
+    const cqP = PRESETS['PRESET_'+tipo] || {};
+    const cqK = Object.keys(cqP);
+    if (!cqK.length) continue;
+    const c0 = _EVC0[tipo]||3;
+    const visAll = CQ_VIS[tipo]||[];
+    const visPoints = visAll.slice(0, _EVN[tipo]||visAll.length);
+    const pmap = _EPMAP[tipo]||[];
+    const sc = _ESC[tipo], tc = _ETC[tipo];
+    if (tc==null) continue;
+    const NC = tc+1;
+    const R1=Array(NC).fill(null),R2=Array(NC).fill(null),R3=Array(NC).fill(null);
+    R1[0]='CODICE';R1[1]='DATA';R1[2]='NOTE';
+    if(c0>3)R1[3]='TIPOLOGIA';
+    R1[c0]='CONTROLLO VISIVO';
+    visPoints.forEach((p,idx)=>{const c=c0+idx*3;R2[c]=p;R3[c]='OK';R3[c+1]='KO';R3[c+2]='NA';});
+    const provaAll=[];(CQ_PROVA[tipo]||[]).forEach(sec=>sec.fields.forEach(f=>provaAll.push(f)));
+    provaAll.forEach(f=>{const pm=pmap.find(([id])=>id===f.id);if(pm)R2[pm[1]]=f.l;});
+    if(pmap.length){const fc=Math.min(...pmap.map(([,c])=>c));if(fc>=c0+visPoints.length*3)R1[fc]='PROVA FUNZIONALE';}
+    if(tipo==='CQ_DEF'){[1,2,3,4,5,6].forEach(n=>{const b=29+(n-1)*4;R2[b+2]='OK';R2[b+3]='KO';});}
+    if(sc!=null){R1[sc]='STRUMENTAZIONE';['Strumento','Modello','Serie','Certificato N.','Scadenza'].forEach((v,i)=>R2[sc+i]=v);}
+    R1[tc]='TECNICO ESECUTORE';
+    const rows = cqK.map(codice => {
+      const d = cqP[codice] || {};
+      const row = Array(NC).fill(null);
+      row[0]=codice; row[1]=d.cq_data||''; row[2]=d.cq_note||'';
+      visPoints.forEach((p,idx)=>{
+        const pid=p.replace('.','_'), c=c0+idx*3;
+        row[c]=(d['cq_vis_'+pid+'_ok']?'X':null);
+        row[c+1]=(d['cq_vis_'+pid+'_ko']?'X':null);
+        row[c+2]=(d['cq_vis_'+pid+'_na']?'X':null);
+      });
+      pmap.forEach(([f,c])=>{if(d[f]!=null&&d[f]!=='')row[c]=d[f];});
+      if(tipo==='CQ_DEF'){[1,2,3,4,5,6].forEach(n=>{const b=29+(n-1)*4,ev=d['cq_def_e'+n+'_esito']||'';row[b+2]=(ev==='OK'?'X':null);row[b+3]=(ev==='KO'?'X':null);});}
+      if(sc!=null){['cq_strum','cq_strum_mod','cq_strum_ser','cq_strum_cert','cq_strum_scad'].forEach((f,i)=>{if(d[f])row[sc+i]=d[f];});}
+      row[tc]=d.cq_tecnico||'';
+      return row;
+    });
+    const ws = XLSX.utils.aoa_to_sheet([R1, R2, R3, ...rows]);
+    ws['!cols'] = Array(NC).fill({wch:14});
+    applyPageSetup(ws);
+    XLSX.utils.book_append_sheet(wb, ws, 'Inserimento_'+tipo);
+    sheets++;
+  }
+
+  if (!sheets) { toast('Nessun preset da esportare', 'warn'); return; }
+  XLSX.writeFile(wb, 'AppWitch_Preset_'+date+'.xlsx');
+  const tot = Object.values(PRESETS).reduce((s,p)=>s+Object.keys(p).length, 0);
+  toast(`Preset esportati: ${tot} dispositivi in ${sheets} fogli`, 'ok');
 }
 
 // ── FINE PERSISTENZA SESSIONI ─────────────────────────────────
