@@ -389,6 +389,13 @@ body.logged-in h1,body.logged-in .subtitle{display:none}
 
 /* ── VISTA TABELLA ── */
 #tabella-section{margin-bottom:14px}
+#tabella-section.tbl-fullscreen{position:fixed;inset:0;z-index:5000;margin:0;border-radius:0;display:flex;flex-direction:column;overflow:hidden;background:var(--bg2)}
+#tabella-section.tbl-fullscreen .tbl-wrap{flex:1;max-height:none}
+#tabella-section.tbl-fullscreen .sess-hdr,
+#tabella-section.tbl-fullscreen .tbl-col-picker,
+#tabella-section.tbl-fullscreen .tbl-views-panel,
+#tabella-section.tbl-fullscreen .tbl-toolbar{flex-shrink:0}
+.tbl-fs-btn{margin-left:auto}
 .tbl-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px}
 .tbl-toolbar input[type=text]{flex:1;min-width:140px;padding:7px 10px;font-size:13px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg2);color:var(--text)}
 .tbl-counter{font-size:12px;color:var(--text2);white-space:nowrap}
@@ -607,6 +614,7 @@ body.logged-in h1,body.logged-in .subtitle{display:none}
         <button class="btn-sm" onclick="toggleTblColPicker();renderTblColPicker()">⊞ Colonne</button>
         <button class="btn-sm" onclick="toggleTblViews()">☰ Viste</button>
         <button class="btn-sm" id="btn-crea-sess-tbl" onclick="openCreateSessionFromTable()" disabled>+ Sessione</button>
+        <button class="btn-sm tbl-fs-btn" id="btn-tbl-fs" onclick="toggleTblFullscreen()" title="Schermo intero">⛶</button>
       </div>
     </div>
     <!-- col picker -->
@@ -5648,6 +5656,17 @@ function tblFpClear(k) {
   delete tableColFilters[k];
   closeTblFilter();
   renderTableView();
+}
+
+// ── Schermo intero ──
+function toggleTblFullscreen() {
+  const sec = document.getElementById('tabella-section');
+  const isFs = sec.classList.toggle('tbl-fullscreen');
+  document.getElementById('btn-tbl-fs').textContent = isFs ? '✕' : '⛶';
+  document.getElementById('btn-tbl-fs').title = isFs ? 'Esci da schermo intero' : 'Schermo intero';
+  // ricalcola slice con nuova altezza wrap
+  const wrap = document.getElementById('tbl-table-wrap');
+  if (wrap) _tblRenderSlice(wrap);
 }
 
 // ── Colonne visibili ──
