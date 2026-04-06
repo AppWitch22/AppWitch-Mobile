@@ -314,17 +314,28 @@ body.logged-in h1,body.logged-in .subtitle{display:none}
 /* ARCHIVIO CLOUD */
 #archivio-modal{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:10000;display:none;align-items:flex-start;justify-content:center;padding:16px;overflow-y:auto}
 #archivio-modal.open{display:flex}
-.arch-box{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rad-lg);width:100%;max-width:600px;padding:20px;margin:auto;box-shadow:0 4px 24px rgba(28,15,6,.14)}
+.arch-box{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rad-lg);width:100%;max-width:600px;padding:20px;margin:auto;box-shadow:0 4px 24px rgba(13,27,42,.18)}
 .arch-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
 .arch-hdr h2{font-size:16px;font-weight:600;color:var(--text)}
-.arch-folder{border:1px solid var(--border);border-radius:var(--rad-lg);margin-bottom:10px;overflow:hidden}
-.arch-folder-hdr{background:var(--bg3);padding:9px 14px;font-size:12px;font-weight:600;color:var(--text2);cursor:pointer;display:flex;justify-content:space-between;align-items:center;-webkit-tap-highlight-color:transparent}
-.arch-folder-body{padding:6px 0;background:var(--bg2)}
-.arch-file{display:flex;align-items:center;gap:10px;padding:8px 14px;border-bottom:1px solid var(--border)}
+/* lista sessioni */
+.arch-sess-row{display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid var(--border);border-radius:var(--rad);margin-bottom:8px;cursor:pointer;background:var(--bg2);transition:background .1s;-webkit-tap-highlight-color:transparent}
+.arch-sess-row:hover{background:var(--bg3);border-color:var(--border2)}
+.arch-sess-icon{font-size:20px;flex-shrink:0}
+.arch-sess-info{flex:1;min-width:0}
+.arch-sess-name{font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.arch-sess-meta{font-size:11px;color:var(--text3);margin-top:2px}
+.arch-sess-chevron{font-size:20px;color:var(--text3);flex-shrink:0}
+/* dettaglio sessione */
+.arch-detail-hdr{display:flex;align-items:center;gap:8px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border);flex-wrap:wrap}
+.arch-detail-title{flex:1;font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.arch-dl-all{background:var(--info)!important;color:#fff!important;border-color:var(--info)!important;font-weight:600!important;flex-shrink:0}
+/* file row */
+.arch-file{display:flex;align-items:center;gap:10px;padding:8px 10px;border-bottom:1px solid var(--border);background:var(--bg2)}
 .arch-file:last-child{border-bottom:none}
-.arch-file-name{flex:1;font-size:13px;word-break:break-all;color:var(--text)}
+.arch-file-name{flex:1;font-size:12px;word-break:break-all;color:var(--text)}
 .arch-file-date{font-size:11px;color:var(--text3);flex-shrink:0}
 .arch-file-btns{display:flex;gap:6px;flex-shrink:0}
+.arch-files-wrap{border:1px solid var(--border);border-radius:var(--rad);overflow:hidden}
 .arch-empty{padding:20px;text-align:center;color:var(--text3);font-size:13px}
 .arch-user-hdr{font-size:11px;font-weight:600;color:var(--info);text-transform:uppercase;padding:6px 14px;background:var(--info-bg);border-bottom:1px solid var(--border)}
 
@@ -6049,6 +6060,10 @@ function closeArchivioModal() {
   document.getElementById('archivio-modal').classList.remove('open');
 }
 
+// ── stato navigazione archivio ───────────────────────────────
+let _archGroups = new Map();
+let _archCurKey = null;
+
 async function loadArchivio() {
   const el = document.getElementById('archivio-content');
   el.innerHTML = '<div class="arch-empty">Caricamento...</div>';
@@ -6061,31 +6076,87 @@ async function loadArchivio() {
   if (!r.ok) { el.innerHTML='<div class="arch-empty">Errore caricamento</div>'; return; }
   const files = await r.json();
   if (!files.length) { el.innerHTML='<div class="arch-empty">Nessun file caricato</div>'; return; }
-  // Raggruppa per (user_name +) session_folder
-  const groups = new Map();
+  _archGroups = new Map();
   files.forEach(f => {
     const gkey = (isAdmin ? (f.user_name||f.user_id)+' — ' : '') + f.session_folder;
-    if (!groups.has(gkey)) groups.set(gkey, []);
-    groups.get(gkey).push(f);
+    if (!_archGroups.has(gkey)) _archGroups.set(gkey, []);
+    _archGroups.get(gkey).push(f);
   });
-  el.innerHTML = [...groups.entries()].map(([gkey, gfiles]) => `
-    <div class="arch-folder">
-      <div class="arch-folder-hdr" onclick="this.nextElementSibling.classList.toggle('hidden')">
-        <span>📁 ${_esc(gkey)}</span>
-        <span style="font-size:11px;font-weight:400">${gfiles.length} file</span>
+  _renderArchivioSessions();
+}
+
+function _renderArchivioSessions() {
+  _archCurKey = null;
+  const el = document.getElementById('archivio-content');
+  el.innerHTML = [..._archGroups.entries()].map(([gkey, gfiles]) => {
+    const lastDate = gfiles.reduce((d,f)=>(f.created_at||'')>d?(f.created_at||''):d,'').slice(0,10);
+    return `<div class="arch-sess-row" onclick="_openArchivioSession('${_esc(gkey)}')">
+      <span class="arch-sess-icon">📁</span>
+      <div class="arch-sess-info">
+        <div class="arch-sess-name">${_esc(gkey)}</div>
+        <div class="arch-sess-meta">${gfiles.length} file · ${lastDate}</div>
       </div>
-      <div class="arch-folder-body">
-        ${gfiles.map(f=>`
-          <div class="arch-file">
-            <span class="arch-file-name">📄 ${_esc(f.filename)}</span>
-            <span class="arch-file-date">${f.created_at?.slice(0,10)||''}</span>
-            <div class="arch-file-btns">
-              <button class="btn-sm" onclick="downloadArchivioFile('${f.storage_path}','${_esc(f.filename)}')">⬇</button>
-              <button class="btn-sm" style="color:var(--ko)" onclick="deleteArchivioFile('${f.id}','${f.storage_path}')">✕</button>
-            </div>
-          </div>`).join('')}
-      </div>
-    </div>`).join('');
+      <span class="arch-sess-chevron">›</span>
+    </div>`;
+  }).join('');
+}
+
+function _openArchivioSession(gkey) {
+  _archCurKey = gkey;
+  const files = _archGroups.get(gkey);
+  if (!files) return;
+  const el = document.getElementById('archivio-content');
+  el.innerHTML = `
+    <div class="arch-detail-hdr">
+      <button class="btn-sm" onclick="_renderArchivioSessions()">← Sessioni</button>
+      <span class="arch-detail-title">${_esc(gkey)}</span>
+      <button class="btn-sm arch-dl-all" onclick="_scaricaTuttiArchivio()">⬇ Scarica tutti</button>
+    </div>
+    <div class="arch-files-wrap">
+      ${files.map(f=>`
+        <div class="arch-file">
+          <span class="arch-file-name">📄 ${_esc(f.filename)}</span>
+          <span class="arch-file-date">${f.created_at?.slice(0,10)||''}</span>
+          <div class="arch-file-btns">
+            <button class="btn-sm" onclick="downloadArchivioFile('${_esc(f.storage_path)}','${_esc(f.filename)}')">⬇</button>
+            <button class="btn-sm" style="color:var(--ko)" onclick="deleteArchivioFile('${_esc(f.id)}','${_esc(f.storage_path)}')">✕</button>
+          </div>
+        </div>`).join('')}
+    </div>`;
+}
+
+async function _scaricaTuttiArchivio() {
+  const files = _archGroups.get(_archCurKey);
+  if (!files?.length) return;
+  // Desktop Chrome/Edge: scelta cartella di destinazione
+  if (window.showDirectoryPicker) {
+    try {
+      const dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+      toast('Download in corso — ' + files.length + ' file...', 'ok');
+      let ok = 0, err = 0;
+      for (const f of files) {
+        try {
+          const { data, error } = await supa.storage.from('archivio').download(f.storage_path);
+          if (error) throw error;
+          const fh = await dirHandle.getFileHandle(f.filename, { create: true });
+          const w  = await fh.createWritable();
+          await w.write(data);
+          await w.close();
+          ok++;
+        } catch(e) { console.error('arch dl', f.filename, e); err++; }
+      }
+      toast(ok + ' file salvati' + (err ? ` · ${err} errori` : ''), ok ? 'ok' : 'warn');
+      return;
+    } catch(e) {
+      if (e.name === 'AbortError') return; // annullato dall'utente
+    }
+  }
+  // Fallback: download singoli nella cartella Download del browser
+  toast('Download avviato — ' + files.length + ' file nella cartella Download', 'ok');
+  for (const f of files) {
+    await downloadArchivioFile(f.storage_path, f.filename);
+    await new Promise(r => setTimeout(r, 350));
+  }
 }
 
 async function downloadArchivioFile(path, fname) {
@@ -6104,7 +6175,12 @@ async function deleteArchivioFile(id, path) {
   await fetch(`${SUPA_URL}/rest/v1/archivio_files?id=eq.${id}`,
     {method:'DELETE', headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+token}});
   toast('File eliminato','ok');
-  loadArchivio();
+  // aggiorna la lista locale e ridisegna la sessione corrente
+  if (_archCurKey) {
+    const arr = _archGroups.get(_archCurKey)?.filter(f => f.id !== id);
+    if (arr?.length) { _archGroups.set(_archCurKey, arr); _openArchivioSession(_archCurKey); }
+    else { _archGroups.delete(_archCurKey); _renderArchivioSessions(); }
+  } else { loadArchivio(); }
 }
 
 // ── FINE ARCHIVIO CLOUD ───────────────────────────────────────
