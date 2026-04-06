@@ -10,7 +10,7 @@
 <meta http-equiv="Expires" content="0">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'><path d='M20 2L36 11V29L20 38L4 29V11L20 2Z' fill='%23C2500A'/><polyline points='7,20 10.5,20 13,12.5 16,27.5 18.5,16 21,24 23.5,20 33,20' stroke='white' stroke-width='2.3' stroke-linecap='round' stroke-linejoin='round' fill='none'/></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Playfair+Display:wght@700&family=Cormorant+Garamond:ital,wght@0,600;1,700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <title>AppWitch — Verifiche Dispositivi Medici</title>
 <style>
@@ -30,9 +30,7 @@ body{font-family:'IBM Plex Sans',-apple-system,BlinkMacSystemFont,"Segoe UI",Rob
 /* ── SIDEBAR ── */
 #sidebar{position:fixed;top:0;left:0;width:220px;height:100vh;background:#0d1b2a;border-right:1px solid #1a2e44;display:none;flex-direction:column;z-index:200;transition:transform .25s ease,box-shadow .25s ease}
 #sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:199}
-.sb-logo{padding:18px 16px 14px;border-bottom:1px solid #1a2e44}
-.sb-logo-text{font-size:16px;font-weight:700;color:#c9d4e3;letter-spacing:-.3px}
-.sb-logo-sub{font-size:11px;color:#6b85a6;margin-top:2px}
+.sb-logo{padding:14px 16px 12px;border-bottom:1px solid #1a2e44}
 .sb-nav{padding:10px 8px}.sb-scroll{flex:1;overflow-y:auto;min-height:0}
 .sb-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--rad);font-size:13px;font-weight:600;color:#a8b8d0;cursor:pointer;margin-bottom:2px;border:1px solid transparent;transition:background .12s,color .12s;-webkit-tap-highlight-color:transparent}
 .sb-item:hover{background:#1a2e44;color:#e2e8f0}
@@ -145,7 +143,7 @@ body.logged-in h1,body.logged-in .subtitle{display:none}
 /* LOGIN */
 #login-screen{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center;padding:24px}
 .login-box{width:100%;max-width:360px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--rad-lg);padding:28px 24px;box-shadow:0 4px 20px rgba(28,15,6,.12)}
-.login-logo{font-size:22px;font-weight:700;margin-bottom:4px;color:var(--text)}
+.login-logo{margin-bottom:20px}
 .login-sub{font-size:13px;color:var(--text2);margin-bottom:24px}
 .login-field{margin-bottom:14px}
 .login-field label{display:block;font-size:12px;font-weight:600;color:var(--text2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em}
@@ -482,16 +480,17 @@ body.logged-in h1,body.logged-in .subtitle{display:none}
 
 <!-- SIDEBAR (desktop: sempre visibile; mobile: a scomparsa) -->
 <div id="sidebar">
-  <div class="sb-logo" style="display:flex;align-items:center;justify-content:space-between">
-    <div>
-      <div class="sb-logo-text"><svg width="32" height="32" viewBox="0 0 40 40" fill="none">
-  <path d="M20 2L36 11V29L20 38L4 29V11L20 2Z" fill="#C2500A"/>
-  <polyline points="7,20 10.5,20 13,12.5 16,27.5 18.5,16 21,24 23.5,20 33,20"
-    stroke="white" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-</svg> AppWitch</div>
-      <div class="sb-logo-sub">Verifiche Dispositivi Medici</div>
-    </div>
-    <button class="hamburger" onclick="toggleSidebar()" style="display:none" id="sb-close-btn" title="Chiudi menu">✕</button>
+  <div class="sb-logo" style="display:flex;align-items:center;justify-content:space-between;gap:6px">
+    <svg style="flex:1;min-width:0" viewBox="0 0 420 82" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <line x1="0" y1="8" x2="420" y2="8" stroke="#C8A96E" stroke-width="0.8"/>
+      <text x="0" y="54" font-family="'Playfair Display',serif" font-size="42" font-weight="700" fill="#E8EEF8" letter-spacing="-1">App</text>
+      <text x="98" y="54" font-family="'Playfair Display',serif" font-size="42" font-weight="700" fill="#C8A96E" letter-spacing="-1">Witch</text>
+      <line x1="0" y1="64" x2="58" y2="64" stroke="#C8A96E" stroke-width="1" opacity="0.35"/>
+      <polyline points="58,64 64,64 67,55 70,73 73,60 76,68 79,64 230,64" stroke="#C8A96E" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity="0.7"/>
+      <line x1="230" y1="64" x2="420" y2="64" stroke="#C8A96E" stroke-width="1" opacity="0.35"/>
+      <text x="0" y="78" font-family="'IBM Plex Sans',sans-serif" font-size="9.5" font-weight="500" fill="#4A6090" letter-spacing="3">VERIFICHE · DISPOSITIVI MEDICI</text>
+    </svg>
+    <button class="hamburger" onclick="toggleSidebar()" style="display:none;flex-shrink:0" id="sb-close-btn" title="Chiudi menu">✕</button>
   </div>
   <div class="sb-scroll">
   <nav class="sb-nav">
@@ -541,11 +540,12 @@ body.logged-in h1,body.logged-in .subtitle{display:none}
 <div class="app">
   <div class="mobile-topbar">
     <button class="hamburger" onclick="toggleSidebar()" title="Apri menu">☰</button>
-    <span class="mobile-logo-txt"><svg width="28" height="28" viewBox="0 0 40 40" fill="none">
-  <path d="M20 2L36 11V29L20 38L4 29V11L20 2Z" fill="rgba(255,255,255,0.18)" stroke="rgba(255,255,255,0.4)" stroke-width="1.2"/>
-  <polyline points="7,20 10.5,20 13,12.5 16,27.5 18.5,16 21,24 23.5,20 33,20"
-    stroke="white" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-</svg> AppWitch</span>
+    <span class="mobile-logo-txt">
+      <svg height="26" viewBox="0 0 180 28" fill="none" style="overflow:visible;display:block">
+        <text x="0" y="22" font-family="'Cormorant Garamond',serif" font-size="24" font-weight="600" fill="#0d1b2a">App</text>
+        <text x="47" y="22" font-family="'Cormorant Garamond',serif" font-size="24" font-weight="700" fill="#1a3a6b" font-style="italic">Witch</text>
+      </svg>
+    </span>
     <div id="sync-dot-mobile" class="sess-sync-dot offline" style="margin-left:auto" title="Stato sync"></div>
   </div>
   <h1>AppWitch</h1>
@@ -2918,8 +2918,20 @@ let currentUser = null;
 document.body.insertAdjacentHTML('afterbegin', `
 <div id="login-screen">
   <div class="login-box">
-    <div class="login-logo">AppWitch</div>
-    <div class="login-sub">Verifiche Dispositivi Medici</div>
+    <div class="login-logo">
+      <svg width="100%" viewBox="0 0 420 90" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <line x1="0" y1="6" x2="420" y2="6" stroke="#0D1B3E" stroke-width="2"/>
+        <line x1="0" y1="10" x2="420" y2="10" stroke="#C8A96E" stroke-width="0.7"/>
+        <text x="0" y="55" font-family="'Cormorant Garamond',serif" font-size="46" font-weight="600" fill="#0D1B3E">App</text>
+        <text x="103" y="55" font-family="'Cormorant Garamond',serif" font-size="46" font-weight="700" fill="#1A3A7A" font-style="italic">Witch</text>
+        <line x1="0" y1="63" x2="50" y2="63" stroke="#C8A96E" stroke-width="0.8" opacity="0.5"/>
+        <polyline points="50,63 55,63 57.5,56 60,70 62.5,59 65,66 67.5,63 220,63" stroke="#C8A96E" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+        <line x1="220" y1="63" x2="420" y2="63" stroke="#C8A96E" stroke-width="0.8" opacity="0.5"/>
+        <line x1="0" y1="70" x2="420" y2="70" stroke="#C8A96E" stroke-width="0.7"/>
+        <line x1="0" y1="74" x2="420" y2="74" stroke="#0D1B3E" stroke-width="2"/>
+        <text x="210" y="87" font-family="'IBM Plex Sans',sans-serif" font-size="9" font-weight="500" fill="#4A6090" letter-spacing="3" text-anchor="middle">VERIFICHE · DISPOSITIVI MEDICI</text>
+      </svg>
+    </div>
     <div class="login-field">
       <label>Email</label>
       <input type="email" id="l-email" placeholder="nome@asl.it" autocomplete="email">
