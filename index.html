@@ -585,6 +585,7 @@ body.logged-in h1,body.logged-in .subtitle{display:none}
       <div class="card-title" style="margin-bottom:0">Anagrafica Dispositivi</div>
       <div class="sess-btns">
         <label class="btn-sm" style="cursor:pointer" title="Importa anagrafica da file Excel">📥 Importa<input type="file" accept=".xlsx,.xls" onchange="importAnagraficaFromExcel(this)" style="display:none"></label>
+        <button class="btn-sm" onclick="closeAnagrafica()" title="Chiudi sezione">✕ Chiudi</button>
       </div>
     </div>
     <div class="anag-search-row">
@@ -615,6 +616,7 @@ body.logged-in h1,body.logged-in .subtitle{display:none}
       <div class="sess-btns">
         <button class="btn-sm" onclick="tblReload()">↺ Ricarica</button>
         <button class="btn-sm" onclick="toggleTblColPicker();renderTblColPicker()">⊞ Colonne</button>
+        <button class="btn-sm" onclick="closeTabella()" title="Chiudi sezione">✕ Chiudi</button>
         <button class="btn-sm" onclick="toggleTblViews()">☰ Viste</button>
         <button class="btn-sm" id="btn-crea-sess-tbl" onclick="openCreateSessionFromTable()" disabled>+ Sessione</button>
         <button class="btn-sm tbl-fs-btn" id="btn-tbl-fs" onclick="toggleTblFullscreen()" title="Schermo intero">⛶</button>
@@ -4941,21 +4943,26 @@ function sbNav(key) {
     const sb = document.getElementById('sb-nav-' + k);
     if (sb) sb.classList.toggle('active', k === key);
   });
+  // chiudi sezioni inline quando si naviga altrove
+  if (key !== 'anagrafica') document.getElementById('anag-section').style.display = 'none';
+  if (key !== 'tabella')    document.getElementById('tabella-section').style.display = 'none';
   // chiudi sidebar su mobile dopo la navigazione
   if (window.innerWidth < 768 && document.body.classList.contains('sidebar-open')) {
     toggleSidebar();
   }
 }
 
-function toggleAnagrafica() {
-  const sec = document.getElementById('anag-section');
-  const visible = sec.style.display !== 'none' && sec.style.display !== '';
-  sec.style.display = visible ? 'none' : 'block';
-  if (!visible) {
-    if (!document.getElementById('af-item-loc')) { buildAnagFilterGrid(); initAfState(); updateAllAfBtns(); }
-    searchAnagrafica();
-    document.getElementById('anag-input').focus();
-  }
+function toggleAnagrafica() { openAnagrafica(); }
+function openAnagrafica() {
+  document.getElementById('anag-section').style.display = 'block';
+  if (!document.getElementById('af-item-loc')) { buildAnagFilterGrid(); initAfState(); updateAllAfBtns(); }
+  searchAnagrafica();
+  document.getElementById('anag-input').focus();
+}
+function closeAnagrafica() {
+  document.getElementById('anag-section').style.display = 'none';
+  document.getElementById('sb-nav-verifica').classList.add('active');
+  document.getElementById('sb-nav-anagrafica').classList.remove('active');
 }
 
 function toggleAnagFilters() {
@@ -5410,15 +5417,17 @@ function _getTblCols() {
   return cols;
 }
 
-async function toggleTabella() {
-  const sec = document.getElementById('tabella-section');
-  const visible = sec.style.display !== 'none' && sec.style.display !== '';
-  sec.style.display = visible ? 'none' : 'block';
-  if (!visible) {
-    loadTableColConfig();
-    if (!tableData) await loadTableData();
-    else renderTableView();
-  }
+async function toggleTabella() { await openTabella(); }
+async function openTabella() {
+  document.getElementById('tabella-section').style.display = 'block';
+  loadTableColConfig();
+  if (!tableData) await loadTableData();
+  else renderTableView();
+}
+function closeTabella() {
+  document.getElementById('tabella-section').style.display = 'none';
+  document.getElementById('sb-nav-verifica').classList.add('active');
+  document.getElementById('sb-nav-tabella').classList.remove('active');
 }
 
 async function tblReload() {
