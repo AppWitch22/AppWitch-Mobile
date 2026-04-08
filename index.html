@@ -5628,7 +5628,19 @@ function openTblFilter(k, e) {
   const cols = _getTblCols();
   const col = cols.find(c => c.k === k);
   const activeVals = tableColFilters[k];
-  const uniqueVals = [...new Set(tableData.map(r => r[k]||''))].sort((a,b) => a < b ? -1 : a > b ? 1 : 0);
+  // Filtra per tutti gli altri filtri attivi (cascata), esclusa la colonna corrente
+  const q = tableSearchQ.toLowerCase();
+  const allCols = _getTblCols();
+  const baseRows = tableData.filter(row => {
+    if (q && !allCols.some(c => (row[c.k]||'').toLowerCase().includes(q))) return false;
+    for (const [fk, vals] of Object.entries(tableColFilters)) {
+      if (fk === k) continue;
+      if (!vals || vals.size === 0) continue;
+      if (!vals.has(row[fk]||'')) return false;
+    }
+    return true;
+  });
+  const uniqueVals = [...new Set(baseRows.map(r => r[k]||''))].sort((a,b) => a < b ? -1 : a > b ? 1 : 0);
 
   const panel = document.createElement('div');
   panel.id = 'tbl-filter-panel';
