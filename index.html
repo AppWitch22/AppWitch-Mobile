@@ -3330,6 +3330,10 @@ async function importDatabaseDispositivi(input) {
           const n = parseInt(s, 10);
           if (n > 30000 && n < 70000) { obj[k] = xlsxDateToISO(n); continue; }
         }
+        // Codici con zeri iniziali a 7 cifre
+        if ((k === 'codice' || k === 'codice_padre') && /^\d+$/.test(s)) {
+          obj[k] = s.padStart(7, '0'); continue;
+        }
         obj[k] = s;
       }
       return obj;
