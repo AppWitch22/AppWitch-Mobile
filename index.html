@@ -424,6 +424,8 @@ body.logged-in h1,body.logged-in .subtitle{display:none}
 .tbl-th-filtered .tbl-th-label{color:var(--info)}
 .tbl-th-flt{border:none;background:none;cursor:pointer;padding:7px 5px;color:var(--text2);font-size:11px;line-height:1;-webkit-tap-highlight-color:transparent}
 .tbl-th-flt:hover,.tbl-th-flt.active{color:var(--info)}
+.tbl-flt-dot{font-size:7px;vertical-align:super;margin-left:1px}
+#tbl-clear-filters{display:none;padding:5px 10px;font-size:12px;border:1px solid var(--info);border-radius:var(--rad);background:var(--info-bg);color:var(--info);cursor:pointer;white-space:nowrap}
 .tbl-th-chk,.tbl-td-chk{padding:5px 8px;text-align:center;border-right:1px solid var(--border);border-bottom:1px solid var(--border);background:var(--bg3);position:sticky;left:0;z-index:5}
 .tbl-table thead .tbl-th-chk{z-index:15;border-bottom:none}
 .tbl-row-sel .tbl-td{background:var(--info-bg)}
@@ -648,6 +650,7 @@ body.logged-in h1,body.logged-in .subtitle{display:none}
     <!-- toolbar -->
     <div class="tbl-toolbar">
       <input type="text" id="tbl-search" placeholder="Cerca in tutte le colonne..." oninput="tblSearch(this.value)">
+      <button id="tbl-clear-filters" onclick="tblClearAllFilters()">✕ Filtri</button>
       <span class="tbl-sel-count" id="tbl-sel-count"></span>
       <span class="tbl-counter" id="tbl-row-count"></span>
     </div>
@@ -5513,13 +5516,19 @@ function renderTableView() {
   document.getElementById('btn-crea-sess-tbl').disabled = selCount === 0;
   document.getElementById('tbl-row-count').textContent = `${rows.length} dispositivi`;
 
+  // bottone clear filtri
+  const anyFilter = Object.values(tableColFilters).some(v => v?.size > 0);
+  const clearBtn = document.getElementById('tbl-clear-filters');
+  if (clearBtn) clearBtn.style.display = anyFilter ? '' : 'none';
+
   // thead
   let thead = '<tr><th class="tbl-th-chk"><input type="checkbox"' + (allSel?' checked':'') + ' onchange="tblToggleAll(this.checked)"></th>';
   for (const c of cols) {
     const filtered = tableColFilters[c.k]?.size > 0;
     const sorted   = tableSortCol === c.k;
     const si = sorted ? (tableSortDir===1?' ▲':' ▼') : '';
-    thead += `<th class="tbl-th${filtered?' tbl-th-filtered':''}" style="min-width:${c.w}px"><div class="tbl-th-inner"><span class="tbl-th-label" onclick="tblSort('${c.k}')">${_esc(c.l)}${si}</span><button class="tbl-th-flt${filtered?' active':''}" onclick="openTblFilter('${c.k}',event)">▾</button></div></th>`;
+    const fltIcon = filtered ? '▾<span class="tbl-flt-dot">●</span>' : '▾';
+    thead += `<th class="tbl-th${filtered?' tbl-th-filtered':''}" style="min-width:${c.w}px"><div class="tbl-th-inner"><span class="tbl-th-label" onclick="tblSort('${c.k}')">${_esc(c.l)}${si}</span><button class="tbl-th-flt${filtered?' active':''}" onclick="openTblFilter('${c.k}',event)">${fltIcon}</button></div></th>`;
   }
   thead += '</tr>';
 
@@ -5704,6 +5713,11 @@ function tblFpApply(k) {
 function tblFpClear(k) {
   delete tableColFilters[k];
   closeTblFilter();
+  renderTableView();
+}
+
+function tblClearAllFilters() {
+  tableColFilters = {};
   renderTableView();
 }
 
