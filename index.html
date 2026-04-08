@@ -3306,26 +3306,29 @@ async function importDatabaseDispositivi(input) {
     // Colonne gestite automaticamente da Supabase — da escludere
     const SKIP_COLS = new Set(['updated_at']);
 
+    // Converte seriale Excel → YYYY-MM-DD
+    const xlsxDateToISO = n => {
+      const d = new Date(Math.round((n - 25569) * 86400 * 1000));
+      return isNaN(d.getTime()) ? null : d.toISOString().split('T')[0];
+    };
+
     // Pulisci valori: converti date in YYYY-MM-DD, tutto il resto in stringa o null
     const clean = rows.map(r => {
       const obj = {};
       for (const [k, v] of Object.entries(r)) {
         if (SKIP_COLS.has(k)) continue;
         if (v === null || v === undefined || v === '') { obj[k] = null; continue; }
+        // Date object (cellDates:true)
         if (v instanceof Date) {
           obj[k] = isNaN(v.getTime()) ? null : v.toISOString().split('T')[0];
           continue;
         }
         const s = String(v).trim();
         if (!s) { obj[k] = null; continue; }
-        // Rileva seriali Excel residui (numeri tra 30000 e 60000) nelle colonne data
-        if (/data|garanzia|collaudo|dismissione|comodato/i.test(k) && /^\d+$/.test(s)) {
+        // Seriale numerico Excel in range date (qualsiasi colonna)
+        if (/^\d+$/.test(s)) {
           const n = parseInt(s, 10);
-          if (n > 30000 && n < 70000) {
-            const d = new Date(Math.round((n - 25569) * 86400 * 1000));
-            obj[k] = isNaN(d.getTime()) ? null : d.toISOString().split('T')[0];
-            continue;
-          }
+          if (n > 30000 && n < 70000) { obj[k] = xlsxDateToISO(n); continue; }
         }
         obj[k] = s;
       }
