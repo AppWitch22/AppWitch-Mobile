@@ -3303,10 +3303,14 @@ async function importDatabaseDispositivi(input) {
     if (!rows.length) { toast('File vuoto', 'warn'); return; }
     setProgress(5, `Letti ${rows.length} record`, 'Pulizia valori...');
 
-    // Pulisci valori: converti tutto in stringa o null
+    // Colonne gestite automaticamente da Supabase — da escludere
+    const SKIP_COLS = new Set(['updated_at']);
+
+    // Pulisci valori: converti tutto in stringa o null, escludi colonne automatiche
     const clean = rows.map(r => {
       const obj = {};
       for (const [k, v] of Object.entries(r)) {
+        if (SKIP_COLS.has(k)) continue;
         if (v === null || v === undefined || v === '') obj[k] = null;
         else obj[k] = String(v).trim();
       }
@@ -3342,8 +3346,21 @@ async function importDatabaseDispositivi(input) {
       });
       if (!res.ok) {
         const errText = await res.text();
-        console.error('Batch error:', errText);
-        errors++;
+        console.error(`Batch ${i}-${i+BATCH} error:`, errText);
+        // Tenta inserimento singolo per identificare il record problematico
+        for (const rec of batch) {
+          const r2 = await fetch(`${SUPA_URL}/rest/v1/dispositivi_${aslKey}`, {
+            method: 'POST',
+            headers: { ...headers, 'Prefer': 'return=minimal' },
+            body: JSON.stringify(rec)
+          });
+          if (r2.ok) inserted++;
+          else {
+            const e2 = await r2.text();
+            console.warn(`Record ${rec.codice} saltato:`, e2);
+            errors++;
+          }
+        }
       } else {
         inserted += batch.length;
       }
