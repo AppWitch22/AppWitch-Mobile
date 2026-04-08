@@ -1219,7 +1219,7 @@ async function initDB(){
   try{
     bar.textContent='Caricamento database...';
     const asl=currentUser?.profile?.asl||'ASL Benevento';
-    const tabella='dispositivi_asl_'+asl.toLowerCase().replace('asl ','');
+    const tabella='dispositivi_'+asl.toLowerCase().replace('asl ','');
     const {data:{session}}=await supa.auth.getSession();
     const token=session?.access_token;
     const resp=await fetch(
@@ -3243,7 +3243,7 @@ async function exportDatabaseDispositivi() {
 
   let all = [], offset = 0, pageSize = 1000;
   while (true) {
-    const res = await fetch(`${SUPA_URL}/rest/v1/dispositivi_asl_${aslKey}?select=*&limit=${pageSize}&offset=${offset}`, { headers });
+    const res = await fetch(`${SUPA_URL}/rest/v1/dispositivi_${aslKey}?select=*&limit=${pageSize}&offset=${offset}`, { headers });
     if (!res.ok) { toast('Errore export: ' + res.status, 'ko'); return; }
     const rows = await res.json();
     all = all.concat(rows);
@@ -3361,7 +3361,7 @@ async function importDatabaseDispositivi(input) {
       const pct = Math.round(10 + (i / total) * 88);
       setProgress(pct, `Inserimento...`, `${Math.min(i + BATCH, total)} / ${total} record`);
 
-      const res = await fetch(`${SUPA_URL}/rest/v1/dispositivi_asl_${aslKey}`, {
+      const res = await fetch(`${SUPA_URL}/rest/v1/dispositivi_${aslKey}`, {
         method: 'POST',
         headers: { ...headers, 'Prefer': 'return=minimal' },
         body: JSON.stringify(batch)
@@ -3371,7 +3371,7 @@ async function importDatabaseDispositivi(input) {
         console.error(`Batch ${i}-${i+BATCH} error:`, errText);
         // Tenta inserimento singolo per identificare il record problematico
         for (const rec of batch) {
-          const r2 = await fetch(`${SUPA_URL}/rest/v1/dispositivi_asl_${aslKey}`, {
+          const r2 = await fetch(`${SUPA_URL}/rest/v1/dispositivi_${aslKey}`, {
             method: 'POST',
             headers: { ...headers, 'Prefer': 'return=minimal' },
             body: JSON.stringify(rec)
@@ -5439,7 +5439,7 @@ function saveJollyLabels(labels) {
 async function openAnagDetail(codice) {
   const aslKey = (currentUser?.profile?.asl||'ASL Benevento').toLowerCase().replace('asl ','');
   const token = await supaToken();
-  const r = await fetch(`${SUPA_URL}/rest/v1/dispositivi_asl_${aslKey}?codice=eq.${codice}&limit=1`,
+  const r = await fetch(`${SUPA_URL}/rest/v1/dispositivi_${aslKey}?codice=eq.${codice}&limit=1`,
     {headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+token}});
   if (!r.ok) { toast('Errore caricamento dispositivo','warn'); return; }
   const rows = await r.json();
@@ -5502,7 +5502,7 @@ async function saveAnagDetail() {
   });
   const aslKey = (currentUser?.profile?.asl||'ASL Benevento').toLowerCase().replace('asl ','');
   const token = await supaToken();
-  const r = await fetch(`${SUPA_URL}/rest/v1/dispositivi_asl_${aslKey}?codice=eq.${anagCurDev.codice}`, {
+  const r = await fetch(`${SUPA_URL}/rest/v1/dispositivi_${aslKey}?codice=eq.${anagCurDev.codice}`, {
     method:'PATCH', headers:{...supaHdrs(token),'Prefer':'return=minimal'}, body:JSON.stringify(patch)
   });
   if (!r.ok) { toast('Errore salvataggio','warn'); return; }
@@ -5585,7 +5585,7 @@ async function importAnagraficaFromExcel(input) {
   let total=0; const CHUNK=200;
   for(let i=0;i<deduped.length;i+=CHUNK){
     const chunk=deduped.slice(i,i+CHUNK);
-    const r=await fetch(`${SUPA_URL}/rest/v1/dispositivi_asl_${aslKey}`,{
+    const r=await fetch(`${SUPA_URL}/rest/v1/dispositivi_${aslKey}`,{
       method:'POST',headers:{...supaHdrs(token),'Prefer':'return=minimal,resolution=merge-duplicates'},body:JSON.stringify(chunk)
     });
     if(!r.ok){const t=await r.text();toast(`Errore import: ${t.slice(0,80)}`,'warn');break;}
@@ -5698,7 +5698,7 @@ async function loadTableData() {
   let all = [], offset = 0;
   while (true) {
     const r = await fetch(
-      `${SUPA_URL}/rest/v1/dispositivi_asl_${aslKey}?select=*&limit=1000&offset=${offset}`,
+      `${SUPA_URL}/rest/v1/dispositivi_${aslKey}?select=*&limit=1000&offset=${offset}`,
       {headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+token,'Range-Unit':'items'}}
     );
     if (!r.ok) { toast('Errore caricamento tabella','warn'); break; }
