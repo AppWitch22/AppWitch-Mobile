@@ -533,6 +533,9 @@ body.logged-in h1,body.logged-in .subtitle{display:none}
     <button class="sb-btn" id="sb-btn-admin" style="display:none" onclick="openAdmin()">
       🔧 Admin
     </button>
+    <button class="sb-btn" id="sb-btn-gestione-db" style="display:none" onclick="openGestioneDB()">
+      🗄️ Gestione DB
+    </button>
     <button class="sb-btn danger" onclick="doLogout()">
       ↩ Esci
     </button>
@@ -3008,7 +3011,10 @@ async function showApp() {
   document.getElementById('sb-name').textContent = p.full_name || '—';
   document.getElementById('sb-meta').textContent = (p.role || '') + (p.asl_key ? ' · ASL ' + p.asl_key.toUpperCase() : '');
   document.body.classList.add('logged-in');
-  if (p.role === 'admin') document.getElementById('sb-btn-admin').style.display = '';
+  if (p.role === 'admin') {
+    document.getElementById('sb-btn-admin').style.display = '';
+    document.getElementById('sb-btn-gestione-db').style.display = '';
+  }
   if (p.role === 'responsabile') {
     ['btn-salva-preset','btn-carica-preset','btn-salva-preset-m','btn-carica-preset-m'].forEach(id => {
       const el = document.getElementById(id); if (el) el.style.display = 'none';
@@ -3173,6 +3179,187 @@ function adminMsg(text, ok) {
   msg.style.background = ok ? 'var(--ok-bg)' : 'var(--ko-bg)';
   msg.style.color = ok ? 'var(--ok)' : 'var(--ko)';
   setTimeout(() => { msg.style.display = 'none'; }, 3000);
+}
+
+// ── GESTIONE DB ──────────────────────────────────────────────
+function openGestioneDB() {
+  if (!currentUser || currentUser.profile?.role !== 'admin') return;
+  const asl = currentUser.profile?.asl || 'ASL Benevento';
+  let modal = document.getElementById('gdb-modal');
+  if (modal) { modal.style.display = 'flex'; return; }
+  document.body.insertAdjacentHTML('beforeend', `
+  <div id="gdb-modal" style="position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:10000;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto">
+    <div style="background:var(--bg);border-radius:var(--rad-lg);width:100%;max-width:560px;padding:20px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <div style="font-size:16px;font-weight:600">Gestione Database — ${asl}</div>
+        <button onclick="document.getElementById('gdb-modal').remove()" style="padding:4px 10px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text);cursor:pointer">✕</button>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <!-- EXPORT -->
+        <div style="border:1px solid var(--border);border-radius:var(--rad);padding:14px">
+          <div style="font-weight:600;font-size:13px;margin-bottom:6px;color:var(--text2)">📤 Export database</div>
+          <div style="font-size:12px;color:var(--text3);margin-bottom:10px">Scarica l'intero database dispositivi come file Excel.</div>
+          <button onclick="exportDatabaseDispositivi()" style="padding:8px 16px;font-size:13px;font-weight:600;background:var(--info);color:#fff;border:none;border-radius:var(--rad);cursor:pointer">⬇ Scarica Excel</button>
+        </div>
+
+        <!-- IMPORT -->
+        <div style="border:1px solid var(--border);border-radius:var(--rad);padding:14px">
+          <div style="font-weight:600;font-size:13px;margin-bottom:6px;color:var(--text2)">📥 Import database</div>
+          <div style="font-size:12px;color:var(--text3);margin-bottom:4px">Carica un file Excel per <strong>sostituire completamente</strong> il database.</div>
+          <div style="font-size:11px;color:var(--ko);margin-bottom:10px">⚠️ Tutti i dati esistenti verranno eliminati e sostituiti.</div>
+          <label style="display:inline-block;padding:8px 16px;font-size:13px;font-weight:600;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--rad);cursor:pointer;color:var(--text)">
+            📂 Seleziona file Excel
+            <input type="file" accept=".xlsx,.xls" onchange="importDatabaseDispositivi(this)" style="display:none">
+          </label>
+        </div>
+
+        <!-- PROGRESS -->
+        <div id="gdb-progress" style="display:none;border:1px solid var(--border);border-radius:var(--rad);padding:14px">
+          <div style="font-size:13px;font-weight:600;margin-bottom:8px;color:var(--text2)" id="gdb-prog-label">In corso...</div>
+          <div style="background:var(--bg3);border-radius:4px;height:8px;overflow:hidden;margin-bottom:8px">
+            <div id="gdb-prog-bar" style="height:100%;background:var(--info);width:0%;transition:width .3s"></div>
+          </div>
+          <div style="font-size:12px;color:var(--text3)" id="gdb-prog-detail"></div>
+        </div>
+      </div>
+    </div>
+  </div>`);
+}
+
+async function exportDatabaseDispositivi() {
+  if (typeof XLSX === 'undefined') {
+    toast('Caricamento libreria Excel...', 'warn');
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+    s.onload = () => exportDatabaseDispositivi();
+    document.head.appendChild(s); return;
+  }
+  const asl = currentUser.profile?.asl || 'ASL Benevento';
+  const aslKey = asl.toLowerCase().replace('asl ', '');
+  const token = await supaToken();
+  const headers = { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + token };
+  toast('Export in corso...', 'warn');
+
+  let all = [], offset = 0, pageSize = 1000;
+  while (true) {
+    const res = await fetch(`${SUPA_URL}/rest/v1/dispositivi_${aslKey}?select=*&limit=${pageSize}&offset=${offset}`, { headers });
+    if (!res.ok) { toast('Errore export: ' + res.status, 'ko'); return; }
+    const rows = await res.json();
+    all = all.concat(rows);
+    if (rows.length < pageSize) break;
+    offset += pageSize;
+  }
+  if (!all.length) { toast('Nessun dato da esportare', 'warn'); return; }
+
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.json_to_sheet(all);
+  XLSX.utils.book_append_sheet(wb, ws, aslKey.charAt(0).toUpperCase() + aslKey.slice(1));
+  const date = new Date().toISOString().split('T')[0];
+  XLSX.writeFile(wb, `dispositivi_${aslKey}_${date}.xlsx`);
+  toast(`Export completato: ${all.length} dispositivi`, 'ok');
+}
+
+async function importDatabaseDispositivi(input) {
+  const file = input.files[0];
+  if (!file) return;
+  input.value = '';
+
+  if (!confirm(`ATTENZIONE: questa operazione eliminerà tutti i dati esistenti e li sostituirà con il file selezionato.\n\nProcedere?`)) return;
+
+  if (typeof XLSX === 'undefined') {
+    toast('Caricamento libreria Excel...', 'warn');
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+    s.onload = () => { toast('Seleziona di nuovo il file', 'warn'); };
+    document.head.appendChild(s); return;
+  }
+
+  const asl = currentUser.profile?.asl || 'ASL Benevento';
+  const aslKey = asl.toLowerCase().replace('asl ', '');
+  const token = await supaToken();
+  const headers = { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' };
+
+  // Mostra progress
+  const prog = document.getElementById('gdb-progress');
+  const progBar = document.getElementById('gdb-prog-bar');
+  const progLabel = document.getElementById('gdb-prog-label');
+  const progDetail = document.getElementById('gdb-prog-detail');
+  if (prog) prog.style.display = 'block';
+
+  const setProgress = (pct, label, detail) => {
+    if (progBar) progBar.style.width = pct + '%';
+    if (progLabel) progLabel.textContent = label;
+    if (progDetail) progDetail.textContent = detail;
+  };
+
+  try {
+    // 1. Leggi Excel
+    setProgress(0, 'Lettura file...', '');
+    const buf = await file.arrayBuffer();
+    const wb = XLSX.read(buf, { type: 'array' });
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(ws, { defval: null });
+    if (!rows.length) { toast('File vuoto', 'warn'); return; }
+    setProgress(5, `Letti ${rows.length} record`, 'Pulizia valori...');
+
+    // Pulisci valori: converti tutto in stringa o null
+    const clean = rows.map(r => {
+      const obj = {};
+      for (const [k, v] of Object.entries(r)) {
+        if (v === null || v === undefined || v === '') obj[k] = null;
+        else obj[k] = String(v).trim();
+      }
+      return obj;
+    });
+
+    // 2. Svuota tabella via RPC
+    setProgress(10, 'Svuotamento tabella...', '');
+    const rpcRes = await fetch(`${SUPA_URL}/rest/v1/rpc/truncate_dispositivi`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ asl_key: aslKey })
+    });
+    if (!rpcRes.ok) {
+      const err = await rpcRes.text();
+      throw new Error('Truncate fallita: ' + err);
+    }
+
+    // 3. Insert a batch
+    const BATCH = 200;
+    const total = clean.length;
+    let inserted = 0, errors = 0;
+
+    for (let i = 0; i < total; i += BATCH) {
+      const batch = clean.slice(i, i + BATCH);
+      const pct = Math.round(10 + (i / total) * 88);
+      setProgress(pct, `Inserimento...`, `${Math.min(i + BATCH, total)} / ${total} record`);
+
+      const res = await fetch(`${SUPA_URL}/rest/v1/dispositivi_${aslKey}`, {
+        method: 'POST',
+        headers: { ...headers, 'Prefer': 'return=minimal' },
+        body: JSON.stringify(batch)
+      });
+      if (!res.ok) {
+        const errText = await res.text();
+        console.error('Batch error:', errText);
+        errors++;
+      } else {
+        inserted += batch.length;
+      }
+    }
+
+    setProgress(100, 'Import completato!', `${inserted} record inseriti${errors ? ', ' + errors + ' batch con errori' : ''}`);
+    toast(`Import completato: ${inserted} dispositivi`, errors ? 'warn' : 'ok');
+
+    // Ricarica DB in memoria
+    await initDB();
+
+  } catch (e) {
+    console.error('Import error:', e);
+    setProgress(0, 'Errore', e.message);
+    toast('Errore import: ' + e.message, 'ko');
+  }
 }
 // ── FINE PANNELLO ADMIN ──────────────────────────────────────
 
