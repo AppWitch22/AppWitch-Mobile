@@ -2901,8 +2901,10 @@ function fillVSEPreset(cod){
     sv('f-'+f, v);
   });
   // Radio button fields
-  const radios=['tdp','fdp','pdp','cls','cdp','pat','pad','fnz','def','smo','cav','icv','isp','int','icn','prc','icd','mus','mse','clm','vt','vd'];
+  const radios=['tdp','fdp','pdp','cls','cdp','fnz','def','smo','cav','icv','isp','int','icn','prc','icd','mus','mse','clm','vt','vd'];
   radios.forEach(f=>{if(p[f]) sr('rg-'+f,p[f]);});
+  if(p['pat']) sr('rg-pa',p['pat']);
+  if(p['pad']) sr('rg-padp',p['pad']);
   // Special: classe e PA aggiornano le misurazioni
   if(p['cls']||p['pat']) uM();
   // Special: giudizio
