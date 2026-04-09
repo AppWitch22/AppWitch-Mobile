@@ -5198,7 +5198,7 @@ const ANAG_GROUPS = [
     {k:'verifiche',l:'Tipi Verifica',full:true},
     {k:'periodicita_vse',l:'Period. VSE'},{k:'data_ultima_vse',l:'Data Ultima VSE'},{k:'esito_ultima_vse',l:'Esito Ultima VSE'},{k:'data_prossima_vse',l:'Prossima VSE'},
     {k:'periodicita_vsp',l:'Period. VSP'},{k:'data_ultima_vsp',l:'Data Ultima VSP'},{k:'esito_ultima_vsp',l:'Esito Ultima VSP'},{k:'data_prossima_vsp',l:'Prossima VSP'},
-    {k:'periodicita_mo',l:'Period. MO'},{k:'mo_2324',l:'MO 23/24'},{k:'mo_2425',l:'MO 24/25'},{k:'mo_2526',l:'MO 25/26'},{k:'data_prossima_mp',l:'Prossima MO'},
+    {k:'periodicita_mo',l:'Period. MO'},{k:'data_ultima_mo',l:'Data Ultima MO'},{k:'esito_ultima_mo',l:'Esito Ultima MO'},{k:'data_prossima_mo',l:'Prossima MO'},
     {k:'periodicita_cq',l:'Period. CQ'},{k:'data_ultima_cq',l:'Data Ultima CQ'},{k:'esito_ultima_cq',l:'Esito Ultima CQ'},{k:'data_prossima_cq',l:'Prossima CQ'},
   ]},
   { id:'note', label:'Note', fields:[
@@ -5454,13 +5454,13 @@ function _esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot
 
 function getJollyMeta() {
   const aslKey = (currentUser?.profile?.asl||'ASL Benevento').toLowerCase().replace('asl ','');
-  const _extend = arr => { while (arr.length < 21) arr.push({label:`Jolly ${arr.length+1}`,section:'jolly'}); return arr; };
+  const _extend = arr => { while (arr.length < 22) arr.push({label:`Jolly ${arr.length+1}`,section:'jolly'}); return arr; };
   const s = localStorage.getItem('jolly_meta_'+aslKey);
   if (s) { try { return _extend(JSON.parse(s)); } catch(e) {} }
   // Backward compat: vecchio formato array di stringhe
   const old = localStorage.getItem('jolly_labels_'+aslKey);
   if (old) { try { return _extend(JSON.parse(old).map(v => typeof v==='string' ? {label:v,section:'jolly'} : v)); } catch(e) {} }
-  return Array.from({length:21},(_,i)=>({label:`Jolly ${i+1}`,section:'jolly'}));
+  return Array.from({length:22},(_,i)=>({label:`Jolly ${i+1}`,section:'jolly'}));
 }
 function saveJollyMeta(meta) {
   const aslKey = (currentUser?.profile?.asl||'ASL Benevento').toLowerCase().replace('asl ','');
@@ -5499,6 +5499,9 @@ function renderAnagDetail() {
     jollyBySection[sec].push({...m,idx:idx+1});
   });
 
+  // Converti data ISO → gg/mm/aaaa per la visualizzazione
+  const _fmtDate = v => { const m=String(v||'').match(/^(\d{4})-(\d{2})-(\d{2})/); return m?`${m[3]}/${m[2]}/${m[1]}`:v||''; };
+
   const _jollyField = jf => {
     const k='jolly_'+jf.idx, v=_esc(d[k]||'');
     return `<div class="anag-field">
@@ -5514,7 +5517,8 @@ function renderAnagDetail() {
       <div class="anag-grp-hdr" onclick="toggleAnagGrp('${grp.id}')"><span>${grp.label}</span><span id="anag-tog-${grp.id}">▾</span></div>
       <div class="${bodyCls}" id="anag-grp-${grp.id}">`;
     for (const f of grp.fields) {
-      const v = _esc(d[f.k]||'');
+      const raw = d[f.k]||'';
+      const v = _esc(f.ta ? raw : _fmtDate(raw));
       const cls = 'anag-field'+(f.full?' full':'');
       if (f.ta) html += `<div class="${cls}"><label>${f.l}</label><textarea id="anag-f-${f.k}" data-k="${f.k}">${v}</textarea></div>`;
       else      html += `<div class="${cls}"><label>${f.l}</label><input type="text" id="anag-f-${f.k}" data-k="${f.k}" value="${v}"${f.ro?' readonly':''}></div>`;
@@ -5721,10 +5725,9 @@ const TBL_COLS = [
   {k:'esito_ultima_vsp',l:'Esito Ult. VSP',w:100},
   {k:'data_prossima_vsp',l:'Prox. VSP',w:90},
   {k:'periodicita_mo',l:'Period. MO',w:90},
-  {k:'mo_2324',l:'MO 23/24',w:80},
-  {k:'mo_2425',l:'MO 24/25',w:80},
-  {k:'mo_2526',l:'MO 25/26',w:80},
-  {k:'data_prossima_mp',l:'Prox. MO',w:90},
+  {k:'data_ultima_mo',l:'Data Ult. MO',w:100},
+  {k:'esito_ultima_mo',l:'Esito Ult. MO',w:100},
+  {k:'data_prossima_mo',l:'Prox. MO',w:90},
   {k:'periodicita_cq',l:'Period. CQ',w:90},
   {k:'data_ultima_cq',l:'Data Ult. CQ',w:100},
   {k:'esito_ultima_cq',l:'Esito Ult. CQ',w:100},
@@ -5752,7 +5755,7 @@ let _tblSearchTm  = null;    // debounce handle per la ricerca
 function _getTblCols() {
   const jl = getJollyLabels();
   const cols = [...TBL_COLS];
-  for (let i=1;i<=21;i++) cols.push({k:'jolly_'+i, l:jl[i-1]||`Jolly ${i}`, w:100});
+  for (let i=1;i<=22;i++) cols.push({k:'jolly_'+i, l:jl[i-1]||`Jolly ${i}`, w:100});
   return cols;
 }
 
