@@ -3259,9 +3259,18 @@ async function exportDatabaseDispositivi() {
     'jolly_5_label','jolly_5_value','jolly_6_label','jolly_6_value',
     'jolly_7_label','jolly_7_value','jolly_8_label','jolly_8_value',
     'jolly_9_label','jolly_9_value','jolly_10_label','jolly_10_value']);
-  const exportRows = all.map(r => Object.fromEntries(
-    Object.entries(r).filter(([k]) => !SKIP_EXPORT.has(k))
-  ));
+  // Mappa jolly_N → etichetta configurata (es. jolly_1 → "Numero Lotto")
+  const jmeta = getJollyMeta();
+  const jollyKeyToLabel = {};
+  jmeta.forEach((m,i) => { jollyKeyToLabel[`jolly_${i+1}`] = m.label || `Jolly ${i+1}`; });
+  const exportRows = all.map(r => {
+    const out = {};
+    for (const [k, v] of Object.entries(r)) {
+      if (SKIP_EXPORT.has(k)) continue;
+      out[jollyKeyToLabel[k] ?? k] = v;
+    }
+    return out;
+  });
 
   const wb = XLSX.utils.book_new();
   const ws = XLSX.utils.json_to_sheet(exportRows);
@@ -3316,6 +3325,11 @@ async function importDatabaseDispositivi(input) {
 
     // Colonne gestite automaticamente da Supabase — da escludere
     const SKIP_COLS = new Set(['updated_at']);
+    // Mappa inversa: etichetta jolly → nome colonna tecnico (jolly_N)
+    const jollyLabelToKey = {};
+    getJollyMeta().forEach((m,i) => {
+      if (m.label) jollyLabelToKey[m.label] = `jolly_${i+1}`;
+    });
 
     // Converte seriale Excel → YYYY-MM-DD
     const xlsxDateToISO = n => {
@@ -3326,7 +3340,9 @@ async function importDatabaseDispositivi(input) {
     // Pulisci valori: converti date in YYYY-MM-DD, tutto il resto in stringa o null
     const clean = rows.map(r => {
       const obj = {};
-      for (const [k, v] of Object.entries(r)) {
+      for (let [k, v] of Object.entries(r)) {
+        // Remap etichetta jolly → nome colonna tecnico (es. "Numero Lotto" → "jolly_1")
+        k = jollyLabelToKey[k] ?? k;
         if (SKIP_COLS.has(k)) continue;
         if (v === null || v === undefined || v === '') { obj[k] = null; continue; }
         // Date object (cellDates:true)
