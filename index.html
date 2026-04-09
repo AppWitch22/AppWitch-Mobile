@@ -364,6 +364,7 @@ body.logged-in h1,body.logged-in .subtitle{display:none}
 .anag-grp{border:1px solid var(--border);border-radius:var(--rad-lg);margin-bottom:10px;overflow:hidden}
 .anag-grp-hdr{background:var(--bg3);padding:9px 14px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text2);cursor:pointer;display:flex;justify-content:space-between;align-items:center;user-select:none;-webkit-tap-highlight-color:transparent}
 .anag-grp-body{padding:14px;display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;background:var(--bg2)}
+.anag-grp-body.cols4{grid-template-columns:repeat(4,1fr)}
 .anag-grp-body.hidden{display:none}
 .anag-field{display:flex;flex-direction:column;gap:4px}
 .anag-field.full{grid-column:1/-1}
@@ -5193,7 +5194,7 @@ const ANAG_GROUPS = [
     {k:'proposta_dismissione',l:'Proposta Dismissione'},
     {k:'dismissione_effettiva',l:'Dismissione Effettiva'},
   ]},
-  { id:'verif', label:'Verifiche', fields:[
+  { id:'verif', label:'Verifiche', cols4:true, fields:[
     {k:'verifiche',l:'Tipi Verifica',full:true},
     {k:'periodicita_vse',l:'Period. VSE'},{k:'data_ultima_vse',l:'Data Ultima VSE'},{k:'esito_ultima_vse',l:'Esito Ultima VSE'},{k:'data_prossima_vse',l:'Prossima VSE'},
     {k:'periodicita_vsp',l:'Period. VSP'},{k:'data_ultima_vsp',l:'Data Ultima VSP'},{k:'esito_ultima_vsp',l:'Esito Ultima VSP'},{k:'data_prossima_vsp',l:'Prossima VSP'},
@@ -5453,11 +5454,12 @@ function _esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot
 
 function getJollyMeta() {
   const aslKey = (currentUser?.profile?.asl||'ASL Benevento').toLowerCase().replace('asl ','');
+  const _extend = arr => { while (arr.length < 21) arr.push({label:`Jolly ${arr.length+1}`,section:'jolly'}); return arr; };
   const s = localStorage.getItem('jolly_meta_'+aslKey);
-  if (s) { try { return JSON.parse(s); } catch(e) {} }
+  if (s) { try { return _extend(JSON.parse(s)); } catch(e) {} }
   // Backward compat: vecchio formato array di stringhe
   const old = localStorage.getItem('jolly_labels_'+aslKey);
-  if (old) { try { return JSON.parse(old).map(v => typeof v==='string' ? {label:v,section:'jolly'} : v); } catch(e) {} }
+  if (old) { try { return _extend(JSON.parse(old).map(v => typeof v==='string' ? {label:v,section:'jolly'} : v)); } catch(e) {} }
   return Array.from({length:21},(_,i)=>({label:`Jolly ${i+1}`,section:'jolly'}));
 }
 function saveJollyMeta(meta) {
@@ -5507,9 +5509,10 @@ function renderAnagDetail() {
 
   let html = '';
   for (const grp of ANAG_GROUPS) {
+    const bodyCls = 'anag-grp-body'+(grp.cols4?' cols4':'');
     html += `<div class="anag-grp">
       <div class="anag-grp-hdr" onclick="toggleAnagGrp('${grp.id}')"><span>${grp.label}</span><span id="anag-tog-${grp.id}">▾</span></div>
-      <div class="anag-grp-body" id="anag-grp-${grp.id}">`;
+      <div class="${bodyCls}" id="anag-grp-${grp.id}">`;
     for (const f of grp.fields) {
       const v = _esc(d[f.k]||'');
       const cls = 'anag-field'+(f.full?' full':'');
