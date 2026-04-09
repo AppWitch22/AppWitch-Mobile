@@ -3252,8 +3252,19 @@ async function exportDatabaseDispositivi() {
   }
   if (!all.length) { toast('Nessun dato da esportare', 'warn'); return; }
 
+  // Colonne da escludere: auto-gestite da Supabase o legacy non usate dall'app
+  const SKIP_EXPORT = new Set(['updated_at',
+    'jolly_1_label','jolly_1_value','jolly_2_label','jolly_2_value',
+    'jolly_3_label','jolly_3_value','jolly_4_label','jolly_4_value',
+    'jolly_5_label','jolly_5_value','jolly_6_label','jolly_6_value',
+    'jolly_7_label','jolly_7_value','jolly_8_label','jolly_8_value',
+    'jolly_9_label','jolly_9_value','jolly_10_label','jolly_10_value']);
+  const exportRows = all.map(r => Object.fromEntries(
+    Object.entries(r).filter(([k]) => !SKIP_EXPORT.has(k))
+  ));
+
   const wb = XLSX.utils.book_new();
-  const ws = XLSX.utils.json_to_sheet(all);
+  const ws = XLSX.utils.json_to_sheet(exportRows);
   XLSX.utils.book_append_sheet(wb, ws, aslKey.charAt(0).toUpperCase() + aslKey.slice(1));
   const date = new Date().toISOString().split('T')[0];
   XLSX.writeFile(wb, `dispositivi_${aslKey}_${date}.xlsx`);
