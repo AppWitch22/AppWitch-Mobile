@@ -5184,8 +5184,6 @@ const ANAG_GROUPS = [
   { id:'stato', label:'Stato e Ciclo di Vita', fields:[
     {k:'dettagli_stato',l:'Stato'},
     {k:'presenze_effettive',l:'Presenze Effettive'},
-    {k:'esito_verifica',l:'Esito Verifica'},
-    {k:'esito_verifica_precedente',l:'Esito Precedente'},
     {k:'proprieta',l:'Proprietà'},
     {k:'forma_presenza',l:'Forma Presenza'},
     {k:'data_collaudo',l:'Data Collaudo'},
@@ -5197,10 +5195,10 @@ const ANAG_GROUPS = [
   ]},
   { id:'verif', label:'Verifiche', fields:[
     {k:'verifiche',l:'Tipi Verifica',full:true},
-    {k:'periodicita_vse',l:'Period. VSE'},{k:'vse_2324',l:'VSE 23/24'},{k:'vse_2425',l:'VSE 24/25'},{k:'vse_2526',l:'VSE 25/26'},{k:'data_prossima_vse',l:'Prossima VSE'},
-    {k:'periodicita_vsp',l:'Period. VSP'},{k:'vsp_2324',l:'VSP 23/24'},{k:'vsp_2425',l:'VSP 24/25'},{k:'vsp_2526',l:'VSP 25/26'},{k:'data_prossima_vsp',l:'Prossima VSP'},
-    {k:'periodicita_mp',l:'Period. MP'},{k:'mp_2324',l:'MP 23/24'},{k:'mp_2425',l:'MP 24/25'},{k:'mp_2526',l:'MP 25/26'},{k:'data_prossima_mp',l:'Prossima MP'},
-    {k:'periodicita_cq',l:'Period. CQ'},{k:'cq_2324',l:'CQ 23/24'},{k:'cq_2425',l:'CQ 24/25'},{k:'cq_2526',l:'CQ 25/26'},{k:'data_prossimo_cq',l:'Prossimo CQ'},
+    {k:'periodicita_vse',l:'Period. VSE'},{k:'data_ultima_vse',l:'Data Ultima VSE'},{k:'esito_ultima_vse',l:'Esito Ultima VSE'},{k:'data_prossima_vse',l:'Prossima VSE'},
+    {k:'periodicita_vsp',l:'Period. VSP'},{k:'data_ultima_vsp',l:'Data Ultima VSP'},{k:'esito_ultima_vsp',l:'Esito Ultima VSP'},{k:'data_prossima_vsp',l:'Prossima VSP'},
+    {k:'periodicita_mo',l:'Period. MO'},{k:'mo_2324',l:'MO 23/24'},{k:'mo_2425',l:'MO 24/25'},{k:'mo_2526',l:'MO 25/26'},{k:'data_prossima_mp',l:'Prossima MO'},
+    {k:'periodicita_cq',l:'Period. CQ'},{k:'data_ultima_cq',l:'Data Ultima CQ'},{k:'esito_ultima_cq',l:'Esito Ultima CQ'},{k:'data_prossima_cq',l:'Prossima CQ'},
   ]},
   { id:'note', label:'Note', fields:[
     {k:'note_programmate',l:'Note Programmate',full:true,ta:true},
@@ -5460,7 +5458,7 @@ function getJollyMeta() {
   // Backward compat: vecchio formato array di stringhe
   const old = localStorage.getItem('jolly_labels_'+aslKey);
   if (old) { try { return JSON.parse(old).map(v => typeof v==='string' ? {label:v,section:'jolly'} : v); } catch(e) {} }
-  return Array.from({length:10},(_,i)=>({label:`Jolly ${i+1}`,section:'jolly'}));
+  return Array.from({length:21},(_,i)=>({label:`Jolly ${i+1}`,section:'jolly'}));
 }
 function saveJollyMeta(meta) {
   const aslKey = (currentUser?.profile?.asl||'ASL Benevento').toLowerCase().replace('asl ','');
@@ -5637,13 +5635,13 @@ async function importAnagraficaFromExcel(input) {
     ['Proposta dismissione','proposta_dismissione'],['Dismissione effettiva','dismissione_effettiva'],
     ['Dettagli Stato','dettagli_stato'],['Manutentore (ID_Assistenza)','manutentore'],
     ['Data fine Garanzia','data_fine_garanzia'],
-    ["PERIODICITA' VSE",'periodicita_vse'],['VSE 23/24','vse_2324'],['VSE 24/25','vse_2425'],['VSE 25/26','vse_2526'],['Data prossima VSE','data_prossima_vse'],
-    ["PERIODICITA' VPS",'periodicita_vsp'],['VSP 23/24','vsp_2324'],['VSP 24/25','vsp_2425'],['VSP 25/26','vsp_2526'],['Data prossima VSP','data_prossima_vsp'],
-    ["PERIODICITA' MO",'periodicita_mp'],['MO 23/24','mp_2324'],['MO 24/25','mp_2425'],['MO 25/26','mp_2526'],['Data prossima MO','data_prossima_mp'],
-    ["PERIODICITA' CQ",'periodicita_cq'],['CQ  23/24','cq_2324'],['CQ  24/25','cq_2425'],['CQ  25/26','cq_2526'],['Data prossimo CQ','data_prossimo_cq'],
+    ["PERIODICITA' VSE",'periodicita_vse'],['VSE 23/24','jolly_11'],['VSE 24/25','data_ultima_vse'],['VSE 25/26','esito_ultima_vse'],['Data prossima VSE','data_prossima_vse'],
+    ["PERIODICITA' VPS",'periodicita_vsp'],['VSP 23/24','jolly_12'],['VSP 24/25','data_ultima_vsp'],['VSP 25/26','esito_ultima_vsp'],['Data prossima VSP','data_prossima_vsp'],
+    ["PERIODICITA' MO",'periodicita_mo'],['MO 23/24','mo_2324'],['MO 24/25','mo_2425'],['MO 25/26','mo_2526'],['Data prossima MO','data_prossima_mp'],
+    ["PERIODICITA' CQ",'periodicita_cq'],['CQ  23/24','jolly_14'],['CQ  24/25','data_ultima_cq'],['CQ  25/26','esito_ultima_cq'],['Data prossimo CQ','data_prossima_cq'],
     ['NOTE PROGRAMMATE','note_programmate'],['NOTE INVENTARIO','note_inventario'],
-    ['Presenze Effettive','presenze_effettive'],['Esito Verifica','esito_verifica'],
-    ['Esito Verifica anno precedente','esito_verifica_precedente'],
+    ['Presenze Effettive','presenze_effettive'],['Esito Verifica','jolly_16'],
+    ['Esito Verifica anno precedente','jolly_17'],
     ['Proprietà','proprieta'],['Fine Service Comodato','fine_service_comodato'],
     ['Forma di Presenza8','forma_presenza'],['Data Collaudo','data_collaudo'],
   ];
@@ -5702,8 +5700,6 @@ const TBL_COLS = [
   {k:'stanza',l:'Stanza',w:80},
   {k:'dettagli_stato',l:'Stato',w:100},
   {k:'presenze_effettive',l:'Presenze',w:80},
-  {k:'esito_verifica',l:'Esito',w:80},
-  {k:'esito_verifica_precedente',l:'Esito Prec.',w:90},
   {k:'proprieta',l:'Proprietà',w:90},
   {k:'forma_presenza',l:'Forma Pres.',w:110},
   {k:'data_collaudo',l:'Collaudo',w:90},
@@ -5714,25 +5710,22 @@ const TBL_COLS = [
   {k:'dismissione_effettiva',l:'Dismis. Eff.',w:110},
   {k:'verifiche',l:'Verifiche',w:100},
   {k:'periodicita_vse',l:'Period. VSE',w:90},
-  {k:'vse_2324',l:'VSE 23/24',w:80},
-  {k:'vse_2425',l:'VSE 24/25',w:80},
-  {k:'vse_2526',l:'VSE 25/26',w:80},
+  {k:'data_ultima_vse',l:'Data Ult. VSE',w:100},
+  {k:'esito_ultima_vse',l:'Esito Ult. VSE',w:100},
   {k:'data_prossima_vse',l:'Prox. VSE',w:90},
   {k:'periodicita_vsp',l:'Period. VSP',w:90},
-  {k:'vsp_2324',l:'VSP 23/24',w:80},
-  {k:'vsp_2425',l:'VSP 24/25',w:80},
-  {k:'vsp_2526',l:'VSP 25/26',w:80},
+  {k:'data_ultima_vsp',l:'Data Ult. VSP',w:100},
+  {k:'esito_ultima_vsp',l:'Esito Ult. VSP',w:100},
   {k:'data_prossima_vsp',l:'Prox. VSP',w:90},
-  {k:'periodicita_mp',l:'Period. MP',w:90},
-  {k:'mp_2324',l:'MP 23/24',w:80},
-  {k:'mp_2425',l:'MP 24/25',w:80},
-  {k:'mp_2526',l:'MP 25/26',w:80},
-  {k:'data_prossima_mp',l:'Prox. MP',w:90},
+  {k:'periodicita_mo',l:'Period. MO',w:90},
+  {k:'mo_2324',l:'MO 23/24',w:80},
+  {k:'mo_2425',l:'MO 24/25',w:80},
+  {k:'mo_2526',l:'MO 25/26',w:80},
+  {k:'data_prossima_mp',l:'Prox. MO',w:90},
   {k:'periodicita_cq',l:'Period. CQ',w:90},
-  {k:'cq_2324',l:'CQ 23/24',w:80},
-  {k:'cq_2425',l:'CQ 24/25',w:80},
-  {k:'cq_2526',l:'CQ 25/26',w:80},
-  {k:'data_prossimo_cq',l:'Prox. CQ',w:90},
+  {k:'data_ultima_cq',l:'Data Ult. CQ',w:100},
+  {k:'esito_ultima_cq',l:'Esito Ult. CQ',w:100},
+  {k:'data_prossima_cq',l:'Prox. CQ',w:90},
   {k:'note_programmate',l:'Note Prog.',w:160},
   {k:'note_inventario',l:'Note Inv.',w:160},
 ];
@@ -5756,7 +5749,7 @@ let _tblSearchTm  = null;    // debounce handle per la ricerca
 function _getTblCols() {
   const jl = getJollyLabels();
   const cols = [...TBL_COLS];
-  for (let i=1;i<=10;i++) cols.push({k:'jolly_'+i, l:jl[i-1], w:100});
+  for (let i=1;i<=21;i++) cols.push({k:'jolly_'+i, l:jl[i-1]||`Jolly ${i}`, w:100});
   return cols;
 }
 
