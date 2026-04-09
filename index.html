@@ -5437,15 +5437,20 @@ function anagNext(){ const tp=Math.ceil(anagResults.length/ANAG_PER_PAGE); if(an
 
 function _esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
-function getJollyLabels() {
+function getJollyMeta() {
   const aslKey = (currentUser?.profile?.asl||'ASL Benevento').toLowerCase().replace('asl ','');
-  const s = localStorage.getItem('jolly_labels_'+aslKey);
-  return s ? JSON.parse(s) : Array.from({length:10},(_,i)=>`Jolly ${i+1}`);
+  const s = localStorage.getItem('jolly_meta_'+aslKey);
+  if (s) { try { return JSON.parse(s); } catch(e) {} }
+  // Backward compat: vecchio formato array di stringhe
+  const old = localStorage.getItem('jolly_labels_'+aslKey);
+  if (old) { try { return JSON.parse(old).map(v => typeof v==='string' ? {label:v,section:'jolly'} : v); } catch(e) {} }
+  return Array.from({length:10},(_,i)=>({label:`Jolly ${i+1}`,section:'jolly'}));
 }
-function saveJollyLabels(labels) {
+function saveJollyMeta(meta) {
   const aslKey = (currentUser?.profile?.asl||'ASL Benevento').toLowerCase().replace('asl ','');
-  localStorage.setItem('jolly_labels_'+aslKey, JSON.stringify(labels));
+  localStorage.setItem('jolly_meta_'+aslKey, JSON.stringify(meta));
 }
+function getJollyLabels() { return getJollyMeta().map(m=>m.label); }
 
 async function openAnagDetail(codice) {
   const aslKey = (currentUser?.profile?.asl||'ASL Benevento').toLowerCase().replace('asl ','');
@@ -5467,8 +5472,25 @@ function closeAnagModal() {
 
 function renderAnagDetail() {
   const d = anagCurDev;
-  const jl = getJollyLabels();
+  const jmeta = getJollyMeta();
   document.getElementById('anag-modal-title').textContent = `${d.codice} — ${d.descrizione_classe||''}`;
+
+  // Raggruppa jolly per sezione
+  const jollyBySection = {};
+  jmeta.forEach((m,idx) => {
+    const sec = m.section||'jolly';
+    if (!jollyBySection[sec]) jollyBySection[sec]=[];
+    jollyBySection[sec].push({...m,idx:idx+1});
+  });
+
+  const _jollyField = jf => {
+    const k='jolly_'+jf.idx, v=_esc(d[k]||'');
+    return `<div class="anag-field">
+      <label><button class="jolly-lbl-btn" onclick="editJollyLabel(${jf.idx})" title="Clicca per configurare">${_esc(jf.label)} ✎</button></label>
+      <input type="text" id="anag-f-${k}" data-k="${k}" value="${v}">
+    </div>`;
+  };
+
   let html = '';
   for (const grp of ANAG_GROUPS) {
     html += `<div class="anag-grp">
@@ -5480,20 +5502,20 @@ function renderAnagDetail() {
       if (f.ta) html += `<div class="${cls}"><label>${f.l}</label><textarea id="anag-f-${f.k}" data-k="${f.k}">${v}</textarea></div>`;
       else      html += `<div class="${cls}"><label>${f.l}</label><input type="text" id="anag-f-${f.k}" data-k="${f.k}" value="${v}"${f.ro?' readonly':''}></div>`;
     }
+    // Jolly assegnati a questa sezione
+    (jollyBySection[grp.id]||[]).forEach(jf => { html += _jollyField(jf); });
     html += `</div></div>`;
   }
-  // Jolly
-  html += `<div class="anag-grp">
-    <div class="anag-grp-hdr" onclick="toggleAnagGrp('jolly')"><span>Campi Jolly</span><span id="anag-tog-jolly">▾</span></div>
-    <div class="anag-grp-body" id="anag-grp-jolly">`;
-  for (let i=1;i<=10;i++) {
-    const k='jolly_'+i, v=_esc(d[k]||'');
-    html += `<div class="anag-field">
-      <label><button class="jolly-lbl-btn" onclick="editJollyLabel(${i})" title="Clicca per rinominare">${_esc(jl[i-1])} ✎</button></label>
-      <input type="text" id="anag-f-${k}" data-k="${k}" value="${v}">
-    </div>`;
+
+  // Jolly non assegnati (sezione 'jolly')
+  const remaining = jollyBySection['jolly']||[];
+  if (remaining.length) {
+    html += `<div class="anag-grp">
+      <div class="anag-grp-hdr" onclick="toggleAnagGrp('jolly')"><span>Campi Jolly</span><span id="anag-tog-jolly">▾</span></div>
+      <div class="anag-grp-body" id="anag-grp-jolly">`;
+    remaining.forEach(jf => { html += _jollyField(jf); });
+    html += `</div></div>`;
   }
-  html += `</div></div>`;
   document.getElementById('anag-modal-body').innerHTML = html;
 }
 
@@ -5532,11 +5554,51 @@ async function saveAnagDetail() {
 }
 
 function editJollyLabel(i) {
-  const labels = getJollyLabels();
-  const newLabel = prompt(`Nome campo Jolly ${i}:`, labels[i-1]);
-  if (newLabel === null) return;
-  labels[i-1] = newLabel.trim() || `Jolly ${i}`;
-  saveJollyLabels(labels);
+  const meta = getJollyMeta();
+  const m = meta[i-1];
+  const SECTIONS = [
+    {id:'id',    label:'Identificazione'},
+    {id:'loc',   label:'Collocazione'},
+    {id:'stato', label:'Stato e Ciclo di Vita'},
+    {id:'verif', label:'Verifiche'},
+    {id:'note',  label:'Note'},
+    {id:'jolly', label:'Campi Jolly'},
+  ];
+  document.getElementById('jolly-edit-modal')?.remove();
+  const opts = SECTIONS.map(s=>`<option value="${s.id}"${(m.section||'jolly')===s.id?' selected':''}>${s.label}</option>`).join('');
+  document.body.insertAdjacentHTML('beforeend',`
+    <div id="jolly-edit-modal" style="position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:20000;display:flex;align-items:center;justify-content:center;padding:20px">
+      <div style="background:var(--bg);border-radius:var(--rad-lg);width:100%;max-width:320px;padding:20px">
+        <div style="font-size:14px;font-weight:600;margin-bottom:14px;color:var(--text)">Configura Jolly ${i}</div>
+        <div style="margin-bottom:10px">
+          <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:4px">Etichetta</label>
+          <input id="jolly-edit-label" type="text" value="${_esc(m.label)}"
+            style="width:100%;padding:7px 10px;border:1px solid var(--border2);border-radius:var(--rad);font-size:13px;background:var(--bg2);color:var(--text);box-sizing:border-box">
+        </div>
+        <div style="margin-bottom:16px">
+          <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:4px">Sezione</label>
+          <select id="jolly-edit-section"
+            style="width:100%;padding:7px 10px;border:1px solid var(--border2);border-radius:var(--rad);font-size:13px;background:var(--bg2);color:var(--text);box-sizing:border-box">
+            ${opts}
+          </select>
+        </div>
+        <div style="display:flex;gap:8px;justify-content:flex-end">
+          <button onclick="document.getElementById('jolly-edit-modal').remove()"
+            style="padding:7px 14px;font-size:13px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg3);color:var(--text);cursor:pointer">Annulla</button>
+          <button onclick="saveJollyEdit(${i})"
+            style="padding:7px 14px;font-size:13px;border:none;border-radius:var(--rad);background:var(--info);color:#fff;cursor:pointer;font-weight:600">Salva</button>
+        </div>
+      </div>
+    </div>`);
+  document.getElementById('jolly-edit-label').focus();
+}
+function saveJollyEdit(i) {
+  const label = document.getElementById('jolly-edit-label').value.trim() || `Jolly ${i}`;
+  const section = document.getElementById('jolly-edit-section').value;
+  const meta = getJollyMeta();
+  meta[i-1] = {label, section};
+  saveJollyMeta(meta);
+  document.getElementById('jolly-edit-modal').remove();
   renderAnagDetail();
 }
 
