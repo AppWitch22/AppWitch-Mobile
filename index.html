@@ -1263,6 +1263,7 @@ async function initDB(){
     Object.assign(VERIF_MAP,VERIF_MAP_NEW);
     bar.innerHTML='<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#1a3a6b;margin-right:8px;vertical-align:middle;flex-shrink:0;"></span><span>Database pronto</span><span style="font-family:\'IBM Plex Mono\',ui-monospace,monospace;font-size:12px;color:#1a3a6b;margin-left:6px;">— '+Object.keys(DB).length.toLocaleString()+' dispositivi</span>';
     bar.className='db-bar ready';
+    await loadJollyMetaFromDB();
     await loadPresets();
   }catch(e){
     console.error('DB error:',e);
@@ -5504,6 +5505,27 @@ function getJollyMeta() {
 function saveJollyMeta(meta) {
   const aslKey = (currentUser?.profile?.asl||'ASL Benevento').toLowerCase().replace('asl ','');
   localStorage.setItem('jolly_meta_'+aslKey, JSON.stringify(meta));
+  // Salva su Supabase in background (sync tra dispositivi)
+  supaToken().then(token => {
+    fetch(`${SUPA_URL}/rest/v1/config_asl`, {
+      method: 'POST',
+      headers: {...supaHdrs(token), 'Prefer': 'resolution=merge-duplicates'},
+      body: JSON.stringify({asl: aslKey, key: 'jolly_meta', value: meta})
+    }).catch(() => {});
+  });
+}
+async function loadJollyMetaFromDB() {
+  const aslKey = (currentUser?.profile?.asl||'ASL Benevento').toLowerCase().replace('asl ','');
+  try {
+    const token = await supaToken();
+    const r = await fetch(`${SUPA_URL}/rest/v1/config_asl?asl=eq.${encodeURIComponent(aslKey)}&key=eq.jolly_meta&limit=1`,
+      {headers: {'apikey': SUPA_KEY, 'Authorization': 'Bearer '+token}});
+    if (!r.ok) return;
+    const rows = await r.json();
+    if (rows.length && rows[0].value) {
+      localStorage.setItem('jolly_meta_'+aslKey, JSON.stringify(rows[0].value));
+    }
+  } catch(e) {}
 }
 function getJollyLabels() { return getJollyMeta().map(m=>m.label); }
 
