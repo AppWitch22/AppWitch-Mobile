@@ -616,6 +616,7 @@ body.logged-in h1,body.logged-in .subtitle{display:none}
       <div class="anag-filter-grid" id="anag-filter-grid"></div>
       <div class="anag-filter-actions">
         <button class="btn-sm" onclick="resetAnagFilters()">✕ Reset filtri</button>
+        <button class="btn-sm" id="btn-toggle-archiviati-anag" onclick="toggleArchiviati()" title="Mostra/nascondi dispositivi archiviati">Archiviati: OFF</button>
       </div>
     </div>
     <div id="anag-list"></div>
@@ -655,6 +656,7 @@ body.logged-in h1,body.logged-in .subtitle{display:none}
     <div class="tbl-toolbar">
       <input type="text" id="tbl-search" placeholder="Cerca in tutte le colonne..." oninput="tblSearch(this.value)">
       <button id="tbl-clear-filters" onclick="tblClearAllFilters()">✕ Filtri</button>
+      <button class="btn-sm" id="btn-toggle-archiviati-tbl" onclick="toggleArchiviati()" title="Mostra/nascondi dispositivi archiviati">Archiviati: OFF</button>
       <span class="tbl-sel-count" id="tbl-sel-count"></span>
       <span class="tbl-counter" id="tbl-row-count"></span>
     </div>
@@ -5234,6 +5236,7 @@ let anagPage = 0;
 const ANAG_PER_PAGE = 30;
 let anagResults = [];
 let anagCurDev = null;
+let showArchiviati = false;
 
 function toggleSidebar() {
   document.body.classList.toggle('sidebar-open');
@@ -5429,12 +5432,23 @@ function resetAnagFilters() {
   searchAnagrafica();
 }
 
+function toggleArchiviati() {
+  showArchiviati = !showArchiviati;
+  const label = showArchiviati ? 'Archiviati: ON' : 'Archiviati: OFF';
+  ['btn-toggle-archiviati-anag','btn-toggle-archiviati-tbl'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.textContent = label; el.style.opacity = showArchiviati ? '1' : '0.6'; }
+  });
+  searchAnagrafica();
+  if (tableData) renderTableView();
+}
+
 function searchAnagrafica() {
   if (!afState || !ANAG_FILTER_DEFS.length) return;
   const q = (document.getElementById('anag-input').value||'').trim().toLowerCase();
   anagPage = 0;
   anagResults = Object.values(DB).filter(d => {
-    if ((d.pe||'').toLowerCase() === 'archiviato') return false;
+    if (!showArchiviati && (d.pe||'').toLowerCase() === 'archiviato') return false;
     if (q && !_matchesQuery(d, q)) return false;
     return _deviceMatchesFilters(d, null);
   });
@@ -5830,7 +5844,7 @@ function _tblFilteredRows() {
   const q = tableSearchQ.toLowerCase();
   const cols = _getTblCols();
   return tableData.filter(row => {
-    if ((row.presenze_effettive||'').toLowerCase() === 'archiviato') return false;
+    if (!showArchiviati && (row.presenze_effettive||'').toLowerCase() === 'archiviato') return false;
     if (q && !cols.some(c => (row[c.k]||'').toLowerCase().includes(q))) return false;
     for (const [k, vals] of Object.entries(tableColFilters)) {
       if (!vals || vals.size === 0) continue;
