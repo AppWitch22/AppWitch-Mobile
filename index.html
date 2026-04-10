@@ -5494,13 +5494,20 @@ function _esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot
 
 function getJollyMeta() {
   const aslKey = (currentUser?.profile?.asl||'ASL Benevento').toLowerCase().replace('asl ','');
-  const _extend = arr => { while (arr.length < 22) arr.push({label:`Jolly ${arr.length+1}`,section:'jolly'}); return arr; };
+  const _defaults = () => Array.from({length:22},(_,i)=>({label:`Jolly ${i+1}`,section:'jolly'}));
+  const _normalize = v => typeof v==='string' ? {label:v,section:'jolly'} : (v&&v.label ? v : {label:`Jolly ?`,section:'jolly'});
+  const _extend = arr => {
+    if (!Array.isArray(arr)) return _defaults();
+    arr = arr.map(_normalize);
+    while (arr.length < 22) arr.push({label:`Jolly ${arr.length+1}`,section:'jolly'});
+    return arr;
+  };
   const s = localStorage.getItem('jolly_meta_'+aslKey);
   if (s) { try { return _extend(JSON.parse(s)); } catch(e) {} }
   // Backward compat: vecchio formato array di stringhe
   const old = localStorage.getItem('jolly_labels_'+aslKey);
-  if (old) { try { return _extend(JSON.parse(old).map(v => typeof v==='string' ? {label:v,section:'jolly'} : v)); } catch(e) {} }
-  return Array.from({length:22},(_,i)=>({label:`Jolly ${i+1}`,section:'jolly'}));
+  if (old) { try { return _extend(JSON.parse(old)); } catch(e) {} }
+  return _defaults();
 }
 function saveJollyMeta(meta) {
   const aslKey = (currentUser?.profile?.asl||'ASL Benevento').toLowerCase().replace('asl ','');
