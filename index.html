@@ -601,6 +601,7 @@ body.logged-in h1,body.logged-in .subtitle{display:none}
     <div class="sess-hdr">
       <div class="card-title" style="margin-bottom:0">Anagrafica Dispositivi</div>
       <div class="sess-btns">
+        <button class="btn-sm" onclick="openNewDevice()" title="Inserisci nuovo dispositivo">+ Nuovo</button>
         <label class="btn-sm" style="cursor:pointer" title="Importa anagrafica da file Excel">📥 Importa<input type="file" accept=".xlsx,.xls" onchange="importAnagraficaFromExcel(this)" style="display:none"></label>
         <button class="btn-sm" onclick="closeAnagrafica()" title="Chiudi sezione">✕ Chiudi</button>
       </div>
@@ -5191,11 +5192,11 @@ async function exportTutti(cod){
 
 const ANAG_GROUPS = [
   { id:'id', label:'Identificazione', fields:[
-    {k:'codice',l:'Codice',ro:true},
+    {k:'codice',l:'Codice',ro:true,req:true},
     {k:'codice_padre',l:'Codice Padre'},
-    {k:'descrizione_classe',l:'Descrizione Classe',full:true},
-    {k:'costruttore',l:'Costruttore'},
-    {k:'modello',l:'Modello'},
+    {k:'descrizione_classe',l:'Descrizione Classe',full:true,req:true},
+    {k:'costruttore',l:'Costruttore',req:true},
+    {k:'modello',l:'Modello',req:true},
     {k:'matricola',l:'Matricola'},
     {k:'civab',l:'CIVAB'},
   ]},
@@ -5236,6 +5237,7 @@ let anagPage = 0;
 const ANAG_PER_PAGE = 30;
 let anagResults = [];
 let anagCurDev = null;
+let anagIsNew = false;
 let showArchiviati = false;
 
 function toggleSidebar() {
@@ -5521,12 +5523,22 @@ async function openAnagDetail(codice) {
 function closeAnagModal() {
   document.getElementById('anag-modal').classList.remove('open');
   anagCurDev = null;
+  anagIsNew = false;
+}
+
+function openNewDevice() {
+  anagIsNew = true;
+  anagCurDev = { cliente: (currentUser?.profile?.asl||'ASL BENEVENTO').toUpperCase() };
+  renderAnagDetail();
+  document.getElementById('anag-modal').classList.add('open');
 }
 
 function renderAnagDetail() {
   const d = anagCurDev;
   const jmeta = getJollyMeta();
-  document.getElementById('anag-modal-title').textContent = `${d.codice} — ${d.descrizione_classe||''}`;
+  document.getElementById('anag-modal-title').textContent = anagIsNew
+    ? 'Nuovo dispositivo'
+    : `${d.codice} — ${d.descrizione_classe||''}`;
 
   // Raggruppa jolly per sezione
   const jollyBySection = {};
@@ -5557,8 +5569,9 @@ function renderAnagDetail() {
       const raw = d[f.k]||'';
       const v = _esc(f.ta ? raw : _fmtDate(raw));
       const cls = 'anag-field'+(f.full?' full':'');
+      const isRo = f.ro && !anagIsNew;
       if (f.ta) html += `<div class="${cls}"><label>${f.l}</label><textarea id="anag-f-${f.k}" data-k="${f.k}">${v}</textarea></div>`;
-      else      html += `<div class="${cls}"><label>${f.l}</label><input type="text" id="anag-f-${f.k}" data-k="${f.k}" value="${v}"${f.ro?' readonly':''}></div>`;
+      else      html += `<div class="${cls}"><label>${f.l}${f.req?' <span style="color:var(--ko)">*</span>':''}</label><input type="text" id="anag-f-${f.k}" data-k="${f.k}" value="${v}"${isRo?' readonly':''}></div>`;
     }
     // Jolly assegnati a questa sezione
     (jollyBySection[grp.id]||[]).forEach(jf => { html += _jollyField(jf); });
@@ -5575,6 +5588,11 @@ function renderAnagDetail() {
     html += `</div></div>`;
   }
   document.getElementById('anag-modal-body').innerHTML = html;
+  const lbl = anagIsNew ? 'Inserisci dispositivo' : 'Salva modifiche';
+  const btn1 = document.getElementById('anag-modal-save-btn');
+  const btn2 = document.getElementById('anag-modal-save-btn2');
+  if (btn1) btn1.textContent = anagIsNew ? 'Inserisci' : 'Salva';
+  if (btn2) btn2.textContent = lbl;
 }
 
 function toggleAnagGrp(id) {
@@ -5586,29 +5604,75 @@ function toggleAnagGrp(id) {
 
 async function saveAnagDetail() {
   if (!anagCurDev) return;
-  const patch = {};
+  const data = {};
   document.querySelectorAll('#anag-modal-body [data-k]').forEach(el => {
     if (el.readOnly) return;
-    patch[el.dataset.k] = el.value.trim() || null;
+    data[el.dataset.k] = el.value.trim() || null;
   });
+
+  // Validazione campi obbligatori
+  const required = ['codice','descrizione_classe','costruttore','modello'];
+  const missing = required.filter(k => !data[k] && !(anagCurDev[k]));
+  if (missing.length) {
+    toast('Campi obbligatori mancanti: ' + missing.join(', '), 'warn');
+    return;
+  }
+
   const aslKey = (currentUser?.profile?.asl||'ASL Benevento').toLowerCase().replace('asl ','');
   const token = await supaToken();
-  const r = await fetch(`${SUPA_URL}/rest/v1/dispositivi_${aslKey}?codice=eq.${anagCurDev.codice}`, {
-    method:'PATCH', headers:{...supaHdrs(token),'Prefer':'return=minimal'}, body:JSON.stringify(patch)
-  });
-  if (!r.ok) { toast('Errore salvataggio','warn'); return; }
-  // Aggiorna cache in memoria
-  const cod = anagCurDev.codice;
-  Object.assign(anagCurDev, patch);
-  if (DB[cod]) {
-    if (patch.descrizione_classe!==undefined) DB[cod].n = patch.descrizione_classe||'';
-    if (patch.costruttore!==undefined) DB[cod].b = patch.costruttore||'';
-    if (patch.modello!==undefined) DB[cod].m = patch.modello||'';
-    if (patch.matricola!==undefined) DB[cod].mat = patch.matricola||'';
-    if (patch.presidio!==undefined) DB[cod].loc = patch.presidio||'';
-    if (patch.reparto!==undefined) DB[cod].rep = patch.reparto||'';
+
+  if (anagIsNew) {
+    // Unisci con i dati di default (es. cliente)
+    const body = Object.assign({}, anagCurDev, data);
+    // Rimuovi chiavi null/undefined per la INSERT
+    Object.keys(body).forEach(k => { if (body[k]==null) delete body[k]; });
+    const r = await fetch(`${SUPA_URL}/rest/v1/dispositivi_${aslKey}`, {
+      method:'POST',
+      headers:{...supaHdrs(token),'Prefer':'return=minimal'},
+      body:JSON.stringify(body)
+    });
+    if (!r.ok) {
+      const txt = await r.text();
+      if (txt.includes('duplicate') || txt.includes('unique')) toast('Codice già esistente nel DB','warn');
+      else toast('Errore inserimento: ' + r.status, 'warn');
+      return;
+    }
+    // Aggiorna cache DB
+    const cod = body.codice;
+    DB[cod] = {
+      c: cod,
+      n: body.descrizione_classe||'',
+      b: body.costruttore||'',
+      m: body.modello||'',
+      mat: body.matricola||'',
+      loc: body.presidio||'',
+      rep: body.reparto||'',
+      ss: body.sede_struttura||'',
+      cp: body.codice_padre||'',
+      na: body.nuova_area||'',
+      pe: body.presenze_effettive||''
+    };
+    anagIsNew = false;
+    toast('Dispositivo inserito', 'ok');
+    closeAnagModal();
+    searchAnagrafica();
+  } else {
+    const r = await fetch(`${SUPA_URL}/rest/v1/dispositivi_${aslKey}?codice=eq.${anagCurDev.codice}`, {
+      method:'PATCH', headers:{...supaHdrs(token),'Prefer':'return=minimal'}, body:JSON.stringify(data)
+    });
+    if (!r.ok) { toast('Errore salvataggio','warn'); return; }
+    const cod = anagCurDev.codice;
+    Object.assign(anagCurDev, data);
+    if (DB[cod]) {
+      if (data.descrizione_classe!==undefined) DB[cod].n = data.descrizione_classe||'';
+      if (data.costruttore!==undefined) DB[cod].b = data.costruttore||'';
+      if (data.modello!==undefined) DB[cod].m = data.modello||'';
+      if (data.matricola!==undefined) DB[cod].mat = data.matricola||'';
+      if (data.presidio!==undefined) DB[cod].loc = data.presidio||'';
+      if (data.reparto!==undefined) DB[cod].rep = data.reparto||'';
+    }
+    toast('Salvato','ok');
   }
-  toast('Salvato','ok');
 }
 
 function editJollyLabel(i) {
@@ -6601,13 +6665,13 @@ async function deleteArchivioFile(id, path) {
     <div class="anag-modal-hdr">
       <h2 id="anag-modal-title"></h2>
       <div class="anag-modal-actions">
-        <button class="btn-salva" onclick="saveAnagDetail()">Salva</button>
+        <button class="btn-salva" onclick="saveAnagDetail()" id="anag-modal-save-btn">Salva</button>
         <button class="btn-sm" onclick="closeAnagModal()">✕</button>
       </div>
     </div>
     <div id="anag-modal-body"></div>
     <div style="display:flex;gap:8px;margin-top:14px">
-      <button class="btn-salva" style="flex:1" onclick="saveAnagDetail()">Salva modifiche</button>
+      <button class="btn-salva" style="flex:1" onclick="saveAnagDetail()" id="anag-modal-save-btn2">Salva modifiche</button>
       <button class="btn-sm" onclick="closeAnagModal()">Chiudi</button>
     </div>
   </div>
