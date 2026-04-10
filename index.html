@@ -5510,7 +5510,7 @@ function saveJollyMeta(meta) {
     fetch(`${SUPA_URL}/rest/v1/config_asl`, {
       method: 'POST',
       headers: {...supaHdrs(token), 'Prefer': 'resolution=merge-duplicates'},
-      body: JSON.stringify({asl: aslKey, key: 'jolly_meta', value: meta})
+      body: JSON.stringify({asl: aslKey, jolly_labels: meta})
     }).catch(() => {});
   });
 }
@@ -5518,12 +5518,12 @@ async function loadJollyMetaFromDB() {
   const aslKey = (currentUser?.profile?.asl||'ASL Benevento').toLowerCase().replace('asl ','');
   try {
     const token = await supaToken();
-    const r = await fetch(`${SUPA_URL}/rest/v1/config_asl?asl=eq.${encodeURIComponent(aslKey)}&key=eq.jolly_meta&limit=1`,
+    const r = await fetch(`${SUPA_URL}/rest/v1/config_asl?asl=eq.${encodeURIComponent(aslKey)}&limit=1`,
       {headers: {'apikey': SUPA_KEY, 'Authorization': 'Bearer '+token}});
     if (!r.ok) return;
     const rows = await r.json();
-    if (rows.length && rows[0].value) {
-      localStorage.setItem('jolly_meta_'+aslKey, JSON.stringify(rows[0].value));
+    if (rows.length && rows[0].jolly_labels) {
+      localStorage.setItem('jolly_meta_'+aslKey, JSON.stringify(rows[0].jolly_labels));
     }
   } catch(e) {}
 }
