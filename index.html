@@ -3326,11 +3326,35 @@ async function importDatabaseDispositivi(input) {
 
     // Colonne gestite automaticamente da Supabase — da escludere
     const SKIP_COLS = new Set(['updated_at']);
+
+    // Colonne tecniche valide della tabella dispositivi
+    const DB_COLS = new Set([
+      'codice','codice_padre','descrizione_classe','costruttore','modello','matricola',
+      'presidio','reparto','nuova_area','sede_struttura','stanza','civab','verifiche',
+      'proposta_dismissione','dismissione_effettiva','dettagli_stato','manutentore',
+      'data_fine_garanzia','periodicita_vse','data_ultima_vse','esito_ultima_vse',
+      'data_prossima_vse','periodicita_vsp','data_ultima_vsp','esito_ultima_vsp',
+      'data_prossima_vsp','periodicita_cq','data_ultima_cq','esito_ultima_cq',
+      'data_prossima_cq','note_programmate','note_inventario','presenze_effettive',
+      'cliente','periodicita_mo','data_ultima_mo','esito_ultima_mo','data_prossima_mo',
+      'proprieta','fine_service_comodato','forma_presenza','data_collaudo',
+      ...Array.from({length:22},(_,i)=>`jolly_${i+1}`)
+    ]);
+
     // Mappa inversa: etichetta jolly → nome colonna tecnico (jolly_N)
+    // 1. label configurate nel localStorage
     const jollyLabelToKey = {};
     getJollyMeta().forEach((m,i) => {
-      if (m.label) jollyLabelToKey[m.label] = `jolly_${i+1}`;
+      if (m.label) jollyLabelToKey[m.label.toLowerCase()] = `jolly_${i+1}`;
     });
+    // 2. pattern default "Jolly N" (case-insensitive)
+    const resolveCol = k => {
+      if (DB_COLS.has(k)) return k;                          // già nome tecnico
+      if (jollyLabelToKey[k.toLowerCase()]) return jollyLabelToKey[k.toLowerCase()]; // label localStorage
+      const m = k.match(/^jolly?\s*_?\s*(\d+)$/i);          // jolly_N / Jolly N / jollyN
+      if (m) return `jolly_${m[1]}`;
+      return DB_COLS.has(k.toLowerCase()) ? k.toLowerCase() : null; // lowercase fallback, null = skip
+    };
 
     // Converte seriale Excel → YYYY-MM-DD
     const xlsxDateToISO = n => {
@@ -3342,9 +3366,8 @@ async function importDatabaseDispositivi(input) {
     const clean = rows.map(r => {
       const obj = {};
       for (let [k, v] of Object.entries(r)) {
-        // Remap etichetta jolly → nome colonna tecnico (es. "Numero Lotto" → "jolly_1")
-        k = jollyLabelToKey[k] ?? k;
-        if (SKIP_COLS.has(k)) continue;
+        k = resolveCol(k);
+        if (!k || SKIP_COLS.has(k)) continue; // colonna sconosciuta o da skippare
         if (v === null || v === undefined || v === '') { obj[k] = null; continue; }
         // Date object (cellDates:true)
         if (v instanceof Date) {
