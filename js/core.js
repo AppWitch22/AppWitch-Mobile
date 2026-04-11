@@ -1,0 +1,1303 @@
+// ── CORE: stato globale, Supabase, auth, DB, sessioni, preset ──
+
+// MAIN APP
+// Mappa verifiche per codice — generata da Programmate_2025 + CIVAB
+// v = tipi verifica, cq = foglio CQ, vsp = foglio VSP
+const VERIF_MAP={"0000017":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0000039":{"vsp":"VSP_ELB","cq":"CQ_ELB"},"0000053":{"vsp":"VSP_ELB","cq":"CQ_ELB"},"0000054":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0000058":{"cq":"CQ_VPO"},"0000062":{"cq":"CQ_ECT"},"0000067":{"cq":"CQ_ECT"},"0000100":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0000101":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0000102":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0000103":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0000109":{"cq":"CQ_ECT"},"0000112":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0000117":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0000143":{"cq":"CQ_ECT"},"0000158":{"vsp":"VSP_ELB","cq":"CQ_ELB"},"0000171":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0000172":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0000173":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0000181":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0000182":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0000185":{"cq":"CQ_VPO"},"0000190":{"cq":"CQ_ECT"},"0000194":{"cq":"CQ_ECT"},"0000221":{"vsp":"VSP_ELB","cq":"CQ_ELB"},"0000225":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0000226":{"cq":"CQ_VPO"},"0000233":{"cq":"CQ_MON"},"0000234":{"cq":"CQ_MON"},"0000247":{"cq":"CQ_VPO"},"0000248":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0000255":{"vsp":"VSP_ELB","cq":"CQ_ELB"},"0000260":{"cq":"CQ_FBI"},"0000262":{"cq":"CQ_FBI"},"0000273":{"cq":"CQ_FBI"},"0000274":{"cq":"CQ_FBI"},"0000275":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0000283":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0000284":{"cq":"CQ_FBI"},"0000292":{"cq":"CQ_FBI"},"0000293":{"cq":"CQ_FBI"},"0000306":{"cq":"CQ_ECT"},"0000313":{"cq":"CQ_ECT"},"0000319":{"cq":"CQ_ANS"},"0000348":{"cq":"CQ_ECT"},"0000375":{"cq":"CQ_ANS"},"0000376":{"cq":"CQ_MON"},"0000380":{"cq":"CQ_MON"},"0000381":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0000383":{"vsp":"VSP_ELB","cq":"CQ_ELB"},"0000387":{"cq":"CQ_FBI"},"0000392":{"cq":"CQ_VPO"},"0000401":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0000408":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0000416":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0000418":{"cq":"CQ_FBI"},"0000421":{"cq":"CQ_FBI"},"0000422":{"cq":"CQ_FBI"},"0000428":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0000435":{"cq":"CQ_FBI"},"0000436":{"cq":"CQ_FBI"},"0000441":{"vsp":"VSP_ELB","cq":"CQ_ELB"},"0000442":{"cq":"CQ_ANS"},"0000446":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0000447":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0000451":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0000452":{"cq":"CQ_VPO"},"0000469":{"vsp":"VSP_ELB","cq":"CQ_ELB"},"0000475":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0000476":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0000502":{"vsp":"VSP_ELB","cq":"CQ_ELB"},"0000505":{"cq":"CQ_ECT"},"0000511":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0000512":{"cq":"CQ_FBI"},"0000513":{"cq":"CQ_FBI"},"0000514":{"cq":"CQ_FBI"},"0000515":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0000516":{"cq":"CQ_FBI"},"0000517":{"cq":"CQ_FBI"},"0000522":{"cq":"CQ_FBI"},"0000523":{"cq":"CQ_FBI"},"0000525":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0000533":{"cq":"CQ_FBI"},"0000534":{"cq":"CQ_FBI"},"0000535":{"cq":"CQ_FBI"},"0000539":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0000540":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0000559":{"vsp":"VSP_ELB","cq":"CQ_ELB"},"0000563":{"cq":"CQ_FBI"},"0000578":{"cq":"CQ_ECT"},"0000596":{"cq":"CQ_FBI"},"0000597":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0000602":{"cq":"CQ_FBI"},"0000603":{"cq":"CQ_FBI"},"0000611":{"cq":"CQ_FBI"},"0000623":{"cq":"CQ_FBI"},"0000624":{"cq":"CQ_FBI"},"0000625":{"cq":"CQ_FBI"},"0000626":{"cq":"CQ_FBI"},"0000628":{"cq":"CQ_FBI"},"0000629":{"cq":"CQ_FBI"},"0000630":{"cq":"CQ_FBI"},"0000642":{"cq":"CQ_FBI"},"0000643":{"cq":"CQ_FBI"},"0000652":{"cq":"CQ_ECT"},"0000671":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0000688":{"vsp":"VSP_ELB","cq":"CQ_ELB"},"0000705":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0000706":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0000709":{"cq":"CQ_FBI"},"0000716":{"cq":"CQ_FBI"},"0000717":{"cq":"CQ_FBI"},"0000718":{"cq":"CQ_FBI"},"0000721":{"cq":"CQ_FBI"},"0000734":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0000740":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0000741":{"cq":"CQ_ECT"},"0000749":{"cq":"CQ_FBI"},"0000760":{"cq":"CQ_FBI"},"0000761":{"cq":"CQ_FBI"},"0000762":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0000766":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0000774":{"cq":"CQ_FBI"},"0000790":{"cq":"CQ_ECT"},"0000808":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0000809":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0000811":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0000812":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0000821":{"vsp":"VSP_ELB","cq":"CQ_ELB"},"0000827":{"cq":"CQ_ECT"},"0000837":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0000841":{"cq":"CQ_FBI"},"0000842":{"cq":"CQ_FBI"},"0000843":{"cq":"CQ_FBI"},"0000885":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0000892":{"cq":"CQ_FBI"},"0000893":{"cq":"CQ_FBI"},"0000894":{"cq":"CQ_FBI"},"0000895":{"cq":"CQ_FBI"},"0000907":{"cq":"CQ_FBI"},"0000914":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0000915":{"cq":"CQ_FBI"},"0000918":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0000920":{"cq":"CQ_FBI"},"0000924":{"cq":"CQ_FBI"},"0000925":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0000926":{"cq":"CQ_FBI"},"0000931":{"cq":"CQ_FBI"},"0000932":{"cq":"CQ_FBI"},"0000939":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0000942":{"cq":"CQ_ECT"},"0000945":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0000949":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0000953":{"cq":"CQ_FBI"},"0000974":{"cq":"CQ_FBI"},"0000983":{"vsp":"VSP_ELB","cq":"CQ_ELB"},"0001001":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0001012":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0001013":{"cq":"CQ_ECT"},"0001016":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0001017":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0001021":{"cq":"CQ_ECT"},"0001044":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0001046":{"cq":"CQ_FBI"},"0001053":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0001054":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0001055":{"cq":"CQ_FBI"},"0001058":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0001073":{"cq":"CQ_FBI"},"0001074":{"cq":"CQ_FBI"},"0001077":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0001082":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0001091":{"vsp":"VSP_ELB","cq":"CQ_ELB"},"0001092":{"vsp":"VSP_ELB","cq":"CQ_ELB"},"0001094":{"cq":"CQ_ANS"},"0001096":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0001097":{"vsp":"VSP_ELB","cq":"CQ_ELB"},"0001106":{"cq":"CQ_VPO"},"0001108":{"cq":"CQ_FBI"},"0001110":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0001124":{"cq":"CQ_FBI"},"0001135":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0001361":{"cq":"CQ_FBI"},"0001366":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0001369":{"cq":"CQ_FBI"},"0001373":{"cq":"CQ_FBI"},"0001374":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0001379":{"cq":"CQ_FBI"},"0001380":{"cq":"CQ_FBI"},"0001381":{"cq":"CQ_FBI"},"0001384":{"cq":"CQ_FBI"},"0001386":{"cq":"CQ_FBI"},"0001387":{"cq":"CQ_FBI"},"0001389":{"cq":"CQ_FBI"},"0001392":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0001393":{"cq":"CQ_MON"},"0001396":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0001398":{"cq":"CQ_FBI"},"0001399":{"cq":"CQ_FBI"},"0001400":{"cq":"CQ_FBI"},"0001406":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0001414":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0001415":{"cq":"CQ_ECT"},"0001422":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0001426":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0001427":{"cq":"CQ_FBI"},"0001430":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0001431":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0001432":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0001433":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0001434":{"cq":"CQ_VPO"},"0001466":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0001467":{"cq":"CQ_FBI"},"0001469":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0001472":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0001474":{"cq":"CQ_FBI"},"0001475":{"cq":"CQ_FBI"},"0001476":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0001479":{"cq":"CQ_FBI"},"0001480":{"cq":"CQ_FBI"},"0001481":{"cq":"CQ_FBI"},"0001534":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0001560":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0001594":{"cq":"CQ_FBI"},"0001595":{"cq":"CQ_FBI"},"0001596":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0001597":{"cq":"CQ_FBI"},"0001598":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0001599":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0001600":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0001623":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0001642":{"cq":"CQ_FBI"},"0001647":{"cq":"CQ_FBI"},"0001648":{"cq":"CQ_FBI"},"0001655":{"cq":"CQ_ECT"},"0001671":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0001672":{"cq":"CQ_FBI"},"0001673":{"cq":"CQ_FBI"},"0001683":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0001705":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0001724":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0001725":{"cq":"CQ_FBI"},"0001735":{"cq":"CQ_FBI"},"0001756":{"cq":"CQ_FBI"},"0001771":{"cq":"CQ_FBI"},"0001772":{"cq":"CQ_FBI"},"0001782":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0001797":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0001798":{"cq":"CQ_FBI"},"0001806":{"cq":"CQ_FBI"},"0001807":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0001824":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0001825":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0001856":{"cq":"CQ_FBI"},"0001862":{"cq":"CQ_FBI"},"0001864":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0001866":{"cq":"CQ_FBI"},"0001867":{"cq":"CQ_FBI"},"0001871":{"cq":"CQ_FBI"},"0001872":{"cq":"CQ_FBI"},"0001873":{"cq":"CQ_FBI"},"0001874":{"cq":"CQ_FBI"},"0001879":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0001880":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0001881":{"cq":"CQ_FBI"},"0001882":{"cq":"CQ_FBI"},"0001883":{"cq":"CQ_FBI"},"0001886":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0001893":{"cq":"CQ_FBI"},"0001894":{"cq":"CQ_FBI"},"0001902":{"cq":"CQ_ECT"},"0001909":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0001910":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0001916":{"cq":"CQ_MON"},"0001926":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0001928":{"vsp":"VSP_ELB","cq":"CQ_ELB"},"0001955":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0001974":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0001977":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0001989":{"cq":"CQ_FBI"},"0001993":{"cq":"CQ_ECT"},"0001994":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0001999":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0002014":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0002017":{"cq":"CQ_FBI"},"0002020":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0002021":{"cq":"CQ_FBI"},"0002022":{"cq":"CQ_FBI"},"0002024":{"cq":"CQ_FBI"},"0002032":{"cq":"CQ_FBI"},"0002034":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0002040":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0002046":{"cq":"CQ_FBI"},"0002047":{"cq":"CQ_FBI"},"0002051":{"cq":"CQ_FBI"},"0002052":{"cq":"CQ_FBI"},"0002053":{"cq":"CQ_FBI"},"0002054":{"cq":"CQ_FBI"},"0002055":{"cq":"CQ_FBI"},"0002069":{"cq":"CQ_FBI"},"0002070":{"cq":"CQ_FBI"},"0002071":{"cq":"CQ_FBI"},"0002072":{"cq":"CQ_FBI"},"0002073":{"cq":"CQ_FBI"},"0002083":{"cq":"CQ_FBI"},"0002148":{"cq":"CQ_FBI"},"0002191":{"cq":"CQ_FBI"},"0002199":{"cq":"CQ_FBI"},"0002202":{"cq":"CQ_FBI"},"0002203":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0002205":{"cq":"CQ_ECT"},"0002223":{"cq":"CQ_FBI"},"0002224":{"cq":"CQ_FBI"},"0002234":{"cq":"CQ_ECT"},"0002256":{"cq":"CQ_FBI"},"0002262":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0002326":{"cq":"CQ_FBI"},"0002327":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0002328":{"cq":"CQ_FBI"},"0002333":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0002334":{"cq":"CQ_ECT"},"0002399":{"cq":"CQ_FBI"},"0002400":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0002405":{"cq":"CQ_FBI"},"0002417":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0002452":{"cq":"CQ_ECT"},"0002551":{"cq":"CQ_MON"},"0002552":{"cq":"CQ_MON"},"0002553":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0002567":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0002636":{"cq":"CQ_FBI"},"0002637":{"cq":"CQ_FBI"},"0002639":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0002640":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0002650":{"cq":"CQ_ECT"},"0002672":{"vsp":"VSP_ELB","cq":"CQ_ELB"},"0002684":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0002693":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0002706":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0002711":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0002717":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0002719":{"cq":"CQ_FBI"},"0002720":{"cq":"CQ_FBI"},"0002721":{"cq":"CQ_ECT"},"0002738":{"cq":"CQ_FBI"},"0002739":{"cq":"CQ_FBI"},"0002741":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0002742":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0002751":{"cq":"CQ_ANS"},"0002752":{"cq":"CQ_MON"},"0002765":{"cq":"CQ_FBI"},"0002766":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0002767":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0002769":{"cq":"CQ_FBI"},"0002772":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0002776":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0002788":{"cq":"CQ_FBI"},"0002828":{"cq":"CQ_VPO"},"0002831":{"cq":"CQ_VPO"},"0002837":{"cq":"CQ_ECT"},"0002845":{"cq":"CQ_VPO"},"0002846":{"cq":"CQ_ANS"},"0002847":{"cq":"CQ_MON"},"0002872":{"cq":"CQ_FBI"},"0002904":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0002906":{"cq":"CQ_FBI"},"0002914":{"vsp":"VSP_ELB","cq":"CQ_ELB"},"0002947":{"cq":"CQ_MON"},"0002949":{"cq":"CQ_MON"},"0002952":{"cq":"CQ_MON"},"0002954":{"cq":"CQ_MON"},"0002955":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0002957":{"cq":"CQ_MON"},"0002963":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0002973":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0002984":{"cq":"CQ_FBI"},"0002985":{"cq":"CQ_FBI"},"0002986":{"cq":"CQ_FBI"},"0002987":{"cq":"CQ_FBI"},"0002989":{"vsp":"VSP_ELB","cq":"CQ_ELB"},"0002990":{"cq":"CQ_FBI"},"0002991":{"cq":"CQ_FBI"},"0002992":{"cq":"CQ_FBI"},"0002995":{"cq":"CQ_ECT"},"0002999":{"cq":"CQ_ECT"},"0003001":{"cq":"CQ_FBI"},"0003027":{"cq":"CQ_FBI"},"0003029":{"cq":"CQ_VPO"},"0003103":{"cq":"CQ_ECT"},"0003129":{"cq":"CQ_VPO"},"0003130":{"cq":"CQ_VPO"},"0003133":{"cq":"CQ_VPO"},"0003135":{"cq":"CQ_VPO"},"0003143":{"cq":"CQ_VPO"},"0003150":{"cq":"CQ_FBI"},"0003187":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0003226":{"cq":"CQ_ECT"},"0003235":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0003236":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0003252":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0003260":{"cq":"CQ_VPO"},"0003261":{"cq":"CQ_VPO"},"0003262":{"cq":"CQ_VPO"},"0003263":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0003264":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0003272":{"cq":"CQ_VPO"},"0003291":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0003316":{"cq":"CQ_VPO"},"0003318":{"cq":"CQ_VPO"},"0003325":{"cq":"CQ_VPO"},"0003366":{"cq":"CQ_VPO"},"0003378":{"cq":"CQ_ANS"},"0003379":{"cq":"CQ_MON"},"0003396":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0003399":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0003405":{"cq":"CQ_FBI"},"0003406":{"cq":"CQ_FBI"},"0003407":{"cq":"CQ_FBI"},"0003408":{"cq":"CQ_FBI"},"0003409":{"cq":"CQ_FBI"},"0003410":{"cq":"CQ_FBI"},"0003419":{"cq":"CQ_FBI"},"0003420":{"cq":"CQ_FBI"},"0003432":{"cq":"CQ_VPO"},"0003434":{"cq":"CQ_FBI"},"0003435":{"cq":"CQ_FBI"},"0003445":{"cq":"CQ_FBI"},"0003455":{"cq":"CQ_FBI"},"0003457":{"cq":"CQ_FBI"},"0003458":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0003459":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0003460":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0003461":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0003462":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0003463":{"cq":"CQ_VPO"},"0003471":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0003472":{"cq":"CQ_VPO"},"0003485":{"cq":"CQ_VPO"},"0003499":{"vsp":"VSP_ELB","cq":"CQ_ELB"},"0003505":{"cq":"CQ_VPO"},"0003565":{"cq":"CQ_VPO"},"0003572":{"cq":"CQ_VPO"},"0003585":{"cq":"CQ_FBI"},"0003586":{"cq":"CQ_FBI"},"0003587":{"cq":"CQ_FBI"},"0003588":{"cq":"CQ_FBI"},"0003593":{"cq":"CQ_FBI"},"0003598":{"cq":"CQ_FBI"},"0003599":{"cq":"CQ_FBI"},"0003600":{"cq":"CQ_FBI"},"0003612":{"cq":"CQ_FBI"},"0003619":{"cq":"CQ_VPO"},"0003625":{"cq":"CQ_FBI"},"0003626":{"cq":"CQ_FBI"},"0003627":{"cq":"CQ_FBI"},"0003628":{"cq":"CQ_FBI"},"0003629":{"cq":"CQ_FBI"},"0003630":{"cq":"CQ_VPO"},"0003647":{"cq":"CQ_FBI"},"0003660":{"cq":"CQ_VPO"},"0003675":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0003676":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0003677":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0003678":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0003679":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0003680":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0003730":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0003737":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0003739":{"cq":"CQ_VPO"},"0003741":{"cq":"CQ_VPO"},"0003770":{"cq":"CQ_VPO"},"0003774":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0003776":{"cq":"CQ_VPO"},"0003782":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0003783":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0003827":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0003837":{"cq":"CQ_FBI"},"0003859":{"cq":"CQ_VPO"},"0003891":{"cq":"CQ_VPO"},"0003892":{"cq":"CQ_FBI"},"0003896":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0003920":{"cq":"CQ_VPO"},"0003922":{"cq":"CQ_FBI"},"0003923":{"cq":"CQ_FBI"},"0003960":{"cq":"CQ_FBI"},"0003964":{"cq":"CQ_VPO"},"0003970":{"cq":"CQ_FBI"},"0003971":{"cq":"CQ_VPO"},"0004003":{"cq":"CQ_ECT"},"0004038":{"cq":"CQ_ECT"},"0004142":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0004143":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0004144":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0004145":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0004146":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0004147":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0004148":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0004149":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0004181":{"cq":"CQ_ECT"},"0004188":{"cq":"CQ_ECT"},"0004193":{"cq":"CQ_FBI"},"0004194":{"cq":"CQ_FBI"},"0004195":{"cq":"CQ_FBI"},"0004198":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0004199":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0004200":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0004204":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0004205":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0004206":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0004253":{"cq":"CQ_VPO"},"0004254":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0004255":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0004268":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0004274":{"cq":"CQ_VPO"},"0004275":{"cq":"CQ_VPO"},"0004277":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0004369":{"cq":"CQ_MON"},"0004382":{"cq":"CQ_VPO"},"0004395":{"cq":"CQ_VPO"},"0004411":{"cq":"CQ_FBI"},"0004487":{"cq":"CQ_FBI"},"0004519":{"cq":"CQ_ECT"},"0004541":{"cq":"CQ_VPO"},"0004580":{"cq":"CQ_FBI"},"0004581":{"cq":"CQ_FBI"},"0004585":{"cq":"CQ_VPO"},"0004596":{"cq":"CQ_MON"},"0004597":{"cq":"CQ_MON"},"0004598":{"cq":"CQ_MON"},"0004599":{"cq":"CQ_MON"},"0004612":{"cq":"CQ_VPO"},"0004622":{"vsp":"VSP_ELB","cq":"CQ_ELB"},"0004623":{"vsp":"VSP_ELB","cq":"CQ_ELB"},"0004624":{"vsp":"VSP_ELB","cq":"CQ_ELB"},"0004626":{"cq":"CQ_FBI"},"0004632":{"cq":"CQ_ANS"},"0004634":{"cq":"CQ_FBI"},"0004635":{"cq":"CQ_FBI"},"0004636":{"cq":"CQ_FBI"},"0004641":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0004658":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0004663":{"cq":"CQ_FBI"},"0004667":{"cq":"CQ_ECT"},"0004675":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0004685":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0004698":{"vsp":"VSP_ELB","cq":"CQ_ELB"},"0004701":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0004702":{"cq":"CQ_FBI"},"0004704":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0004705":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0004706":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0004747":{"cq":"CQ_FBI"},"0004752":{"cq":"CQ_FBI"},"0004766":{"cq":"CQ_VPO"},"0004769":{"cq":"CQ_FBI"},"0004770":{"cq":"CQ_FBI"},"0004822":{"cq":"CQ_FBI"},"0004823":{"cq":"CQ_FBI"},"0004824":{"cq":"CQ_FBI"},"0004825":{"cq":"CQ_FBI"},"0004826":{"cq":"CQ_FBI"},"0004874":{"cq":"CQ_VPO"},"0004888":{"cq":"CQ_VPO"},"0004893":{"cq":"CQ_ANS"},"0004894":{"cq":"CQ_MON"},"0004958":{"cq":"CQ_VPO"},"0004991":{"cq":"CQ_VPO"},"0004999":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0005012":{"cq":"CQ_VPO"},"0005013":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0005014":{"cq":"CQ_VPO"},"0005018":{"cq":"CQ_VPO"},"0005039":{"cq":"CQ_VPO"},"0005049":{"cq":"CQ_VPO"},"0005086":{"cq":"CQ_FBI"},"0005091":{"cq":"CQ_FBI"},"0005092":{"cq":"CQ_FBI"},"0005093":{"cq":"CQ_FBI"},"0005094":{"cq":"CQ_FBI"},"0005095":{"cq":"CQ_FBI"},"0005096":{"cq":"CQ_FBI"},"0005097":{"cq":"CQ_FBI"},"0005098":{"cq":"CQ_FBI"},"0005101":{"cq":"CQ_VPO"},"0005106":{"cq":"CQ_VPO"},"0005107":{"cq":"CQ_VPO"},"0005144":{"cq":"CQ_VPO"},"0005151":{"cq":"CQ_VPO"},"0005187":{"cq":"CQ_VPO"},"0005203":{"cq":"CQ_VPO"},"0005226":{"cq":"CQ_FBI"},"0005227":{"cq":"CQ_FBI"},"0005233":{"cq":"CQ_VPO"},"0005246":{"cq":"CQ_VPO"},"0005248":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0005280":{"cq":"CQ_VPO"},"0005299":{"cq":"CQ_VPO"},"0005337":{"cq":"CQ_VPO"},"0005338":{"cq":"CQ_VPO"},"0005350":{"cq":"CQ_VPO"},"0005355":{"cq":"CQ_VPO"},"0005372":{"cq":"CQ_VPO"},"0005389":{"cq":"CQ_VPO"},"0005427":{"cq":"CQ_VPO"},"0005433":{"cq":"CQ_FBI"},"0005442":{"cq":"CQ_VPO"},"0005447":{"cq":"CQ_VPO"},"0005450":{"cq":"CQ_VPO"},"0005486":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0005492":{"cq":"CQ_VPO"},"0005506":{"cq":"CQ_VPO"},"0005606":{"cq":"CQ_VPO"},"0005628":{"cq":"CQ_VPO"},"0005629":{"cq":"CQ_VPO"},"0005630":{"cq":"CQ_VPO"},"0005662":{"cq":"CQ_VPO"},"0005665":{"cq":"CQ_VPO"},"0005672":{"cq":"CQ_VPO"},"0005675":{"cq":"CQ_VPO"},"0005690":{"cq":"CQ_VPO"},"0005693":{"cq":"CQ_VPO"},"0005699":{"cq":"CQ_VPO"},"0005709":{"cq":"CQ_VPO"},"0005720":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0005721":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0005722":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0005723":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0005724":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0005725":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0005784":{"cq":"CQ_VPO"},"0005785":{"cq":"CQ_VPO"},"0005790":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0005801":{"cq":"CQ_FBI"},"0005814":{"cq":"CQ_VPO"},"0005819":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0005838":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0005847":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0005860":{"cq":"CQ_VPO"},"0005861":{"cq":"CQ_VPO"},"0005876":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0005882":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0005891":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0005901":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0005910":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0005921":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0005942":{"cq":"CQ_VPO"},"0005955":{"cq":"CQ_VPO"},"0005956":{"cq":"CQ_VPO"},"0005963":{"cq":"CQ_VPO"},"0005964":{"cq":"CQ_VPO"},"0005975":{"cq":"CQ_VPO"},"0005983":{"cq":"CQ_VPO"},"0006052":{"cq":"CQ_VPO"},"0006057":{"cq":"CQ_VPO"},"0006092":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0006093":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0006097":{"cq":"CQ_VPO"},"0006098":{"cq":"CQ_VPO"},"0006106":{"cq":"CQ_ECT"},"0006115":{"cq":"CQ_VPO"},"0006644":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0006161":{"cq":"CQ_FBI"},"0006162":{"cq":"CQ_FBI"},"0006163":{"cq":"CQ_FBI"},"0006180":{"cq":"CQ_FBI"},"0006186":{"cq":"CQ_FBI"},"0006190":{"cq":"CQ_FBI"},"0006191":{"cq":"CQ_FBI"},"0006192":{"cq":"CQ_FBI"},"0006204":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0006205":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0006206":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0006209":{"cq":"CQ_FBI"},"0006210":{"cq":"CQ_FBI"},"0006211":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0006212":{"cq":"CQ_FBI"},"0006264":{"cq":"CQ_VPO"},"0006271":{"cq":"CQ_VPO"},"0006291":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0006303":{"cq":"CQ_FBI"},"0006348":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0006349":{"cq":"CQ_VPO"},"0006357":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0006366":{"vsp":"VSP_ELB","cq":"CQ_ELB"},"0006370":{"vsp":"VSP_ELB","cq":"CQ_ELB"},"0006371":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0006376":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0006378":{"cq":"CQ_FBI"},"0006388":{"cq":"CQ_ECT"},"0006393":{"cq":"CQ_ECT"},"0006414":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0006415":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0006420":{"cq":"CQ_FBI"},"0006426":{"cq":"CQ_FBI"},"0006429":{"cq":"CQ_FBI"},"0006442":{"cq":"CQ_FBI"},"0006453":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0006460":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0006470":{"cq":"CQ_ECT"},"0006475":{"cq":"CQ_ECT"},"0006481":{"cq":"CQ_ECT"},"0006491":{"cq":"CQ_ECT"},"0006496":{"cq":"CQ_ECT"},"0006503":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0006506":{"cq":"CQ_ECT"},"0006512":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0006514":{"cq":"CQ_ECT"},"0006518":{"cq":"CQ_FBI"},"0006537":{"cq":"CQ_FBI"},"0006593":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0006594":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0006595":{"vsp":"VSP_ELB","cq":"CQ_ELB"},"0006596":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0006597":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0006599":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0006600":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0006601":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0006602":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0006603":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0006611":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0006619":{"cq":"CQ_MON"},"0006620":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0006621":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0006622":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0006623":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0006624":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0006625":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0006626":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0006627":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0006628":{"cq":"CQ_ECT"},"0006645":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0006646":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0006647":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0006648":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0006649":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0006650":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0006651":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0006652":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0006653":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0006654":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0006655":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0006656":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0006657":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0006658":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0006659":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0006660":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0006661":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0006662":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0006663":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0006664":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0006665":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0006666":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0006667":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0006668":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0006669":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0006672":{"cq":"CQ_MON"},"0006675":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0006681":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0006688":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0006698":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0006699":{"cq":"CQ_FBI"},"0006800":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0006852":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0006131":{"cq":"CQ_ECT"},"0006860":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0006864":{"cq":"CQ_FBI"},"0006900":{"cq":"CQ_FBI"},"0006901":{"cq":"CQ_FBI"},"0006902":{"cq":"CQ_FBI"},"0006957":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0006975":{"cq":"CQ_FBI"},"0006986":{"cq":"CQ_FBI"},"0006988":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0006996":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0007073":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0007074":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0007075":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0007076":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0007077":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0007078":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0007080":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0007084":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0007085":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0007099":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0007101":{"cq":"CQ_MON"},"0007102":{"cq":"CQ_MON"},"0007103":{"cq":"CQ_MON"},"0007104":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0007107":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0007127":{"cq":"CQ_FBI"},"0007129":{"cq":"CQ_FBI"},"0007136":{"cq":"CQ_FBI"},"0007198":{"cq":"CQ_FBI"},"0007201":{"cq":"CQ_ANS"},"0007202":{"cq":"CQ_FBI"},"0007205":{"cq":"CQ_FBI"},"0007214":{"cq":"CQ_ECT"},"0007217":{"cq":"CQ_ECT"},"0007296":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0007297":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0007305":{"cq":"CQ_ECT"},"0007312":{"cq":"CQ_ECT"},"0007329":{"cq":"CQ_FBI"},"0007330":{"cq":"CQ_FBI"},"0007334":{"cq":"CQ_FBI"},"0007335":{"cq":"CQ_FBI"},"0007336":{"cq":"CQ_FBI"},"0007337":{"cq":"CQ_FBI"},"0007338":{"cq":"CQ_FBI"},"0007339":{"cq":"CQ_FBI"},"0007340":{"cq":"CQ_FBI"},"0007341":{"cq":"CQ_FBI"},"0007346":{"cq":"CQ_FBI"},"0007389":{"vsp":"VSP_ELB","cq":"CQ_ELB"},"0007406":{"cq":"CQ_FBI"},"0007407":{"cq":"CQ_FBI"},"0007408":{"vsp":"VSP_ELB","cq":"CQ_ELB"},"0007409":{"cq":"CQ_FBI"},"0007410":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0007411":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0007412":{"cq":"CQ_FBI"},"0007417":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0007421":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0007422":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0007426":{"cq":"CQ_FBI"},"0007449":{"cq":"CQ_FBI"},"0007450":{"cq":"CQ_FBI"},"0007458":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0007473":{"cq":"CQ_FBI"},"0007487":{"cq":"CQ_ECT"},"0007491":{"cq":"CQ_FBI"},"0007492":{"cq":"CQ_FBI"},"0007493":{"cq":"CQ_FBI"},"0007494":{"cq":"CQ_FBI"},"0007495":{"cq":"CQ_FBI"},"0007508":{"cq":"CQ_FBI"},"0007510":{"cq":"CQ_FBI"},"0007515":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0007517":{"cq":"CQ_MON"},"0007522":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0007526":{"cq":"CQ_FBI"},"0007530":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0007531":{"cq":"CQ_FBI"},"0007560":{"cq":"CQ_FBI"},"0007566":{"cq":"CQ_FBI"},"0007567":{"cq":"CQ_FBI"},"0007591":{"cq":"CQ_FBI"},"0007592":{"cq":"CQ_FBI"},"0007601":{"cq":"CQ_ECT"},"0007607":{"cq":"CQ_ECT"},"0007613":{"cq":"CQ_ECT"},"0007619":{"cq":"CQ_ECT"},"0007629":{"cq":"CQ_ECT"},"0007637":{"cq":"CQ_ECT"},"0007643":{"cq":"CQ_ECT"},"0007649":{"cq":"CQ_ECT"},"0007653":{"cq":"CQ_ECT"},"0007657":{"cq":"CQ_FBI"},"0007658":{"cq":"CQ_FBI"},"0007659":{"cq":"CQ_FBI"},"0007666":{"cq":"CQ_ECT"},"0007669":{"cq":"CQ_ECT"},"0007714":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0007715":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0007716":{"cq":"CQ_MON"},"0007755":{"cq":"CQ_ECT"},"0006566":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0007762":{"cq":"CQ_ECT"},"0007766":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0007767":{"cq":"CQ_ECT"},"0007775":{"cq":"CQ_ECT"},"0007917":{"cq":"CQ_ECT"},"0007925":{"cq":"CQ_ECT"},"0007933":{"cq":"CQ_ECT"},"0007941":{"cq":"CQ_ECT"},"0007954":{"cq":"CQ_FBI"},"0007955":{"cq":"CQ_FBI"},"0007958":{"cq":"CQ_ECT"},"0007964":{"cq":"CQ_FBI"},"0007965":{"cq":"CQ_ECT"},"0007978":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0007980":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0007982":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0007984":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0007986":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0007988":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0007990":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0007992":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0007994":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0007996":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0008003":{"cq":"CQ_ECT"},"0008009":{"cq":"CQ_ECT"},"0008016":{"cq":"CQ_FBI"},"0008017":{"cq":"CQ_FBI"},"0008018":{"cq":"CQ_FBI"},"0008019":{"cq":"CQ_FBI"},"0008020":{"cq":"CQ_FBI"},"0008021":{"cq":"CQ_FBI"},"0008022":{"cq":"CQ_FBI"},"0008023":{"cq":"CQ_FBI"},"0008025":{"cq":"CQ_FBI"},"0008034":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0008035":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0008036":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0008037":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0008038":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0008039":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0008040":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0008041":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0008042":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0008043":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0008063":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0008107":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0008108":{"cq":"CQ_ECT"},"0008121":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0008126":{"vsp":"VSP_CEN","cq":"CQ_CEN"},"0008155":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0008183":{"cq":"CQ_ECT"},"0008201":{"cq":"CQ_FBI"},"0008202":{"cq":"CQ_FBI"},"0008204":{"cq":"CQ_MON"},"0008205":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0008296":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0008298":{"vsp":"VSP_DEF","cq":"CQ_DEF"},"0008407":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0008408":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0008409":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0008410":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0008411":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0008412":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0008413":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0008414":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0008415":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0008416":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0008417":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0008418":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0008419":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0008420":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0008421":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0008422":{"vsp":"VSP_ECG","cq":"CQ_ECG"},"0008447":{"cq":"CQ_FBI"},"0008448":{"cq":"CQ_FBI"},"0008449":{"cq":"CQ_FBI"},"0008450":{"cq":"CQ_FBI"},"0008451":{"cq":"CQ_FBI"},"0008452":{"cq":"CQ_FBI"},"0008509":{"cq":"CQ_FBI"}};
+
+let DB={};let cur=null;let curVerif=null;let dirty=false;const saved={};
+let PRESETS={};
+
+// Database incorporato e compresso (gzip+base64) — nessun file esterno necessari
+
+async function loadPresets(){
+  try{
+    const asl=currentUser?.profile?.asl||'ASL Benevento';
+    const aslKey=asl.toLowerCase().replace('asl ','');
+    const {data:{session}}=await supa.auth.getSession();
+    const token=session?.access_token;
+    const headers={'apikey':SUPA_KEY,'Authorization':'Bearer '+token};
+    // Carica preset VSE
+    const rVse=await fetch(`${SUPA_URL}/rest/v1/preset_vse_${aslKey}?select=codice,dati&limit=10000`,{headers});
+    if(rVse.ok){
+      const rows=await rVse.json();
+      const p={};rows.forEach(r=>{p[r.codice]=r.dati;});
+      PRESETS['PRESET_VSE']=p;
+      console.log('Preset VSE caricati:',Object.keys(p).length);
+    } else {
+      console.error('Errore preset VSE:',rVse.status);
+    }
+    // Carica preset MP
+    const rMp=await fetch(`${SUPA_URL}/rest/v1/preset_mp_${aslKey}?select=codice,dati&limit=10000`,{headers});
+    if(rMp.ok){
+      const rows=await rMp.json();
+      const p={};rows.forEach(r=>{p[r.codice]=r.dati;});
+      PRESETS['PRESET_MP']=p;
+    }
+    // Carica preset VSP
+    const rVsp=await fetch(`${SUPA_URL}/rest/v1/preset_vsp_${aslKey}?select=codice,tipo,dati&limit=10000`,{headers});
+    if(rVsp.ok){
+      const rows=await rVsp.json();
+      rows.forEach(r=>{
+        const key='PRESET_'+r.tipo;
+        if(!PRESETS[key])PRESETS[key]={};
+        PRESETS[key][r.codice]=r.dati;
+      });
+    }
+    // Carica preset CQ
+    const rCq=await fetch(`${SUPA_URL}/rest/v1/preset_cq_${aslKey}?select=codice,tipo,dati&limit=10000`,{headers});
+    if(rCq.ok){
+      const rows=await rCq.json();
+      rows.forEach(r=>{
+        const key='PRESET_'+r.tipo;
+        if(!PRESETS[key])PRESETS[key]={};
+        PRESETS[key][r.codice]=r.dati;
+      });
+    }
+    console.log('Preset caricati da Supabase');
+  }catch(e){
+    console.error('Preset error:',e);
+  }
+}
+
+
+async function initDB(){
+  const bar=document.getElementById('db-bar');
+  try{
+    bar.textContent='Caricamento database...';
+    const asl=currentUser?.profile?.asl||'ASL Benevento';
+    const tabella='dispositivi_'+asl.toLowerCase().replace('asl ','');
+    const {data:{session}}=await supa.auth.getSession();
+    const token=session?.access_token;
+    const resp=await fetch(
+      `${SUPA_URL}/rest/v1/${tabella}?select=codice,descrizione_classe,costruttore,modello,matricola,presidio,reparto,sede_struttura,codice_padre,nuova_area,presenze_effettive,verifiche&limit=10000`,
+      {headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+token}}
+    );
+    if(!resp.ok)throw new Error('HTTP '+resp.status);
+    const rows=await resp.json();
+    DB={};
+    const VERIF_MAP_NEW={};
+    rows.forEach(r=>{
+      DB[r.codice]={
+        c:r.codice,
+        n:r.descrizione_classe||'',
+        b:r.costruttore||'',
+        m:r.modello||'',
+        mat:r.matricola||'',
+        loc:r.presidio||'',
+        rep:r.reparto||'',
+        ss:r.sede_struttura||'',
+        cp:r.codice_padre||'',
+        na:r.nuova_area||'',
+        pe:r.presenze_effettive||''
+      };
+      if(r.verifiche){
+        const parts=r.verifiche.split(',').map(s=>s.trim());
+        const entry={};
+        parts.forEach(p=>{
+          if(p.startsWith('VSP_'))entry.vsp=p;
+          else if(p.startsWith('CQ_'))entry.cq=p;
+        });
+        if(Object.keys(entry).length)VERIF_MAP_NEW[r.codice]=entry;
+      }
+    });
+    // Sovrascrivi VERIF_MAP globale
+    Object.keys(VERIF_MAP).forEach(k=>delete VERIF_MAP[k]);
+    Object.assign(VERIF_MAP,VERIF_MAP_NEW);
+    bar.innerHTML='<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#1a3a6b;margin-right:8px;vertical-align:middle;flex-shrink:0;"></span><span>Database pronto</span><span style="font-family:\'IBM Plex Mono\',ui-monospace,monospace;font-size:12px;color:#1a3a6b;margin-left:6px;">— '+Object.keys(DB).length.toLocaleString()+' dispositivi</span>';
+    bar.className='db-bar ready';
+    await loadJollyMetaFromDB();
+    await loadPresets();
+  }catch(e){
+    console.error('DB error:',e);
+    bar.textContent='Errore caricamento database: '+e.message;
+    bar.className='db-bar error';
+  }
+}
+
+function onSearch(){const q=document.getElementById('search-input').value.trim();if(q.length>=2)doSearch();else document.getElementById('results').innerHTML='';}
+
+function doSearch(){
+  const q=document.getElementById('search-input').value.trim().toLowerCase();
+  if(!q||!Object.keys(DB).length)return;
+  const res=[];
+  const pad=q.replace(/\D/g,'').padStart(7,'0');
+  if(DB[pad])res.push(DB[pad]);
+  for(const d of Object.values(DB)){
+    if(res.length>=7)break;
+    if(d===res[0])continue;
+    if(d.c.includes(q)||d.n.toLowerCase().includes(q)||d.b.toLowerCase().includes(q))res.push(d);
+  }
+  const box=document.getElementById('results');
+  if(!res.length){box.innerHTML='<div class="not-found">Nessun apparecchio trovato</div>';return;}
+  box.innerHTML=res.map(d=>{
+    const s=saved[d.c];
+    const vm=VERIF_MAP[d.c];
+    const extraTags=vm?[vm.vsp,vm.cq].filter(Boolean).map(t=>`<span class="r-tag part">${t}</span>`).join(''):'';
+    const doneTags=s?`<span class="r-tag done">${[s.vse_saved?'VSE':'',s.mp_saved?'MP':''].filter(Boolean).join('+')}</span>`:'';
+    const attTag=attesi.has(d.c)&&!s?`<span class="r-tag pending">atteso</span>`:'';
+    return`<div class="result-item" onclick="sel('${d.c}')">
+      <span class="r-cod">${d.c}</span>
+      <span class="r-nome">${d.n.toLowerCase()}</span>
+      <span class="r-stato">${doneTags}${attTag}${extraTags}</span>
+      <span class="r-loc">${(d.pre||'').split(' ')[0]}</span>
+    </div>`;
+  }).join('');
+}
+
+function sel(cod){
+  const d=DB[cod];if(!d)return;
+  cur=d;dirty=false;
+  // Get verif info from map (fallback: VS+MP only)
+  curVerif=VERIF_MAP[cod]||null;
+  document.getElementById('results').innerHTML='';
+  document.getElementById('search-input').value='';
+  document.getElementById('form-area').style.display='block';
+  fillVSE(d);
+  fillMPHeader(d);
+  resetMPPoints();
+  resetVSP();
+  resetCQ();
+  // Build VSP/CQ if needed
+  if(curVerif&&curVerif.vsp){buildVSPPoints(curVerif.vsp);fillVSPHeader(cur);}
+  if(curVerif&&curVerif.cq){buildCQPoints(curVerif.cq);fillCQHeader(cur);}
+  updateTabs();
+  switchTab('vse');
+  // Restore saved if exists, altrimenti applica i preset
+  const hasSaved = saved[cod];
+  if(hasSaved){
+    if(hasSaved.vse_saved)restoreVSE(hasSaved);
+    if(hasSaved.mp_saved)loadMPSaved(hasSaved);
+    if(hasSaved.vsp_saved)loadVSPSaved(hasSaved);
+    if(hasSaved.cq_saved)loadCQSaved(hasSaved);
+    updateTabIndicators();
+  } else {
+    // Nessun dato salvato: applica preset come valori di default
+    setTimeout(()=>fillVSEPreset(cur.c),50);
+    setTimeout(()=>fillMPPreset(cur.c),50);
+    if(curVerif&&curVerif.vsp) setTimeout(()=>fillVSPPreset(cur.c,curVerif.vsp),50);
+    if(curVerif&&curVerif.cq)  setTimeout(()=>fillCQPreset(cur.c,curVerif.cq),50);
+  }
+  document.getElementById('form-area').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function renderSession(){
+  const keys=Object.keys(saved);
+  const pending=[...attesi].filter(c=>!saved[c]);
+  document.getElementById('btn-xlsx').disabled=keys.length===0;
+  const bxm=document.getElementById('btn-xlsx-mobile');if(bxm)bxm.disabled=keys.length===0;
+  const bem=document.getElementById('btn-export-massivo');if(bem)bem.disabled=keys.length===0;
+  const bemm=document.getElementById('btn-export-massivo-m');if(bemm)bemm.disabled=keys.length===0;
+  const bodl=document.getElementById('btn-compila-odl');if(bodl)bodl.disabled=keys.length===0;
+  const bodlm=document.getElementById('btn-compila-odl-m');if(bodlm)bodlm.disabled=keys.length===0;
+  const chips=document.getElementById('chips');
+  const stats=document.getElementById('sess-stats');
+  if(!keys.length&&!pending.length){chips.innerHTML='<span class="sess-empty">Nessun apparecchio compilato</span>';stats.style.display='none';document.getElementById('export-preview').style.display='none';return;}
+  const savedChips=keys.map(k=>{
+    const s=saved[k];const act=cur&&cur.c===k;
+    const both=s.vse_saved&&s.mp_saved;
+    return`<div class="chip ${both?'done':'part'}${act?' active':''}" onclick="sel('${k}')">
+      <div class="chip-dot"></div>${k}
+    </div>`;
+  }).join('');
+  const pendingChips=pending.map(c=>{
+    return`<div class="chip pending" onclick="sel('${c}')" title="Da verificare">
+      <div class="chip-dot"></div>${c}
+    </div>`;
+  }).join('');
+  chips.innerHTML=savedChips+pendingChips;
+  const totalAttesi=attesi.size||keys.length;
+  const done=keys.filter(k=>saved[k].vse_saved&&saved[k].mp_saved).length;
+  const vspCount=keys.filter(k=>saved[k].vsp_saved).length;
+  const cqCount=keys.filter(k=>saved[k].cq_saved).length;
+  let statsText=attesi.size?`${done}/${totalAttesi} completati`:`${keys.length} dispositivi`;
+  if(vspCount)statsText+=' · '+vspCount+' VSP';
+  if(cqCount)statsText+=' · '+cqCount+' CQ';
+  stats.textContent=statsText;
+  stats.style.display='block';
+  if(keys.length){
+    document.getElementById('export-preview').style.display='block';
+    document.getElementById('export-rows').innerHTML=keys.map(k=>{
+      const s=saved[k];const d=DB[k]||{};
+      return`<div class="ex-row">
+        <span class="ex-cod">${k}</span>
+        <span class="ex-nome">${(d.n||'').toLowerCase()}</span>
+        <span class="ex-tags">
+          ${s.vse_saved?`<span class="badge ${s.giu==='POSITIVO'?'pos':'neg'}">VSE ${s.giu==='POSITIVO'?'✓':'✗'}</span>`:''}
+          ${s.mp_saved?`<span class="badge info">MP ✓</span>`:''}
+          ${s.vsp_saved?`<span class="badge info">${s.vsp_type} ✓</span>`:''}
+          ${s.cq_saved?`<span class="badge info">${s.cq_type} ✓</span>`:''}
+        </span>
+        <button onclick="removeFromSession('${k}')" style="padding:2px 8px;font-size:11px;border:1px solid var(--ko);border-radius:var(--rad);background:transparent;color:var(--ko);cursor:pointer;flex-shrink:0">✕</button>
+      </div>`;
+    }).join('');
+  } else {
+    document.getElementById('export-preview').style.display='none';
+  }
+}
+ function removeFromSession(cod){
+  if(!confirm('Rimuovere '+cod+' dalla sessione?'))return;
+  delete saved[cod];
+  if(cur&&cur.c===cod){cur=null;curVerif=null;document.getElementById('form-area').style.display='none';}
+  renderSession();
+  toast('Rimosso: '+cod,'warn');
+}   
+
+function toast(msg,type){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.className='toast show'+(type==='ok'?' ok':type==='warn'?' warn':'');
+  setTimeout(()=>t.classList.remove('show'),3000);
+}
+
+const SUPA_URL = 'https://ttgvuoiznybjdyhlshpt.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR0Z3Z1b2l6bnliamR5aGxzaHB0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxNDc2OTIsImV4cCI6MjA4OTcyMzY5Mn0.Igk1hjHa_yY70FfDay6oCQRYo5EhIoCh-8H2u9NAXxo';
+const supa = supabase.createClient(SUPA_URL, SUPA_KEY);
+
+let currentUser = null;
+
+document.body.insertAdjacentHTML('afterbegin', `
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">
+      <svg width="100%" viewBox="0 0 420 90" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <line x1="0" y1="6" x2="420" y2="6" stroke="#0D1B3E" stroke-width="2"/>
+        <line x1="0" y1="10" x2="420" y2="10" stroke="#C8A96E" stroke-width="0.7"/>
+        <text x="0" y="55" font-family="'Cormorant Garamond',serif" font-size="46" font-weight="600" fill="#0D1B3E">App</text>
+        <text x="103" y="55" font-family="'Cormorant Garamond',serif" font-size="46" font-weight="700" fill="#1A3A7A" font-style="italic">Witch</text>
+        <line x1="0" y1="63" x2="50" y2="63" stroke="#C8A96E" stroke-width="0.8" opacity="0.5"/>
+        <polyline points="50,63 55,63 57.5,56 60,70 62.5,59 65,66 67.5,63 220,63" stroke="#C8A96E" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+        <line x1="220" y1="63" x2="420" y2="63" stroke="#C8A96E" stroke-width="0.8" opacity="0.5"/>
+        <line x1="0" y1="70" x2="420" y2="70" stroke="#C8A96E" stroke-width="0.7"/>
+        <line x1="0" y1="74" x2="420" y2="74" stroke="#0D1B3E" stroke-width="2"/>
+        <text x="210" y="87" font-family="'IBM Plex Sans',sans-serif" font-size="9" font-weight="500" fill="#4A6090" letter-spacing="3" text-anchor="middle">VERIFICHE · DISPOSITIVI MEDICI</text>
+      </svg>
+    </div>
+    <div class="login-field">
+      <label>Email</label>
+      <input type="email" id="l-email" placeholder="nome@asl.it" autocomplete="email">
+    </div>
+    <div class="login-field">
+      <label>Password</label>
+      <input type="password" id="l-pass" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <button class="login-btn" id="l-btn" onclick="doLogin()">Accedi</button>
+    <div class="login-err" id="l-err"></div>
+  </div>
+</div>
+`);
+
+document.querySelector('.app').insertAdjacentHTML('afterbegin', `
+<div id="user-bar">
+  <div><span class="u-name" id="u-name"></span><span class="u-role" id="u-role"></span></div>
+ <button onclick="openAdmin()" id="btn-admin" style="display:none">Admin</button>
+  <button onclick="toggleAnagrafica()">Anagrafica</button>
+  <button onclick="doLogout()">Esci</button>
+</div>
+`);
+
+document.getElementById('l-pass').addEventListener('keydown', e => {
+  if (e.key === 'Enter') doLogin();
+});
+
+async function doLogin() {
+  const email = document.getElementById('l-email').value.trim();
+  const pass = document.getElementById('l-pass').value;
+  const btn = document.getElementById('l-btn');
+  const err = document.getElementById('l-err');
+  err.style.display = 'none';
+  btn.disabled = true;
+  btn.textContent = 'Accesso...';
+  try {
+    const { data, error } = await supa.auth.signInWithPassword({ email, password: pass });
+    if (error) throw error;
+    await onLogin(data.user);
+  } catch(e) {
+    err.textContent = 'Email o password errati.';
+    err.style.display = 'block';
+    btn.disabled = false;
+    btn.textContent = 'Accedi';
+  }
+}
+
+async function onLogin(user) {
+  const { data: profile, error: profileErr } = await supa.from('profiles').select('*').eq('id', user.id).single();
+  if (profileErr || !profile) {
+    const err = document.getElementById('login-err');
+    if (err) { err.textContent = 'Profilo utente non trovato. Contatta un amministratore.'; err.style.display = 'block'; }
+    return;
+  }
+  currentUser = { ...user, profile };
+  localStorage.setItem('aw_session', JSON.stringify({ user, profile }));
+  await showApp();
+}
+
+async function showApp() {
+  const p = currentUser?.profile;
+  if (!p) { console.error('showApp: profilo non disponibile'); return; }
+  document.getElementById('u-name').textContent = p.full_name || '—';
+  document.getElementById('u-role').textContent = ' · ' + (p.role || '');
+  document.getElementById('user-bar').style.display = 'flex';
+  if (p.role === 'admin') document.getElementById('btn-admin').style.display = '';
+  document.getElementById('login-screen').style.display = 'none';
+  // Sidebar + bottom nav
+  document.getElementById('sb-name').textContent = p.full_name || '—';
+  document.getElementById('sb-meta').textContent = (p.role || '') + (p.asl_key ? ' · ASL ' + p.asl_key.toUpperCase() : '');
+  document.body.classList.add('logged-in');
+  if (p.role === 'admin') {
+    document.getElementById('sb-btn-admin').style.display = '';
+    document.getElementById('sb-btn-gestione-db').style.display = '';
+  }
+  if (p.role === 'responsabile') {
+    ['btn-salva-preset','btn-carica-preset','btn-salva-preset-m','btn-carica-preset-m'].forEach(id => {
+      const el = document.getElementById(id); if (el) el.style.display = 'none';
+    });
+  }
+  await initDB();
+}
+
+async function doLogout() {
+  await supa.auth.signOut();
+  localStorage.removeItem('aw_session');
+  currentUser = null;
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('user-bar').style.display = 'none';
+  document.body.classList.remove('logged-in');
+  const lBtn = document.getElementById('l-btn');
+  if (lBtn) { lBtn.disabled = false; lBtn.textContent = 'Accedi'; }
+  const lErr = document.getElementById('l-err');
+  if (lErr) lErr.style.display = 'none';
+}
+
+async function checkSession() {
+  const { data: { session } } = await supa.auth.getSession();
+  if (session) {
+    await onLogin(session.user);
+    return;
+  }
+  const saved = localStorage.getItem('aw_session');
+  if (saved) {
+    try {
+      const { user, profile } = JSON.parse(saved);
+      if (user && profile) {
+        currentUser = { ...user, profile };
+        await showApp();
+        return;
+      }
+    } catch(e) {}
+  }
+}
+
+checkSession();
+// ── FINE AUTH ──────────────────────────────────────────────
+
+let currentSessionId    = null;   // UUID sessione attiva
+let currentSessionTitle = null;   // Titolo sessione attiva
+let currentSessionDate  = null;   // Data verifica della sessione attiva (YYYY-MM-DD)
+let attesi = new Set();         // codici dispositivi attesi nella sessione corrente
+let syncPending = false;        // ci sono modifiche da sincronizzare
+let syncTimer   = null;         // timer auto-save
+
+// ── Helpers Supabase ─────────────────────────────────────────
+async function supaToken() {
+  const { data: { session } } = await supa.auth.getSession();
+  return session?.access_token;
+}
+
+function supaHdrs(token) {
+  return {
+    'apikey': SUPA_KEY,
+    'Authorization': 'Bearer ' + token,
+    'Content-Type': 'application/json',
+    'Prefer': 'return=representation'
+  };
+}
+
+// ── Crea nuova sessione ───────────────────────────────────────
+async function createSession() {
+  const title = document.getElementById('sess-new-title').value.trim();
+  if (!title) { toast('Inserisci un nome per la sessione', 'warn'); return; }
+  const token = await supaToken();
+  const asl   = currentUser?.profile?.asl || 'ASL Benevento';
+  // Parse lista dispositivi attesi (se inserita)
+  const attesiTxt = document.getElementById('sess-new-attesi').value.trim();
+  const attesiList = attesiTxt
+    ? attesiTxt.split(/[\s,;]+/).map(c => c.replace(/\D/g,'').padStart(7,'0')).filter(c => c.length === 7 && DB[c])
+    : [];
+  const today = new Date().toISOString().split('T')[0];
+  const dataV = document.getElementById('sess-new-date').value || today;
+  const resp  = await fetch(`${SUPA_URL}/rest/v1/sessioni`, {
+    method: 'POST',
+    headers: supaHdrs(token),
+    body: JSON.stringify({ titolo: title, utente_id: currentUser.id, asl: asl, data_verifica: dataV })
+  });
+  if (!resp.ok) { toast('Errore creazione sessione', 'warn'); return; }
+  const rows = await resp.json();
+  const sess = Array.isArray(rows) ? rows[0] : rows;
+  document.getElementById('sess-new-title').value = '';
+  document.getElementById('sess-new-attesi').value = '';
+  document.getElementById('sess-new-date').value = '';
+  // Attiva la sessione (imposta currentSessionId e attesi)
+  await activateSession(sess.id, sess.titolo, dataV);
+  // Se ci sono attesi, aggiungili e sincronizza
+  if (attesiList.length) {
+    attesiList.forEach(c => attesi.add(c));
+    renderSession();
+    await syncSessionNow();
+  }
+  await loadSessList();
+  const msg = attesiList.length ? `Sessione "${sess.titolo}" creata con ${attesiList.length} dispositivi` : `Sessione "${sess.titolo}" creata`;
+  toast(msg, 'ok');
+}
+
+// ── Attiva una sessione (carica i dati in memoria) ────────────
+async function activateSession(id, titolo, dataVerifica) {
+  // Salva sessione corrente prima di cambiare
+  if (currentSessionId && Object.keys(saved).length > 0) {
+    await syncSessionNow();
+  }
+  // Reset memoria
+  Object.keys(saved).forEach(k => delete saved[k]);
+  attesi = new Set();
+  cur = null; curVerif = null;
+  document.getElementById('form-area').style.display = 'none';
+  currentSessionId    = id;
+  currentSessionTitle = titolo || null;
+  currentSessionDate  = dataVerifica || null;
+  // Carica schede (include la scheda speciale __attesi__ per i dispositivi attesi)
+  const token = await supaToken();
+  const schedeResp = await fetch(
+    `${SUPA_URL}/rest/v1/sessione_schede?sessione_id=eq.${id}&select=*`,
+    { headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + token } }
+  );
+  if (schedeResp.ok) {
+    const schede = await schedeResp.json();
+    schede.forEach(s => {
+      if (s.codice === '__attesi__') {
+        // Scheda speciale: contiene la lista dispositivi attesi
+        (s.dati_vse?.lista || []).forEach(c => attesi.add(c));
+        return;
+      }
+      const rec = {
+        codice: s.codice,
+        ...(s.dati_vse || {}),
+        ...(s.dati_mp  || {}),
+        ...(s.dati_vsp || {}),
+        ...(s.dati_cq  || {}),
+        vse_saved: !!s.dati_vse,
+        mp_saved:  !!s.dati_mp,
+        vsp_saved: !!s.dati_vsp,
+        cq_saved:  !!s.dati_cq,
+        vsp_type:  s.vsp_type || null,
+        cq_type:   s.cq_type  || null,
+      };
+      saved[s.codice] = rec;
+    });
+  }
+  updateSyncBar(titolo, true);
+  renderSession();
+  closeSessModal();
+  toast('Sessione "' + titolo + '" caricata', 'ok');
+}
+
+// ── Sync una scheda su Supabase ───────────────────────────────
+async function syncScheda(codice) {
+  if (!currentSessionId) return;
+  const rec   = saved[codice];
+  if (!rec)   return;
+  const token = await supaToken();
+
+  // Separa i dati per tipo
+  const dati_vse = rec.vse_saved ? collectVSEFromRec(rec) : null;
+  const dati_mp  = rec.mp_saved  ? collectMPFromRec(rec)  : null;
+  const dati_vsp = rec.vsp_saved ? collectVSPFromRec(rec) : null;
+  const dati_cq  = rec.cq_saved  ? collectCQFromRec(rec)  : null;
+
+  const payload = {
+    sessione_id: currentSessionId,
+    codice:      codice,
+    dati_vse:    dati_vse,
+    dati_mp:     dati_mp,
+    dati_vsp:    dati_vsp,
+    dati_cq:     dati_cq,
+    vsp_type:    rec.vsp_type || null,
+    cq_type:     rec.cq_type  || null,
+  };
+
+  // Controlla se il record esiste già
+  const hdrs = {'apikey':SUPA_KEY,'Authorization':'Bearer '+token};
+  const check = await fetch(`${SUPA_URL}/rest/v1/sessione_schede?sessione_id=eq.${currentSessionId}&codice=eq.${codice}&select=codice`, {headers:hdrs});
+  const rows = check.ok ? await check.json() : [];
+  let resp;
+  if (rows.length) {
+    resp = await fetch(`${SUPA_URL}/rest/v1/sessione_schede?sessione_id=eq.${currentSessionId}&codice=eq.${codice}`, {
+      method: 'PATCH',
+      headers: { ...supaHdrs(token), 'Prefer': 'return=minimal' },
+      body: JSON.stringify(payload)
+    });
+  } else {
+    resp = await fetch(`${SUPA_URL}/rest/v1/sessione_schede`, {
+      method: 'POST',
+      headers: { ...supaHdrs(token), 'Prefer': 'return=minimal' },
+      body: JSON.stringify(payload)
+    });
+  }
+  if (!resp.ok) console.error('syncScheda fallita:', resp.status, resp.statusText);
+}
+
+// ── Sync completa della sessione ─────────────────────────────
+async function syncSessionNow() {
+  if (!currentSessionId) return;
+  syncPending = false;
+  updateSyncBar(null, false); // mostra "sincronizzando..."
+  const codici = Object.keys(saved);
+  for (const cod of codici) {
+    await syncScheda(cod);
+  }
+  // Aggiorna data_aggiornamento della sessione
+  const token = await supaToken();
+  const patchResp = await fetch(`${SUPA_URL}/rest/v1/sessioni?id=eq.${currentSessionId}`, {
+    method: 'PATCH',
+    headers: { ...supaHdrs(token), 'Prefer': 'return=minimal' },
+    body: JSON.stringify({ data_aggiornamento: new Date().toISOString() })
+  });
+  // Salva lista attesi come scheda speciale __attesi__
+  if (attesi.size > 0) {
+    await fetch(`${SUPA_URL}/rest/v1/sessione_schede`, {
+      method: 'POST',
+      headers: { ...supaHdrs(token), 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+      body: JSON.stringify({
+        sessione_id: currentSessionId,
+        codice: '__attesi__',
+        dati_vse: { lista: [...attesi] },
+        dati_mp: null, dati_vsp: null, dati_cq: null
+      })
+    });
+  }
+  if (!patchResp.ok) console.error('syncSessionNow PATCH fallita:', patchResp.status, patchResp.statusText);
+  updateSyncBar(null, true);
+}
+
+// ── Helpers raccolta dati per tipo ───────────────────────────
+function collectVSEFromRec(rec) {
+  const keys = ['data','note','ten','tdp','frq','fdp','pot','pdp','mar','fud','fur',
+    'cls','cdp','pat','pad','fnz','def','spi','smo','msp','cav','icv','isp','int',
+    'pdc','icn','prc','icd','mus','mse','nag','clm','tms','cor','trl','trm','pnl',
+    'pnm','pil','pim','pbl','pbm','ibl','ibm','pcl','pcm','icl','icm','giu','vt',
+    'vd','mot','str','nrs','ver','vrc','sct','ris_inv','ris_pa'];
+  return Object.fromEntries(keys.filter(k => rec[k] != null && rec[k] !== '').map(k => [k, rec[k]]));
+}
+function collectMPFromRec(rec) {
+  const keys = ['mp_data','mp_note','mp_tecnico','mp_data2'];
+  for (let i=1;i<=19;i++) keys.push('mp'+i);
+  return Object.fromEntries(keys.filter(k => rec[k] != null && rec[k] !== '').map(k => [k, rec[k]]));
+}
+function collectVSPFromRec(rec) {
+  return Object.fromEntries(
+    Object.entries(rec).filter(([k,v]) => k.startsWith('vsp_') && v != null && v !== '')
+  );
+}
+function collectCQFromRec(rec) {
+  return Object.fromEntries(
+    Object.entries(rec).filter(([k,v]) => k.startsWith('cq_') && v != null && v !== '')
+  );
+}
+
+// ── Barra sync ───────────────────────────────────────────────
+function updateSyncBar(titolo, synced) {
+  const bar   = document.getElementById('sess-sync-bar');
+  const dot   = document.getElementById('sync-dot');
+  const dotM  = document.getElementById('sync-dot-mobile');
+  const label = document.getElementById('sync-label');
+  if (!bar) return;
+  bar.style.display = 'flex';
+  let cls;
+  if (!currentSessionId) {
+    cls = 'sess-sync-dot offline';
+    if (label) label.textContent = 'Nessuna sessione attiva';
+  } else if (synced === false) {
+    cls = 'sess-sync-dot pending';
+    if (label) label.textContent = 'Sincronizzazione...';
+  } else if (synced === true) {
+    cls = 'sess-sync-dot synced';
+    if (label) label.textContent = (titolo || 'Sessione attiva') + ' · Sincronizzato';
+  } else {
+    cls = 'sess-sync-dot pending';
+    if (label) label.textContent = (titolo || 'Sessione attiva') + ' · Modifiche in attesa';
+  }
+  if (dot) dot.className = cls;
+  if (dotM) dotM.className = cls;
+  const hasSession = !!currentSessionId;
+  const bc = document.getElementById('btn-chiudi-sess');
+  const bcm = document.getElementById('btn-chiudi-sess-m');
+  if (bc)  bc.style.display  = hasSession ? '' : 'none';
+  if (bcm) bcm.style.display = hasSession ? '' : 'none';
+}
+
+// ── Auto-save: schedula sync 3s dopo l'ultima modifica ────────
+function scheduleSync() {
+  if (!currentSessionId) return;
+  syncPending = true;
+  updateSyncBar(null, null);
+  if (syncTimer) clearTimeout(syncTimer);
+  syncTimer = setTimeout(() => syncSessionNow(), 3000);
+}
+
+// ── Aggiungi dispositivi attesi alla sessione corrente ────────
+async function addAttesiToSession() {
+  if (!currentSessionId) { toast('Nessuna sessione attiva', 'warn'); return; }
+  const txt = document.getElementById('sess-attesi-input').value.trim();
+  if (!txt) { toast('Inserisci almeno un codice', 'warn'); return; }
+  const codici = txt.split(/[\s,;]+/).map(c => c.replace(/\D/g,'').padStart(7,'0')).filter(c => c.length === 7);
+  const validi = codici.filter(c => DB[c]);
+  const nonTrovati = codici.filter(c => !DB[c] && c !== '0000000');
+  validi.forEach(c => attesi.add(c));
+  document.getElementById('sess-attesi-input').value = '';
+  renderSession();
+  scheduleSync();
+  let msg = validi.length + ' dispositivi aggiunti';
+  if (nonTrovati.length) msg += ' · ' + nonTrovati.length + ' non trovati nel DB';
+  toast(msg, validi.length ? 'ok' : 'warn');
+}
+
+// ── Modal sessioni ───────────────────────────────────────────
+async function openSessModal() {
+  document.getElementById('sess-modal').classList.add('open');
+  document.getElementById('sess-attesi-section').style.display = currentSessionId ? 'block' : 'none';
+  const dateEl = document.getElementById('sess-new-date');
+  if(dateEl && !dateEl.value) dateEl.value = new Date().toISOString().split('T')[0];
+  await loadSessList();
+}
+function closeSessModal() {
+  document.getElementById('sess-modal').classList.remove('open');
+}
+
+function chiudiSessione() {
+  if (!currentSessionId) return;
+  currentSessionId = null;
+  currentSessionTitle = null;
+  attesi = new Set();
+  Object.keys(saved).forEach(k => delete saved[k]);
+  cur = null; curVerif = null;
+  document.getElementById('form-area').style.display = 'none';
+  updateSyncBar(null, null);
+  renderSession();
+  toast('Sessione chiusa', 'ok');
+}
+
+async function loadSessList() {
+  const list  = document.getElementById('sess-list');
+  list.innerHTML = '<div style="font-size:13px;color:var(--text3);padding:8px">Caricamento...</div>';
+  const token = await supaToken();
+  const asl   = currentUser?.profile?.asl || 'ASL Benevento';
+  const role  = currentUser?.profile?.role;
+  // Responsabile e admin vedono tutte le sessioni dell'ASL
+  let url = `${SUPA_URL}/rest/v1/sessioni?asl=eq.${encodeURIComponent(asl)}&order=data_aggiornamento.desc&limit=50`;
+  if (role === 'verificatore') {
+    url = `${SUPA_URL}/rest/v1/sessioni?utente_id=eq.${currentUser.id}&order=data_aggiornamento.desc&limit=50`;
+  }
+  const resp = await fetch(url, {
+    headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + token }
+  });
+  if (!resp.ok) { list.innerHTML = '<div style="color:var(--ko);padding:8px">Errore caricamento</div>'; return; }
+  const sessioni = await resp.json();
+  if (!sessioni.length) {
+    list.innerHTML = '<div style="font-size:13px;color:var(--text3);padding:8px">Nessuna sessione. Creane una nuova.</div>';
+    return;
+  }
+  const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  list.innerHTML = sessioni.map(s => {
+    const isActive = s.id === currentSessionId;
+    const data = s.data_aggiornamento
+      ? new Date(s.data_aggiornamento).toLocaleDateString('it-IT', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})
+      : '—';
+    return `<div class="sess-item${isActive?' active-sess':''}" data-sid="${esc(s.id)}" data-titolo="${esc(s.titolo)}" data-data="${esc(s.data_verifica||'')}">
+      <div class="sess-item-info">
+        <div class="sess-item-title">${esc(s.titolo)}</div>
+        <div class="sess-item-meta">Aggiornata: ${data}</div>
+      </div>
+      <div class="sess-item-btns">
+        ${isActive ? '<span style="font-size:11px;color:var(--info);font-weight:600">ATTIVA</span>' : ''}
+        <button class="btn-sess" data-exp="1" title="Esporta Excel">⬇</button>
+        <button class="btn-sess danger" data-del="1">✕</button>
+      </div>
+    </div>`;
+  }).join('');
+  list.querySelectorAll('.sess-item').forEach(el => {
+    el.addEventListener('click', () => activateSession(el.dataset.sid, el.dataset.titolo, el.dataset.data||null));
+    const expBtn = el.querySelector('[data-exp]');
+    if (expBtn) expBtn.addEventListener('click', e => { e.stopPropagation(); exportSessioneByID(el.dataset.sid, el.dataset.titolo); });
+    const delBtn = el.querySelector('[data-del]');
+    if (delBtn) delBtn.addEventListener('click', e => { e.stopPropagation(); deleteSession(el.dataset.sid, el.dataset.titolo); });
+  });
+}
+
+async function deleteSession(id, titolo) {
+  if (!confirm(`Eliminare la sessione "${titolo}"?\nTutti i dati verranno persi.`)) return;
+  const token = await supaToken();
+  // Elimina prima le schede
+  const delSchede = await fetch(`${SUPA_URL}/rest/v1/sessione_schede?sessione_id=eq.${id}`, {
+    method: 'DELETE',
+    headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + token }
+  });
+  if (!delSchede.ok) console.error('Eliminazione schede fallita:', delSchede.status, delSchede.statusText);
+  // Poi la sessione
+  const delSess = await fetch(`${SUPA_URL}/rest/v1/sessioni?id=eq.${id}`, {
+    method: 'DELETE',
+    headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + token }
+  });
+  if (!delSess.ok) console.error('Eliminazione sessione fallita:', delSess.status, delSess.statusText);
+  if (currentSessionId === id) {
+    currentSessionId = null;
+    attesi = new Set();
+    Object.keys(saved).forEach(k => delete saved[k]);
+    cur = null; curVerif = null;
+    document.getElementById('form-area').style.display = 'none';
+    updateSyncBar(null, null);
+    renderSession();
+  }
+  await loadSessList();
+  toast('Sessione eliminata', 'warn');
+}
+// ── PRESET helpers ────────────────────────────────────────────
+const VSE_PRESET_FIELDS = new Set(['ten','tdp','frq','fdp','pot','pdp','mar','fud','fur','cls','cdp','pat','pad','fnz','def','spi','smo','msp','cav','icv','isp','int','pdc','icn','prc','icd','mus','mse','nag','clm','tms','cor','trm','pnm','pim','pbm','ibm','pcm','icm','giu','vt','vd','mot','str','nrs','ver','vrc','sct']);
+
+// Upsert: PATCH se il record esiste già, POST se è nuovo
+async function presetUpsert(table, codice, tipo, dati, token) {
+  const hdrs = {'apikey':SUPA_KEY,'Authorization':'Bearer '+token};
+  // Controlla esistenza
+  const filter = tipo
+    ? `?codice=eq.${codice}&tipo=eq.${tipo}&select=codice`
+    : `?codice=eq.${codice}&select=codice`;
+  const check = await fetch(`${SUPA_URL}/rest/v1/${table}${filter}`, {headers:hdrs});
+  const rows = check.ok ? await check.json() : [];
+  if (rows.length) {
+    // PATCH
+    const patchFilter = tipo ? `?codice=eq.${codice}&tipo=eq.${tipo}` : `?codice=eq.${codice}`;
+    const r = await fetch(`${SUPA_URL}/rest/v1/${table}${patchFilter}`, {
+      method:'PATCH', headers:{...supaHdrs(token),'Prefer':'return=minimal'}, body:JSON.stringify({dati})
+    });
+    if (!r.ok) { const t=await r.text(); console.error('PATCH preset error',r.status,t); return false; }
+  } else {
+    // POST
+    const body = tipo ? {codice,tipo,dati} : {codice,dati};
+    const r = await fetch(`${SUPA_URL}/rest/v1/${table}`, {
+      method:'POST', headers:{...supaHdrs(token),'Prefer':'return=minimal'}, body:JSON.stringify(body)
+    });
+    if (!r.ok) { const t=await r.text(); console.error('POST preset error',r.status,t); return false; }
+  }
+  return true;
+}
+
+// ── PRESET: Salva sessione corrente come preset ───────────────
+async function saveSessionAsPresets() {
+  if (currentUser?.profile?.role === 'responsabile') { toast('Operazione non consentita per questo profilo', 'warn'); return; }
+  const keys = Object.keys(saved).filter(k => saved[k].vse_saved || saved[k].mp_saved || saved[k].vsp_saved || saved[k].cq_saved);
+  if (!keys.length) { toast('Nessun dispositivo compilato nella sessione', 'warn'); return; }
+  const asl = currentUser?.profile?.asl || 'ASL Benevento';
+  const aslKey = asl.toLowerCase().replace('asl ','');
+  const token = await supaToken();
+  toast(`Salvataggio preset per ${keys.length} dispositivi...`, 'warn');
+  let count = 0, errors = 0;
+  for (const cod of keys) {
+    const rec = saved[cod];
+    let ok = true;
+    // VSE
+    if (rec.vse_saved) {
+      const dati = {};
+      VSE_PRESET_FIELDS.forEach(f => { if (rec[f] != null && rec[f] !== '') dati[f] = rec[f]; });
+      if (Object.keys(dati).length) ok = await presetUpsert(`preset_vse_${aslKey}`, cod, null, dati, token) && ok;
+    }
+    // MP
+    if (rec.mp_saved) {
+      const dati = {};
+      for (let i=1;i<=19;i++) {
+        const v=rec['mp'+i];
+        if (v==='OK') dati['mp'+i+'_ok']=true;
+        else if (v==='KO') dati['mp'+i+'_ko']=true;
+        else if (v==='NA') dati['mp'+i+'_na']=true;
+      }
+      if (rec.mp_tecnico) dati.mp_tecnico=rec.mp_tecnico;
+      if (Object.keys(dati).length) ok = await presetUpsert(`preset_mp_${aslKey}`, cod, null, dati, token) && ok;
+    }
+    // VSP
+    if (rec.vsp_saved && rec.vsp_type) {
+      const tipo=rec.vsp_type, pts=VSP_POINTS[tipo]||[];
+      const dati = {};
+      pts.forEach(p => { const v=rec['vsp_'+p.l], opts=p.opts||['OK','KO','NA']; opts.forEach(o=>{ if(v===o) dati['vsp_'+p.l+'_'+o.toLowerCase()]=true; }); });
+      if (rec.vsp_tecnico) dati.vsp_tecnico=rec.vsp_tecnico;
+      // Campi extra (misure prove di scarica, tempi di carica, correnti ELB, ecc.)
+      (VSP_EXTRA[tipo]||[]).forEach(sec=>sec.fields.forEach(f=>{ if(rec[f.id]) dati[f.id]=rec[f.id]; }));
+      if (Object.keys(dati).length) ok = await presetUpsert(`preset_vsp_${aslKey}`, cod, tipo, dati, token) && ok;
+    }
+    // CQ
+    if (rec.cq_saved && rec.cq_type) {
+      const tipo=rec.cq_type, visPoints=CQ_VIS[tipo]||[];
+      const dati = {};
+      visPoints.forEach(p => { const pid=p.replace('.','_'), v=rec['cq_vis_'+pid]; if(v==='OK') dati['cq_vis_'+pid+'_ok']=true; else if(v==='KO') dati['cq_vis_'+pid+'_ko']=true; else if(v==='NA') dati['cq_vis_'+pid+'_na']=true; });
+      (CQ_PROVA[tipo]||[]).forEach(sec=>sec.fields.forEach(f=>{ if(rec[f.id]) dati[f.id]=rec[f.id]; }));
+      ['cq_strum','cq_strum_mod','cq_strum_ser','cq_strum_cert','cq_strum_scad','cq_tecnico'].forEach(f=>{ if(rec[f]) dati[f]=rec[f]; });
+      if (Object.keys(dati).length) ok = await presetUpsert(`preset_cq_${aslKey}`, cod, tipo, dati, token) && ok;
+    }
+    if (ok) count++; else errors++;
+  }
+  await loadPresets();
+  if (errors) toast(`${count} preset salvati, ${errors} errori (vedi console)`, 'warn');
+  else toast(`Preset aggiornati per ${count} dispositivi`, 'ok');
+}
+
+// ── PRESET: Importa da file Excel (formato AppWitch_2_INSERIMENTO) ─────
+async function importPresetsFromExcel(input) {
+  if (currentUser?.profile?.role === 'responsabile') { toast('Operazione non consentita per questo profilo', 'warn'); input.value=''; return; }
+  const file = input.files[0]; if (!file) return;
+  input.value = '';
+  if (typeof XLSX === 'undefined') {
+    toast('Caricamento libreria Excel...','warn');
+    await new Promise(res => { const s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js'; s.onload=res; document.head.appendChild(s); });
+  }
+  const wb = XLSX.read(await file.arrayBuffer(), {type:'array'});
+  const asl = currentUser?.profile?.asl || 'ASL Benevento';
+  const aslKey = asl.toLowerCase().replace('asl ','');
+  const token = await supaToken();
+  const norm = c => String(c||'').trim().replace(/\D/g,'').padStart(7,'0');
+  let total = 0;
+
+  async function importBatch(table, payload) {
+    if (!payload.length) return 0;
+    // Deduplica per (codice, tipo) — tiene l'ultimo record in caso di duplicati nel file
+    const seen = new Map();
+    for (const row of payload) { seen.set(row.codice + '|' + (row.tipo||''), row); }
+    const deduped = [...seen.values()];
+    const CHUNK = 200;
+    let count = 0;
+    for (let i=0; i<deduped.length; i+=CHUNK) {
+      const chunk = deduped.slice(i, i+CHUNK);
+      const r = await fetch(`${SUPA_URL}/rest/v1/${table}`, {method:'POST',headers:{...supaHdrs(token),'Prefer':'return=minimal,resolution=merge-duplicates'},body:JSON.stringify(chunk)});
+      if (!r.ok) { const t=await r.text(); console.error(`importBatch ${table} chunk ${i}:`, t); toast(`Errore import ${table}: ${t.slice(0,80)}`, 'warn'); return count; }
+      count += chunk.length;
+    }
+    return count;
+  }
+  // Helper: read cell as string or null
+  const _rc = (row,c) => { const v=row[c]; if(v==null||v==='') return null; return typeof v==='number' ? String(Math.round(v)) : String(v); };
+  // Helper: converte serial Excel → 'YYYY-MM-DD', oppure stringa già formattata
+  const _rxldate = (row,c) => {
+    const v = row[c];
+    if (v==null||v==='') return null;
+    const n = Number(v);
+    if (!isNaN(n) && n > 1000 && n < 2958466) {
+      const d = new Date(Date.UTC(1899,11,30) + n*86400000);
+      return d.toISOString().split('T')[0];
+    }
+    const s = String(v).trim();
+    return s || null;
+  };
+  // Helper: set multiple explicit [field, colIndex] pairs
+  const _fm = (row,map,dati) => map.forEach(([f,c])=>{ const v=_rc(row,c); if(v) dati[f]=v; });
+
+  // ── VSE (60 col, 1 header row, col 53 = "Colonna vuota") ──
+  const vseWs = wb.Sheets['Inserimento_VSE'];
+  if (vseWs) {
+    // '' at index 53 skips the empty column; dat2 (not data2) matches the correct field name
+    const FVSE=['codice','data','note','ten','tdp','frq','fdp','pot','pdp','mar','fud','fur','cls','cdp','pat','pad','fnz','def','spi','smo','msp','cav','icv','isp','int','pdc','icn','prc','icd','mus','mse','nag','clm','tms','cor','trl','trm','pnl','pnm','pil','pim','pbl','pbm','ibl','ibm','pcl','pcm','icl','icm','giu','vt','vd','mot','','str','nrs','ver','dat2','vrc','sct'];
+    const rows = XLSX.utils.sheet_to_json(vseWs,{header:1,defval:''});
+    const payload = rows.slice(1).map(row => {
+      const codice=norm(row[0]); if(!codice||codice==='0000000') return null;
+      const dati={}; FVSE.forEach((f,i)=>{ if(!VSE_PRESET_FIELDS.has(f)||row[i]==null||row[i]==='') return; dati[f]=f==='sct'?(_rxldate(row,i)||String(row[i])):String(row[i]); });
+      return Object.keys(dati).length ? {codice,dati} : null;
+    }).filter(Boolean);
+    total += await importBatch(`preset_vse_${aslKey}`, payload);
+  }
+
+  // ── MP (61 col, 2 header rows, tecnico col 60) ──
+  const mpWs = wb.Sheets['Inserimento_MP'];
+  if (mpWs) {
+    const rows = XLSX.utils.sheet_to_json(mpWs,{header:1,defval:''});
+    const payload = rows.slice(2).map(row => {
+      const codice=norm(row[0]); if(!codice||codice==='0000000') return null;
+      const dati={};
+      for(let i=1;i<=19;i++){const b=3+(i-1)*3; if(row[b]) dati['mp'+i+'_ok']=true; if(row[b+1]) dati['mp'+i+'_ko']=true; if(row[b+2]) dati['mp'+i+'_na']=true;}
+      if(row[60]) dati.mp_tecnico=String(row[60]);
+      return Object.keys(dati).length ? {codice,dati} : null;
+    }).filter(Boolean);
+    total += await importBatch(`preset_mp_${aslKey}`, payload);
+  }
+
+  // ── VSP (3 header rows) ──
+  for (const tipo of Object.keys(VSP_POINTS)) {
+    const ws = wb.Sheets['Inserimento_VSP_'+tipo.replace('VSP_','')]; if(!ws) continue;
+    const rows = XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+    const def = VSP_POINTS[tipo];
+    const payload = rows.slice(3).map(row => {
+      const codice=norm(row[0]); if(!codice||codice==='0000000') return null;
+      const dati={};
+      if(tipo==='VSP_ELB'){
+        const RC_FIELDS_ELB=['elb_rc_t_ni','elb_rc_t_nm','elb_rc_t_q1i','elb_rc_t_q1m','elb_rc_t_q2i','elb_rc_t_q2m','elb_rc_t_q3i','elb_rc_t_q3m','elb_rc_t_mxi','elb_rc_t_mxm','elb_rc_m_ni','elb_rc_m_nm','elb_rc_m_q1i','elb_rc_m_q1m','elb_rc_m_q2i','elb_rc_m_q2m','elb_rc_m_q3i','elb_rc_m_q3m','elb_rc_m_mxi','elb_rc_m_mxm','elb_rc_c_ni','elb_rc_c_nm','elb_rc_c_q1i','elb_rc_c_q1m','elb_rc_c_q2i','elb_rc_c_q2m','elb_rc_c_q3i','elb_rc_c_q3m','elb_rc_c_mxi','elb_rc_c_mxm','elb_rc_b_ni','elb_rc_b_nm','elb_rc_b_q1i','elb_rc_b_q1m','elb_rc_b_q2i','elb_rc_b_q2m','elb_rc_b_q3i','elb_rc_b_q3m','elb_rc_b_mxi','elb_rc_b_mxm'];
+        _fm(row,[['elb_pbip',3],['elb_cbip',4],['elb_fhz',5],['elb_fkhz',6],['elb_fmhz',7],['elb_pmono',8],['elb_cmono',9],['elb_fhz2',10],['elb_fkhz2',11],['elb_fmhz2',12],['elb_pa',15],['elb_pdt',16]],dati);
+        let ci=18; def.forEach(p=>{ const opts=p.opts||['OK','KO','NA']; opts.forEach(o=>{ if(row[ci]) dati['vsp_'+p.l+'_'+o.toLowerCase()]=true; ci++; }); });
+        _fm(row,[['elb_ct_t',36],['elb_ct_m',37],['elb_ct_c',38],['elb_at_t',39],['elb_at_m',40],['elb_at_c',41],['elb_en_t',42],['elb_en_m',43],['elb_en_c',44],['elb_ea_t',46],['elb_ea_m',47],['elb_ea_c',48],['elb_iso1n',52],['elb_iso1t',53],['elb_iso2n',54],['elb_iso2t',55]],dati);
+        _fm(row,[['elb_hf_esito',56],['elb_bip_esito',57],['elb_vp1',58],['elb_vp2',59],['elb_vp3',60],['elb_vp4',61],['elb_vp5',62],['elb_vp6',63],['elb_er1',64],['elb_er2',65],['elb_er3',66]],dati);
+        RC_FIELDS_ELB.forEach((f,i)=>{ const v=_rc(row,67+i); if(v) dati[f]=v; });
+        ['elb_strum','elb_mod','elb_ser','elb_cert','elb_scad'].forEach((f,i)=>{ const v=f==='elb_scad'?_rxldate(row,107+i):_rc(row,107+i); if(v) dati[f]=v; });
+        if(row[112]) dati.vsp_tecnico=String(row[112]);
+      } else {
+        // CEN, ECG, DEF: checkboxes start at col 3
+        let ci=3; def.forEach(p=>{ const opts=p.opts||['OK','KO','NA']; opts.forEach(o=>{ if(row[ci]) dati['vsp_'+p.l+'_'+o.toLowerCase()]=true; ci++; }); });
+        if(tipo==='VSP_DEF'){
+          // ci=50 here; energy manuale col 50-59, DAE col 60, skip 61-63
+          ['def_e1i','def_e1m','def_e2i','def_e2m','def_e3i','def_e3m','def_e4i','def_e4m','def_e5i','def_e5m'].forEach((f,i)=>{ const v=_rc(row,50+i); if(v) dati[f]=v; });
+          const daeMis=_rc(row,60); if(daeMis) dati['def_dae_mis']=daeMis;
+          // Tempi carica col 64-75, tempi ritardo col 79-88 (with gaps)
+          ['def_tc_ar','def_tc_ab','def_tc_am','def_tc_br','def_tc_bb','def_tc_bm','def_tc_cr','def_tc_cb','def_tc_cm','def_tc_dr','def_tc_db','def_tc_dm'].forEach((f,i)=>{ const v=_rc(row,64+i); if(v) dati[f]=v; });
+          _fm(row,[['def_tr_ar',79],['def_tr_am',80],['def_tr_br',83],['def_tr_bm',84],['def_tr_cr',87],['def_tr_cm',88]],dati);
+          // Strumentazione col 91-95, tecnico col 96
+          ['def_strum','def_mod','def_ser','def_cert','def_scad'].forEach((f,i)=>{ const v=f==='def_scad'?_rxldate(row,91+i):_rc(row,91+i); if(v) dati[f]=v; });
+          if(row[96]) dati.vsp_tecnico=String(row[96]);
+          // Nuovi esiti col 97-106
+          [['def_e_esito',97],['def_tc_ab_na',98],['def_tc_cd_na',99],['def_tc_ok',100],['def_tr_a_esito',101],['def_tr_b_esito',102],['def_tr_c_esito',103],['def_rac_a',104],['def_rac_b',105],['def_rac_c',106]].forEach(([f,c])=>{ const v=_rc(row,c); if(v) dati[f]=v; });
+        } else {
+          // CEN, ECG: tecnico immediately after checkboxes
+          if(row[ci]) dati.vsp_tecnico=String(row[ci]);
+        }
+      }
+      return Object.keys(dati).length ? {codice,tipo,dati} : null;
+    }).filter(Boolean);
+    total += await importBatch(`preset_vsp_${aslKey}`, payload);
+  }
+
+  // ── CQ (3 header rows) ──
+  // Per-type prova field→column mappings (excludes vis checkboxes and strumentazione)
+  const CQ_PMAP = {
+    'CQ_DEF': [['cq_def_tipo_man',3],['cq_def_tipo_dae',4],['cq_def_opt_pac',5],['cq_def_opt_nibp',6],['cq_def_opt_spo2',7],
+               ['cq_def_e1i',29],['cq_def_e1m',30],['cq_def_e2i',33],['cq_def_e2m',34],['cq_def_e3i',37],['cq_def_e3m',38],
+               ['cq_def_e4i',41],['cq_def_e4m',42],['cq_def_e5i',45],['cq_def_e5m',46],['cq_def_e6i',49],['cq_def_e6m',50]],
+    'CQ_ECG': [['cq_ecg_v1i',24],['cq_ecg_v1ind',25],['cq_ecg_v1lim',26],['cq_ecg_v2i',29],['cq_ecg_v2ind',30],['cq_ecg_v2lim',31],
+               ['cq_ecg_v3i',34],['cq_ecg_v3ind',35],['cq_ecg_v3lim',36],['cq_ecg_v4i',39],['cq_ecg_v4ind',40],['cq_ecg_v4lim',41],
+               ['cq_ecg_v5i',44],['cq_ecg_v5ind',45],['cq_ecg_v5lim',46]],
+    'CQ_CEN': [['cq_cen_g1i',18],['cq_cen_g1m',19],['cq_cen_g2i',20],['cq_cen_g2m',21],['cq_cen_g3i',22],['cq_cen_g3m',23],
+               ['cq_cen_t1i',24],['cq_cen_t1m',25],['cq_cen_t2i',26],['cq_cen_t2m',27],['cq_cen_t3i',28],['cq_cen_t3m',29]],
+    'CQ_ELB': [['cq_elb_ct_t',33],['cq_elb_ct_c',34],['cq_elb_at_t',35],['cq_elb_at_c',36],['cq_elb_fn_t',37],['cq_elb_fn_c',38],
+               ['cq_elb_en_t',39],['cq_elb_en_c',40],['cq_elb_iso1',44],['cq_elb_iso2',45],
+               ['cq_elb_hf_esito',46],['cq_elb_bip_esito',47],
+               ['cq_elb_pt1d',49],['cq_elb_pt1r',50],['cq_elb_pc1d',51],['cq_elb_pc1r',52],['cq_elb_pb1d',53],['cq_elb_pb1r',54],
+               ['cq_elb_pt2d',55],['cq_elb_pt2r',56],['cq_elb_pc2d',57],['cq_elb_pc2r',58],['cq_elb_pb2d',59],['cq_elb_pb2r',60],
+               ['cq_elb_pt3d',61],['cq_elb_pt3r',62],['cq_elb_pc3d',63],['cq_elb_pc3r',64],['cq_elb_pb3d',65],['cq_elb_pb3r',66],
+               ['cq_elb_pt4d',67],['cq_elb_pt4r',68],['cq_elb_pc4d',69],['cq_elb_pc4r',70],['cq_elb_pb4d',71],['cq_elb_pb4r',72],
+               ['cq_elb_pot_esito',73]],
+    'CQ_FBI': [['cq_fbi_r1label',9],['cq_fbi_r1i',10],['cq_fbi_r1ind',11],['cq_fbi_r1it',12],['cq_fbi_r1m',13],['cq_fbi_r1l',14],
+               ['cq_fbi_r2label',15],['cq_fbi_r2i',16],['cq_fbi_r2ind',17],['cq_fbi_r2it',18],['cq_fbi_r2m',19],['cq_fbi_r2l',20],
+               ['cq_fbi_r3label',21],['cq_fbi_r3i',22],['cq_fbi_r3ind',23],['cq_fbi_r3it',24],['cq_fbi_r3m',25],['cq_fbi_r3l',26],
+               ['cq_fbi_r4label',27],['cq_fbi_r4i',28],['cq_fbi_r4ind',29],['cq_fbi_r4it',30],['cq_fbi_r4m',31],['cq_fbi_r4l',32]],
+    'CQ_ECT': [['cq_ect_s1',27],['cq_ect_s2',28],['cq_ect_s3',29],['cq_ect_s4',30],
+               ['cq_ect_m1s1',31],['cq_ect_m1s2',32],['cq_ect_m1s3',33],['cq_ect_m1s4',34],
+               ['cq_ect_m2as1',35],['cq_ect_m2as2',36],['cq_ect_m2as3',37],['cq_ect_m2as4',38],
+               ['cq_ect_m2bs1',39],['cq_ect_m2bs2',40],['cq_ect_m2bs3',41],['cq_ect_m2bs4',42],
+               ['cq_ect_m3as1',43],['cq_ect_m3as2',44],['cq_ect_m3as3',45],['cq_ect_m3as4',46],
+               ['cq_ect_m3bs1',47],['cq_ect_m3bs2',48],['cq_ect_m3bs3',49],['cq_ect_m3bs4',50],
+               ['cq_ect_m4as1',51],['cq_ect_m4as2',52],['cq_ect_m4as3',53],['cq_ect_m4as4',54],
+               ['cq_ect_m4bs1',55],['cq_ect_m4bs2',56],['cq_ect_m4bs3',57],['cq_ect_m4bs4',58],
+               ['cq_ect_m5s1',59],['cq_ect_m5s2',60],['cq_ect_m5s3',61],['cq_ect_m5s4',62],
+               ['cq_ect_m6s1',63],['cq_ect_m6s2',64],['cq_ect_m6s3',65],['cq_ect_m6s4',66]],
+    'CQ_MON': [['cq_mon_e1i',12],['cq_mon_e1ind',13],['cq_mon_e1lim',14],['cq_mon_e2i',17],['cq_mon_e2ind',18],['cq_mon_e2lim',19],
+               ['cq_mon_e3i',22],['cq_mon_e3ind',23],['cq_mon_e3lim',24],['cq_mon_e4i',27],['cq_mon_e4ind',28],['cq_mon_e4lim',29],
+               ['cq_mon_e5i',32],['cq_mon_e5ind',33],['cq_mon_e5lim',34],
+               ['cq_mon_s1i',37],['cq_mon_s1ind',38],['cq_mon_s1lim',39],['cq_mon_s2i',42],['cq_mon_s2ind',43],['cq_mon_s2lim',44],
+               ['cq_mon_s3i',47],['cq_mon_s3ind',48],['cq_mon_s3lim',49],['cq_mon_s4i',52],['cq_mon_s4ind',53],['cq_mon_s4lim',54],
+               ['cq_mon_s5i',57],['cq_mon_s5ind',58],['cq_mon_s5lim',59],['cq_mon_s6i',62],['cq_mon_s6ind',63],['cq_mon_s6lim',64],
+               ['cq_mon_n1i',67],['cq_mon_n1ind',68],['cq_mon_n1lim',69],['cq_mon_n2i',72],['cq_mon_n2ind',73],['cq_mon_n2lim',74],
+               ['cq_mon_n3i',77],['cq_mon_n3ind',78],['cq_mon_n3lim',79]],
+    'CQ_ANS': [['cq_ans_comp',15],['cq_ans_res',16],['cq_ans_ie',17],['cq_ans_fri',18],['cq_ans_frv',19],['cq_ans_frm',20],['cq_ans_frl',21],
+               ['cq_ans_vii',24],['cq_ans_viv',25],['cq_ans_vim',26],['cq_ans_vil',27]],
+    'CQ_SPM': [['cq_spm_v1i',27],['cq_spm_v1m',28],['cq_spm_v2i',29],['cq_spm_v2m',30],['cq_spm_v3i',31],['cq_spm_v3m',32]],
+    'CQ_VPO': [['cq_ans_comp',15],['cq_ans_res',16],['cq_ans_ie',17],['cq_ans_fri',18],['cq_ans_frv',19],['cq_ans_frm',20],['cq_ans_frl',21],
+               ['cq_ans_vii',24],['cq_ans_viv',25],['cq_ans_vim',26],['cq_ans_vil',27]],
+  };
+  // Vis start col (default 3; CQ_DEF starts at 8 because col 3-7 = tipologia)
+  const CQ_VC0 = {'CQ_DEF':8};
+  // Max vis points to import (INSERIMENTO has 4 for ANS/VPO; code has 5 for ANS)
+  const CQ_VN = {'CQ_ANS':4,'CQ_VPO':4};
+  // Strumentazione start col and tecnico col per type
+  const CQ_SC = {'CQ_DEF':53,'CQ_ECG':49,'CQ_CEN':30,'CQ_ELB':76,'CQ_FBI':33,'CQ_ECT':67,'CQ_MON':82,'CQ_ANS':30,'CQ_SPM':33,'CQ_VPO':30};
+  const CQ_TC = {'CQ_DEF':58,'CQ_ECG':54,'CQ_CEN':35,'CQ_ELB':92,'CQ_FBI':38,'CQ_ECT':72,'CQ_MON':87,'CQ_ANS':35,'CQ_SPM':38,'CQ_VPO':35};
+  const cqSf = ['cq_strum','cq_strum_mod','cq_strum_ser','cq_strum_cert','cq_strum_scad'];
+
+  for (const tipo of [...new Set([...Object.keys(CQ_VIS),...Object.keys(CQ_PROVA)])]) {
+    const ws = wb.Sheets['Inserimento_'+tipo]; if(!ws) continue;
+    const rows = XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+    const c0 = CQ_VC0[tipo]||3;
+    const visAll = CQ_VIS[tipo]||[];
+    const visPoints = visAll.slice(0, CQ_VN[tipo]||visAll.length);
+    const pmap = CQ_PMAP[tipo]||[];
+    const sc = CQ_SC[tipo], tc = CQ_TC[tipo];
+
+    const payload = rows.slice(3).map(row => {
+      const codice=norm(row[0]); if(!codice||codice==='0000000') return null;
+      const dati={};
+      // Vis checkboxes (3 cols each: OK, KO, NA)
+      visPoints.forEach((p,idx)=>{
+        const pid=p.replace('.','_'), c=c0+idx*3;
+        if(row[c]) dati['cq_vis_'+pid+'_ok']=true;
+        else if(row[c+1]) dati['cq_vis_'+pid+'_ko']=true;
+        else if(row[c+2]) dati['cq_vis_'+pid+'_na']=true;
+      });
+      // Prova fields (explicit column positions)
+      _fm(row,pmap,dati);
+      // CQ_DEF: esiti energia erogata (2 colonne OK/KO dopo ogni coppia impostata/misurata)
+      if(tipo==='CQ_DEF'){[1,2,3,4,5,6].forEach(n=>{const b=29+(n-1)*4;if(row[b+2]) dati['cq_def_e'+n+'_esito']='OK';else if(row[b+3]) dati['cq_def_e'+n+'_esito']='KO';});}
+      // Strumentazione + tecnico
+      if(sc!=null) cqSf.forEach((f,i)=>{ const v=f==='cq_strum_scad'?_rxldate(row,sc+i):_rc(row,sc+i); if(v) dati[f]=v; });
+      if(tc!=null&&row[tc]) dati.cq_tecnico=String(row[tc]);
+      if(row[2]) dati.cq_note=String(row[2]);
+      return Object.keys(dati).length ? {codice,tipo,dati} : null;
+    }).filter(Boolean);
+    total += await importBatch(`preset_cq_${aslKey}`, payload);
+  }
+  await loadPresets();
+  toast(total ? `Importati ${total} preset da Excel` : 'Nessun preset trovato nel file', total?'ok':'warn');
+}
+
+// ── PRESET: Esporta preset correnti in formato Excel compatibile con import ──
+async function exportPresetsToExcel() {
+  if (currentUser?.profile?.role === 'responsabile') { toast('Operazione non consentita per questo profilo', 'warn'); return; }
+  if (!PRESETS || !Object.keys(PRESETS).length) { toast('Nessun preset in memoria — ricarica prima', 'warn'); return; }
+  if (typeof XLSX === 'undefined') {
+    toast('Caricamento libreria Excel...','warn');
+    await new Promise(res => { const s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js'; s.onload=res; document.head.appendChild(s); });
+  }
+  const wb = XLSX.utils.book_new();
+  const date = new Date().toISOString().split('T')[0];
+  let sheets = 0;
+
+  // ── VSE ──
+  const vseP = PRESETS['PRESET_VSE'] || {};
+  const vseK = Object.keys(vseP);
+  if (vseK.length) {
+    const HVSE=['CODICE','DATA','NOTE','Tensione','Tensione D/P','Frequenza','Frequenza D/P','Potenza','Potenza D/P','Marchio Conformita','Fusibili Dichiarati','Fusibili Riscontrati','Classe','Classe D/P','PA Tipo','Tipo D/P','Funzionamento','Protezione Defibrillatore','Tipo Spina','Smontabile/pressofusa','Marchio Spina','Cavo Alimentazione','IntegritaCavo','Integrita Spina','InterruttoreRete','ParteApplicata','IntegritaConnettori','ProtezioneConduttori','IntegritaConduttori','Manuale Uso','Manuale Servizio','Note Aggiuntive','ClasseMisura','Tensione2','CorrenteAssorbitaMA','TerraProtezioneLimite','TerraProtezioneMisurata','PN Limite','PN Misurata','PI Limite','PI Misurata','PN BF Limite','PN BF Misurata','PI BF Limite','PI BF Misurata','PN CF Limite','PN CF Misurata','PI CF Limite','PI CF Misurata','Giudizio','ValoriMessaTerra','ValoriDispersione','MotiviNonConformita','Colonna vuota','Strumento','NrSerie','Verificatore','Data','VERIFICATO','Scadenza Taratura'];
+    const FVSE=['codice','data','note','ten','tdp','frq','fdp','pot','pdp','mar','fud','fur','cls','cdp','pat','pad','fnz','def','spi','smo','msp','cav','icv','isp','int','pdc','icn','prc','icd','mus','mse','nag','clm','tms','cor','trl','trm','pnl','pnm','pil','pim','pbl','pbm','ibl','ibm','pcl','pcm','icl','icm','giu','vt','vd','mot','','str','nrs','ver','dat2','vrc','sct'];
+    const NUMERIC_VSE=new Set([33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49]);
+    const rows = vseK.map(codice => {
+      const d = vseP[codice] || {};
+      return FVSE.map((f, i) => {
+        const v = f === 'codice' ? codice : f ? (d[f] || '') : '';
+        if (NUMERIC_VSE.has(i) && v !== '') { const n = parseFloat(v); return isNaN(n) ? v : n; }
+        return v;
+      });
+    });
+    const ws = XLSX.utils.aoa_to_sheet([HVSE, ...rows]);
+    ws['!cols'] = HVSE.map(() => ({wch:16}));
+    applyPageSetup(ws);
+    XLSX.utils.book_append_sheet(wb, ws, 'Inserimento_VSE');
+    sheets++;
+  }
+
+  // ── MP ──
+  const mpP = PRESETS['PRESET_MP'] || {};
+  const mpK = Object.keys(mpP);
+  if (mpK.length) {
+    const R1 = ['CODICE','DATA','NOTE'];
+    for (let i=1;i<=19;i++) R1.push(i,null,null);
+    R1.push('Tecnico Esecutore');
+    const R2 = [null,null,null];
+    for (let i=1;i<=19;i++) R2.push('OK','KO','NA');
+    R2.push(null);
+    const rows = mpK.map(codice => {
+      const d = mpP[codice] || {};
+      const row = [codice, d.mp_data||'', d.mp_note||''];
+      for (let i=1;i<=19;i++) row.push(d['mp'+i+'_ok']?'X':null, d['mp'+i+'_ko']?'X':null, d['mp'+i+'_na']?'X':null);
+      row.push(d.mp_tecnico||'');
+      return row;
+    });
+    const ws = XLSX.utils.aoa_to_sheet([R1, R2, ...rows]);
+    const cols = [{wch:10},{wch:12},{wch:20}];
+    for (let i=0;i<19;i++) cols.push({wch:5},{wch:5},{wch:5});
+    cols.push({wch:20});
+    ws['!cols'] = cols;
+    applyPageSetup(ws);
+    XLSX.utils.book_append_sheet(wb, ws, 'Inserimento_MP');
+    sheets++;
+  }
+
+  // ── VSP ──
+  for (const tipo of Object.keys(VSP_POINTS)) {
+    const vspP = PRESETS['PRESET_'+tipo] || {};
+    const vspK = Object.keys(vspP);
+    if (!vspK.length) continue;
+    const def = VSP_POINTS[tipo];
+    let R1, R2, R3, rows;
+
+    if (tipo === 'VSP_DEF') {
+      const NC=107;
+      R1=Array(NC).fill(null);R2=Array(NC).fill(null);R3=Array(NC).fill(null);
+      R1[0]='CODICE';R1[1]='DATA';R1[2]='NOTE';R1[3]='2 Controlli visivi';
+      R1[50]='3 Energia erogata';R1[64]='4 Tempi carica';R1[79]='5 Tempi ritardo';
+      R1[91]='8 Strumentazione';R1[96]='TECNICO ESECUTORE';R1[97]='Esiti';R1[100]='5 Tempi ritardo esiti';R1[104]='6 Raccomandazioni';
+      let ci=3;def.forEach(p=>{R2[ci]=p.l;ci+=p.opts.length;});
+      ['E1i','E1m','E2i','E2m','E3i','E3m','E4i','E4m','E5i','E5m'].forEach((v,i)=>R3[50+i]=v);
+      R2[60]='DAE';R3[60]='Mis';
+      ['A-r','A-b','A-M','B-r','B-b','B-M','C-r','C-b','C-M','D-r','D-b','D-M'].forEach((v,i)=>R3[64+i]=v);
+      R2[79]='A';R3[79]='Ril';R3[80]='Max';R2[83]='B';R3[83]='Ril';R3[84]='Max';R2[87]='C';R3[87]='Ril';R3[88]='Max';
+      ['Strum','Mod','Serie','Cert','Scad'].forEach((v,i)=>R2[91+i]=v);
+      [['E-esito',97],['TC-AB-NA',98],['TC-CD-NA',99],['TC-OK',100],['TR-A-esito',101],['TR-B-esito',102],['TR-C-esito',103],['Rac-A',104],['Rac-B',105],['Rac-C',106]].forEach(([v,c])=>R2[c]=v);
+      ci=3;def.forEach(p=>{p.opts.forEach(o=>{R3[ci++]=o;});});
+      rows = vspK.map(codice => {
+        const d = vspP[codice] || {};
+        const row = Array(NC).fill(null);
+        row[0]=codice; row[1]=d.vsp_data||''; row[2]=d.vsp_note||'';
+        let ci2=3;def.forEach(p=>{const opt=p.opts.find(o=>d['vsp_'+p.l+'_'+o.toLowerCase()])||'';p.opts.forEach(o=>{row[ci2++]=(opt===o?'X':null);});});
+        ['def_e1i','def_e1m','def_e2i','def_e2m','def_e3i','def_e3m','def_e4i','def_e4m','def_e5i','def_e5m'].forEach((f,i)=>{if(d[f])row[50+i]=d[f];});
+        if(d['def_dae_mis'])row[60]=d['def_dae_mis'];
+        ['def_tc_ar','def_tc_ab','def_tc_am','def_tc_br','def_tc_bb','def_tc_bm','def_tc_cr','def_tc_cb','def_tc_cm','def_tc_dr','def_tc_db','def_tc_dm'].forEach((f,i)=>{if(d[f])row[64+i]=d[f];});
+        [['def_tr_ar',79],['def_tr_am',80],['def_tr_br',83],['def_tr_bm',84],['def_tr_cr',87],['def_tr_cm',88]].forEach(([f,c])=>{if(d[f])row[c]=d[f];});
+        ['def_strum','def_mod','def_ser','def_cert','def_scad'].forEach((f,i)=>{if(d[f])row[91+i]=d[f];});
+        row[96]=d.vsp_tecnico||'';
+        [['def_e_esito',97],['def_tc_ab_na',98],['def_tc_cd_na',99],['def_tc_ok',100],['def_tr_a_esito',101],['def_tr_b_esito',102],['def_tr_c_esito',103],['def_rac_a',104],['def_rac_b',105],['def_rac_c',106]].forEach(([f,c])=>{if(d[f])row[c]=d[f];});
+        return row;
+      });
+    } else if (tipo === 'VSP_ELB') {
+      const NC=113;
+      const RC_FIELDS_ELB=['elb_rc_t_ni','elb_rc_t_nm','elb_rc_t_q1i','elb_rc_t_q1m','elb_rc_t_q2i','elb_rc_t_q2m','elb_rc_t_q3i','elb_rc_t_q3m','elb_rc_t_mxi','elb_rc_t_mxm','elb_rc_m_ni','elb_rc_m_nm','elb_rc_m_q1i','elb_rc_m_q1m','elb_rc_m_q2i','elb_rc_m_q2m','elb_rc_m_q3i','elb_rc_m_q3m','elb_rc_m_mxi','elb_rc_m_mxm','elb_rc_c_ni','elb_rc_c_nm','elb_rc_c_q1i','elb_rc_c_q1m','elb_rc_c_q2i','elb_rc_c_q2m','elb_rc_c_q3i','elb_rc_c_q3m','elb_rc_c_mxi','elb_rc_c_mxm','elb_rc_b_ni','elb_rc_b_nm','elb_rc_b_q1i','elb_rc_b_q1m','elb_rc_b_q2i','elb_rc_b_q2m','elb_rc_b_q3i','elb_rc_b_q3m','elb_rc_b_mxi','elb_rc_b_mxm'];
+      R1=Array(NC).fill(null);R2=Array(NC).fill(null);R3=Array(NC).fill(null);
+      R1[0]='CODICE';R1[1]='DATA';R1[2]='NOTE';R1[3]='1 Dati di targa';R1[18]='3 Controlli visivi';
+      R1[36]='4 Corrente disp.';R1[56]='5 Esiti';R1[58]='6 Controlli norme';R1[64]='7 Erogazione';R1[67]='8 Tolleranza uscita';R1[107]='9 Strumentazione';R1[112]='TECNICO ESECUTORE';
+      [['Pbip',3],['Cbip',4],['fHz-bip',5],['fKHz-bip',6],['fMHz-bip',7],['Pmono',8],['Cmono',9],['fHz-mono',10],['fKHz-mono',11],['fMHz-mono',12],['PA',15],['PdT-Esito',16]].forEach(([v,c])=>R2[c]=v);
+      let ci=18;def.forEach(p=>{R2[ci]=p.l;R3[ci]='OK';R3[ci+1]='KO';R3[ci+2]='NA';ci+=3;});
+      [['T',36],['M',37],['C',38],['T',39],['M',40],['C',41],['T',42],['M',43],['C',44],['T',46],['M',47],['C',48]].forEach(([v,c])=>R3[c]=v);
+      ['Carico-el.','','','Att/terra','','','El.neutro','','','','El.attivo','',''].forEach((v,i)=>R2[36+i]=v);
+      ['E1-CN','E2-CN','E1-MT','E2-MT'].forEach((v,i)=>R2[52+i]=v);
+      [['HF-esito',56],['Bip-esito',57],['VP1',58],['VP2',59],['VP3',60],['VP4',61],['VP5',62],['VP6',63],['ER1',64],['ER2',65],['ER3',66]].forEach(([v,c])=>R2[c]=v);
+      RC_FIELDS_ELB.forEach((f,i)=>R2[67+i]=f.replace('elb_rc_','').replace(/_/g,'-'));
+      ['Strum','Mod','Serie','Cert','Scad'].forEach((v,i)=>R2[107+i]=v);
+      rows = vspK.map(codice => {
+        const d = vspP[codice] || {};
+        const row = Array(NC).fill(null);
+        row[0]=codice; row[1]=d.vsp_data||''; row[2]=d.vsp_note||'';
+        [['elb_pbip',3],['elb_cbip',4],['elb_fhz',5],['elb_fkhz',6],['elb_fmhz',7],['elb_pmono',8],['elb_cmono',9],['elb_fhz2',10],['elb_fkhz2',11],['elb_fmhz2',12],['elb_pa',15],['elb_pdt',16]].forEach(([f,c])=>{if(d[f])row[c]=d[f];});
+        let ci2=18;def.forEach(p=>{const opt=p.opts.find(o=>d['vsp_'+p.l+'_'+o.toLowerCase()])||'';p.opts.forEach(o=>{row[ci2++]=(opt===o?'X':null);});});
+        [['elb_ct_t',36],['elb_ct_m',37],['elb_ct_c',38],['elb_at_t',39],['elb_at_m',40],['elb_at_c',41],['elb_en_t',42],['elb_en_m',43],['elb_en_c',44],['elb_ea_t',46],['elb_ea_m',47],['elb_ea_c',48],['elb_iso1n',52],['elb_iso1t',53],['elb_iso2n',54],['elb_iso2t',55]].forEach(([f,c])=>{if(d[f])row[c]=d[f];});
+        [['elb_hf_esito',56],['elb_bip_esito',57],['elb_vp1',58],['elb_vp2',59],['elb_vp3',60],['elb_vp4',61],['elb_vp5',62],['elb_vp6',63],['elb_er1',64],['elb_er2',65],['elb_er3',66]].forEach(([f,c])=>{if(d[f])row[c]=d[f];});
+        RC_FIELDS_ELB.forEach((f,i)=>{if(d[f])row[67+i]=d[f];});
+        ['elb_strum','elb_mod','elb_ser','elb_cert','elb_scad'].forEach((f,i)=>{if(d[f])row[107+i]=d[f];});
+        row[112]=d.vsp_tecnico||'';
+        return row;
+      });
+    } else {
+      // CEN, ECG
+      const chkCols = def.reduce((s,p)=>s+p.opts.length,0);
+      R1=['CODICE','DATA','NOTE','CONTROLLO VISIVO',...Array(chkCols-1).fill(null),'TECNICO ESECUTORE'];
+      R2=[null,null,null]; R3=[null,null,null];
+      def.forEach(p=>{R2.push(p.l,...Array(p.opts.length-1).fill(null));R3.push(...p.opts);});
+      R2.push(null); R3.push(null);
+      rows = vspK.map(codice => {
+        const d = vspP[codice] || {};
+        const row = [codice, d.vsp_data||'', d.vsp_note||''];
+        def.forEach(p=>{const opt=p.opts.find(o=>d['vsp_'+p.l+'_'+o.toLowerCase()])||'';p.opts.forEach(o=>row.push(opt===o?'X':null));});
+        row.push(d.vsp_tecnico||'');
+        return row;
+      });
+    }
+    const wsVsp = XLSX.utils.aoa_to_sheet([R1, R2, R3, ...rows]);
+    applyPageSetup(wsVsp);
+    XLSX.utils.book_append_sheet(wb, wsVsp, 'Inserimento_VSP_'+tipo.replace('VSP_',''));
+    sheets++;
+  }
+
+  // ── CQ ──
+  const _EPMAP={
+    'CQ_DEF':[['cq_def_tipo_man',3],['cq_def_tipo_dae',4],['cq_def_opt_pac',5],['cq_def_opt_nibp',6],['cq_def_opt_spo2',7],
+              ['cq_def_e1i',29],['cq_def_e1m',30],['cq_def_e2i',33],['cq_def_e2m',34],['cq_def_e3i',37],['cq_def_e3m',38],
+              ['cq_def_e4i',41],['cq_def_e4m',42],['cq_def_e5i',45],['cq_def_e5m',46],['cq_def_e6i',49],['cq_def_e6m',50]],
+    'CQ_ECG':[['cq_ecg_v1i',24],['cq_ecg_v1ind',25],['cq_ecg_v1lim',26],['cq_ecg_v2i',29],['cq_ecg_v2ind',30],['cq_ecg_v2lim',31],
+              ['cq_ecg_v3i',34],['cq_ecg_v3ind',35],['cq_ecg_v3lim',36],['cq_ecg_v4i',39],['cq_ecg_v4ind',40],['cq_ecg_v4lim',41],
+              ['cq_ecg_v5i',44],['cq_ecg_v5ind',45],['cq_ecg_v5lim',46]],
+    'CQ_CEN':[['cq_cen_g1i',18],['cq_cen_g1m',19],['cq_cen_g2i',20],['cq_cen_g2m',21],['cq_cen_g3i',22],['cq_cen_g3m',23],
+              ['cq_cen_t1i',24],['cq_cen_t1m',25],['cq_cen_t2i',26],['cq_cen_t2m',27],['cq_cen_t3i',28],['cq_cen_t3m',29]],
+    'CQ_ELB':[['cq_elb_ct_t',33],['cq_elb_ct_c',34],['cq_elb_at_t',35],['cq_elb_at_c',36],['cq_elb_fn_t',37],['cq_elb_fn_c',38],
+              ['cq_elb_en_t',39],['cq_elb_en_c',40],['cq_elb_iso1',44],['cq_elb_iso2',45],
+              ['cq_elb_hf_esito',46],['cq_elb_bip_esito',47],
+              ['cq_elb_pt1d',49],['cq_elb_pt1r',50],['cq_elb_pc1d',51],['cq_elb_pc1r',52],['cq_elb_pb1d',53],['cq_elb_pb1r',54],
+              ['cq_elb_pt2d',55],['cq_elb_pt2r',56],['cq_elb_pc2d',57],['cq_elb_pc2r',58],['cq_elb_pb2d',59],['cq_elb_pb2r',60],
+              ['cq_elb_pt3d',61],['cq_elb_pt3r',62],['cq_elb_pc3d',63],['cq_elb_pc3r',64],['cq_elb_pb3d',65],['cq_elb_pb3r',66],
+              ['cq_elb_pt4d',67],['cq_elb_pt4r',68],['cq_elb_pc4d',69],['cq_elb_pc4r',70],['cq_elb_pb4d',71],['cq_elb_pb4r',72],
+              ['cq_elb_pot_esito',73]],
+    'CQ_FBI':[['cq_fbi_r1label',9],['cq_fbi_r1i',10],['cq_fbi_r1ind',11],['cq_fbi_r1it',12],['cq_fbi_r1m',13],['cq_fbi_r1l',14],
+              ['cq_fbi_r2label',15],['cq_fbi_r2i',16],['cq_fbi_r2ind',17],['cq_fbi_r2it',18],['cq_fbi_r2m',19],['cq_fbi_r2l',20],
+              ['cq_fbi_r3label',21],['cq_fbi_r3i',22],['cq_fbi_r3ind',23],['cq_fbi_r3it',24],['cq_fbi_r3m',25],['cq_fbi_r3l',26],
+              ['cq_fbi_r4label',27],['cq_fbi_r4i',28],['cq_fbi_r4ind',29],['cq_fbi_r4it',30],['cq_fbi_r4m',31],['cq_fbi_r4l',32]],
+    'CQ_ECT':[['cq_ect_s1',27],['cq_ect_s2',28],['cq_ect_s3',29],['cq_ect_s4',30],
+              ['cq_ect_m1s1',31],['cq_ect_m1s2',32],['cq_ect_m1s3',33],['cq_ect_m1s4',34],
+              ['cq_ect_m2as1',35],['cq_ect_m2as2',36],['cq_ect_m2as3',37],['cq_ect_m2as4',38],
+              ['cq_ect_m2bs1',39],['cq_ect_m2bs2',40],['cq_ect_m2bs3',41],['cq_ect_m2bs4',42],
+              ['cq_ect_m3as1',43],['cq_ect_m3as2',44],['cq_ect_m3as3',45],['cq_ect_m3as4',46],
+              ['cq_ect_m3bs1',47],['cq_ect_m3bs2',48],['cq_ect_m3bs3',49],['cq_ect_m3bs4',50],
+              ['cq_ect_m4as1',51],['cq_ect_m4as2',52],['cq_ect_m4as3',53],['cq_ect_m4as4',54],
+              ['cq_ect_m4bs1',55],['cq_ect_m4bs2',56],['cq_ect_m4bs3',57],['cq_ect_m4bs4',58],
+              ['cq_ect_m5s1',59],['cq_ect_m5s2',60],['cq_ect_m5s3',61],['cq_ect_m5s4',62],
+              ['cq_ect_m6s1',63],['cq_ect_m6s2',64],['cq_ect_m6s3',65],['cq_ect_m6s4',66]],
+    'CQ_MON':[['cq_mon_e1i',12],['cq_mon_e1ind',13],['cq_mon_e1lim',14],['cq_mon_e2i',17],['cq_mon_e2ind',18],['cq_mon_e2lim',19],
+              ['cq_mon_e3i',22],['cq_mon_e3ind',23],['cq_mon_e3lim',24],['cq_mon_e4i',27],['cq_mon_e4ind',28],['cq_mon_e4lim',29],
+              ['cq_mon_e5i',32],['cq_mon_e5ind',33],['cq_mon_e5lim',34],
+              ['cq_mon_s1i',37],['cq_mon_s1ind',38],['cq_mon_s1lim',39],['cq_mon_s2i',42],['cq_mon_s2ind',43],['cq_mon_s2lim',44],
+              ['cq_mon_s3i',47],['cq_mon_s3ind',48],['cq_mon_s3lim',49],['cq_mon_s4i',52],['cq_mon_s4ind',53],['cq_mon_s4lim',54],
+              ['cq_mon_s5i',57],['cq_mon_s5ind',58],['cq_mon_s5lim',59],['cq_mon_s6i',62],['cq_mon_s6ind',63],['cq_mon_s6lim',64],
+              ['cq_mon_n1i',67],['cq_mon_n1ind',68],['cq_mon_n1lim',69],['cq_mon_n2i',72],['cq_mon_n2ind',73],['cq_mon_n2lim',74],
+              ['cq_mon_n3i',77],['cq_mon_n3ind',78],['cq_mon_n3lim',79]],
+    'CQ_ANS':[['cq_ans_comp',15],['cq_ans_res',16],['cq_ans_ie',17],['cq_ans_fri',18],['cq_ans_frv',19],['cq_ans_frm',20],['cq_ans_frl',21],
+              ['cq_ans_vii',24],['cq_ans_viv',25],['cq_ans_vim',26],['cq_ans_vil',27]],
+    'CQ_SPM':[['cq_spm_v1i',27],['cq_spm_v1m',28],['cq_spm_v2i',29],['cq_spm_v2m',30],['cq_spm_v3i',31],['cq_spm_v3m',32]],
+    'CQ_VPO':[['cq_ans_comp',15],['cq_ans_res',16],['cq_ans_ie',17],['cq_ans_fri',18],['cq_ans_frv',19],['cq_ans_frm',20],['cq_ans_frl',21],
+              ['cq_ans_vii',24],['cq_ans_viv',25],['cq_ans_vim',26],['cq_ans_vil',27]],
+  };
+  const _EVC0={'CQ_DEF':8};
+  const _EVN={'CQ_ANS':4,'CQ_VPO':4};
+  const _ESC={'CQ_DEF':53,'CQ_ECG':49,'CQ_CEN':30,'CQ_ELB':76,'CQ_FBI':33,'CQ_ECT':67,'CQ_MON':82,'CQ_ANS':30,'CQ_SPM':33,'CQ_VPO':30};
+  const _ETC={'CQ_DEF':58,'CQ_ECG':54,'CQ_CEN':35,'CQ_ELB':92,'CQ_FBI':38,'CQ_ECT':72,'CQ_MON':87,'CQ_ANS':35,'CQ_SPM':38,'CQ_VPO':35};
+
+  for (const tipo of [...new Set([...Object.keys(CQ_VIS),...Object.keys(CQ_PROVA)])]) {
+    const cqP = PRESETS['PRESET_'+tipo] || {};
+    const cqK = Object.keys(cqP);
+    if (!cqK.length) continue;
+    const c0 = _EVC0[tipo]||3;
+    const visAll = CQ_VIS[tipo]||[];
+    const visPoints = visAll.slice(0, _EVN[tipo]||visAll.length);
+    const pmap = _EPMAP[tipo]||[];
+    const sc = _ESC[tipo], tc = _ETC[tipo];
+    if (tc==null) continue;
+    const NC = tc+1;
+    const R1=Array(NC).fill(null),R2=Array(NC).fill(null),R3=Array(NC).fill(null);
+    R1[0]='CODICE';R1[1]='DATA';R1[2]='NOTE';
+    if(c0>3)R1[3]='TIPOLOGIA';
+    R1[c0]='CONTROLLO VISIVO';
+    visPoints.forEach((p,idx)=>{const c=c0+idx*3;R2[c]=p;R3[c]='OK';R3[c+1]='KO';R3[c+2]='NA';});
+    const provaAll=[];(CQ_PROVA[tipo]||[]).forEach(sec=>sec.fields.forEach(f=>provaAll.push(f)));
+    provaAll.forEach(f=>{const pm=pmap.find(([id])=>id===f.id);if(pm)R2[pm[1]]=f.l;});
+    if(pmap.length){const fc=Math.min(...pmap.map(([,c])=>c));if(fc>=c0+visPoints.length*3)R1[fc]='PROVA FUNZIONALE';}
+    if(tipo==='CQ_DEF'){[1,2,3,4,5,6].forEach(n=>{const b=29+(n-1)*4;R2[b+2]='OK';R2[b+3]='KO';});}
+    if(sc!=null){R1[sc]='STRUMENTAZIONE';['Strumento','Modello','Serie','Certificato N.','Scadenza'].forEach((v,i)=>R2[sc+i]=v);}
+    R1[tc]='TECNICO ESECUTORE';
+    const rows = cqK.map(codice => {
+      const d = cqP[codice] || {};
+      const row = Array(NC).fill(null);
+      row[0]=codice; row[1]=d.cq_data||''; row[2]=d.cq_note||'';
+      visPoints.forEach((p,idx)=>{
+        const pid=p.replace('.','_'), c=c0+idx*3;
+        row[c]=(d['cq_vis_'+pid+'_ok']?'X':null);
+        row[c+1]=(d['cq_vis_'+pid+'_ko']?'X':null);
+        row[c+2]=(d['cq_vis_'+pid+'_na']?'X':null);
+      });
+      pmap.forEach(([f,c])=>{if(d[f]!=null&&d[f]!=='')row[c]=d[f];});
+      if(tipo==='CQ_DEF'){[1,2,3,4,5,6].forEach(n=>{const b=29+(n-1)*4,ev=d['cq_def_e'+n+'_esito']||'';row[b+2]=(ev==='OK'?'X':null);row[b+3]=(ev==='KO'?'X':null);});}
+      if(sc!=null){['cq_strum','cq_strum_mod','cq_strum_ser','cq_strum_cert','cq_strum_scad'].forEach((f,i)=>{if(d[f])row[sc+i]=d[f];});}
+      row[tc]=d.cq_tecnico||'';
+      return row;
+    });
+    const ws = XLSX.utils.aoa_to_sheet([R1, R2, R3, ...rows]);
+    ws['!cols'] = Array(NC).fill({wch:14});
+    applyPageSetup(ws);
+    XLSX.utils.book_append_sheet(wb, ws, 'Inserimento_'+tipo);
+    sheets++;
+  }
+
+  if (!sheets) { toast('Nessun preset da esportare', 'warn'); return; }
+  XLSX.writeFile(wb, 'AppWitch_Preset_'+date+'.xlsx');
+  const tot = Object.values(PRESETS).reduce((s,p)=>s+Object.keys(p).length, 0);
+  toast(`Preset esportati: ${tot} dispositivi in ${sheets} fogli`, 'ok');
+}
