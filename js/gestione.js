@@ -1,4 +1,6 @@
-// ── GESTIONE BENE: scheda dispositivo, storico, scadenze ──
+// ── GESTIONE BENE: modal scheda dispositivo ──
+
+
 
 let gestioneCodice = null;
 let gbEditMode     = false;

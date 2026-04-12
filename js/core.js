@@ -366,7 +366,6 @@ function buildCPGrid(role) {
   if (can('anagrafica_read')) cards.push({ key:'anagrafica', color:'green', title:'Anagrafica',          desc:'Consulta l\'elenco dispositivi',          action:"sbNav('anagrafica');toggleAnagrafica()" });
   if (can('anagrafica_read')) cards.push({ key:'tabella',    color:'green', title:'Tabella',             desc:'Vista tabellare con filtri avanzati',     action:"sbNav('tabella');toggleTabella()" });
   if (can('archivio_cloud'))  cards.push({ key:'archivio',   color:'slate', title:'Archivio cloud',      desc:'Sessioni salvate e report Excel',         action:"sbNav('archivio');openArchivioModal()" });
-  if (can('anagrafica_write')) cards.push({ key:'gestione', color:'gold', title:'Gestione Bene', desc:'Scheda dispositivo, storico e scadenze', action:"sbNav('gestione');openGestioneBene()" });
   if (currentUser?.profile?.role === 'admin') {
     cards.push({ key:'admin', color:'red', title:'Amministrazione', desc:'Utenti, ruoli e gestione database', action:"openAdmin()" });
   }
@@ -379,11 +378,11 @@ function buildCPGrid(role) {
 }
 
 function showHome() {
-  ['verifica','sessione','anagrafica','tabella','archivio','gestione'].forEach(k => {
+  ['verifica','sessione','anagrafica','tabella','archivio'].forEach(k => {
     const sb = document.getElementById('sb-nav-' + k); if (sb) sb.classList.remove('active');
     const bn = document.getElementById('bnav-' + k);   if (bn) bn.classList.remove('active');
   });
-  ['verifica-section','anag-section','tabella-section','gestione-bene-section'].forEach(id => {
+  ['verifica-section','anag-section','tabella-section'].forEach(id => {
     const el = document.getElementById(id); if (el) el.style.display = 'none';
   });
   const home = document.getElementById('home-section');
@@ -459,8 +458,6 @@ async function showApp() {
   sbShow('sb-nav-tabella',    can('anagrafica_read'));
   sbShow('sb-nav-archivio',   can('archivio_cloud'));
   sbShow('bnav-archivio',     can('archivio_cloud'));
-  sbShow('sb-nav-gestione',   can('anagrafica_write'));
-  sbShow('bnav-gestione',     can('anagrafica_write'));
   // Bottoni preset personali: visibili solo a chi ha preset_edit_personal
   if (!can('preset_edit_personal')) {
     ['btn-salva-preset','btn-carica-preset','btn-salva-preset-m','btn-carica-preset-m'].forEach(id => {
@@ -481,13 +478,8 @@ async function doLogout() {
   if (lBtn) { lBtn.disabled = false; lBtn.textContent = 'Accedi'; }
   const lErr = document.getElementById('l-err');
   if (lErr) lErr.style.display = 'none';
-  // Reset visibilità voci sidebar dipendenti dal ruolo
-  const sbGestione = document.getElementById('sb-nav-gestione');
-  if (sbGestione) sbGestione.style.display = 'none';
-  const bnavGestione = document.getElementById('bnav-gestione');
-  if (bnavGestione) bnavGestione.style.display = 'none';
   // Nascondi home e tutte le sezioni
-  ['home-section','verifica-section','anag-section','tabella-section','gestione-bene-section'].forEach(id => {
+  ['home-section','verifica-section','anag-section','tabella-section'].forEach(id => {
     const el = document.getElementById(id); if (el) el.style.display = 'none';
   });
 }
