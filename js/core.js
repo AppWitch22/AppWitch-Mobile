@@ -153,6 +153,8 @@ function sel(cod){
   document.getElementById('results').innerHTML='';
   document.getElementById('search-input').value='';
   document.getElementById('form-area').style.display='block';
+  const gbBtn=document.getElementById('btn-gestione-bene-scheda');
+  if(gbBtn) gbBtn.style.display=can('anagrafica_write')?'':'none';
   fillVSE(d);
   fillMPHeader(d);
   resetMPPoints();

@@ -354,16 +354,7 @@ async function loadJollyMetaFromDB() {
 function getJollyLabels() { return getJollyMeta().map(m=>m.label); }
 
 async function openAnagDetail(codice) {
-  const aslKey = (currentUser?.profile?.asl||'ASL Benevento').toLowerCase().replace('asl ','');
-  const token = await supaToken();
-  const r = await fetch(`${SUPA_URL}/rest/v1/dispositivi_${aslKey}?codice=eq.${codice}&limit=1`,
-    {headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+token}});
-  if (!r.ok) { toast('Errore caricamento dispositivo','warn'); return; }
-  const rows = await r.json();
-  if (!rows.length) { toast('Dispositivo non trovato','warn'); return; }
-  anagCurDev = rows[0];
-  renderAnagDetail();
-  document.getElementById('anag-modal').classList.add('open');
+  openGestioneBene(codice);
 }
 
 function closeAnagModal() {
