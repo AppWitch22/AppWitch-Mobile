@@ -358,16 +358,13 @@ const CP_ICONS = {
 function buildCPGrid(role) {
   const grid = document.getElementById('cp-grid');
   if (!grid) return;
-  const cards = [
-    { key:'verifica',   color:'',      title:'Verifica',            desc:'Cerca e compila schede dispositivi',      action:"sbNav('verifica');document.getElementById('search-input').focus()" },
-    { key:'sessioni',   color:'',      title:'Sessioni',            desc:'Crea o riprendi una sessione di lavoro',  action:"openSessModal()" },
-    { key:'anagrafica', color:'green', title:'Anagrafica',          desc:'Consulta l\'elenco dispositivi',          action:"sbNav('anagrafica');toggleAnagrafica()" },
-    { key:'tabella',    color:'green', title:'Tabella',             desc:'Vista tabellare con filtri avanzati',     action:"sbNav('tabella');toggleTabella()" },
-    { key:'archivio',   color:'slate', title:'Archivio cloud',      desc:'Sessioni salvate e report Excel',         action:"sbNav('archivio');openArchivioModal()" },
-  ];
-  if (can('anagrafica_write')) {
-    cards.push({ key:'gestione', color:'gold', title:'Gestione Bene', desc:'Scheda dispositivo, storico e scadenze', action:"sbNav('gestione');openGestioneBene()" });
-  }
+  const cards = [];
+  if (can('verifica'))        cards.push({ key:'verifica',   color:'',      title:'Verifica',            desc:'Cerca e compila schede dispositivi',      action:"sbNav('verifica');document.getElementById('search-input').focus()" });
+  if (can('sessioni'))        cards.push({ key:'sessioni',   color:'',      title:'Sessioni',            desc:'Crea o riprendi una sessione di lavoro',  action:"openSessModal()" });
+  if (can('anagrafica_read')) cards.push({ key:'anagrafica', color:'green', title:'Anagrafica',          desc:'Consulta l\'elenco dispositivi',          action:"sbNav('anagrafica');toggleAnagrafica()" });
+  if (can('anagrafica_read')) cards.push({ key:'tabella',    color:'green', title:'Tabella',             desc:'Vista tabellare con filtri avanzati',     action:"sbNav('tabella');toggleTabella()" });
+  if (can('archivio_cloud'))  cards.push({ key:'archivio',   color:'slate', title:'Archivio cloud',      desc:'Sessioni salvate e report Excel',         action:"sbNav('archivio');openArchivioModal()" });
+  if (can('anagrafica_write')) cards.push({ key:'gestione', color:'gold', title:'Gestione Bene', desc:'Scheda dispositivo, storico e scadenze', action:"sbNav('gestione');openGestioneBene()" });
   if (currentUser?.profile?.role === 'admin') {
     cards.push({ key:'admin', color:'red', title:'Amministrazione', desc:'Utenti, ruoli e gestione database', action:"openAdmin()" });
   }
@@ -449,13 +446,19 @@ async function showApp() {
     document.getElementById('sb-btn-admin').style.display = '';
     document.getElementById('sb-btn-gestione-db').style.display = '';
   }
-  // Gestione Bene: visibile a chi ha anagrafica_write
-  if (can('anagrafica_write')) {
-    const sbGestione = document.getElementById('sb-nav-gestione');
-    if (sbGestione) sbGestione.style.display = '';
-    const bnavGestione = document.getElementById('bnav-gestione');
-    if (bnavGestione) bnavGestione.style.display = '';
-  }
+  // Sidebar: mostra/nascondi voci in base ai permessi
+  const sbShow = (id, flag) => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = flag ? '' : 'none';
+  };
+  sbShow('sb-nav-verifica',   can('verifica'));
+  sbShow('bnav-verifica',     can('verifica'));
+  sbShow('sb-nav-anagrafica', can('anagrafica_read'));
+  sbShow('sb-nav-tabella',    can('anagrafica_read'));
+  sbShow('sb-nav-archivio',   can('archivio_cloud'));
+  sbShow('bnav-archivio',     can('archivio_cloud'));
+  sbShow('sb-nav-gestione',   can('anagrafica_write'));
+  sbShow('bnav-gestione',     can('anagrafica_write'));
   // Bottoni preset personali: visibili solo a chi ha preset_edit_personal
   if (!can('preset_edit_personal')) {
     ['btn-salva-preset','btn-carica-preset','btn-salva-preset-m','btn-carica-preset-m'].forEach(id => {

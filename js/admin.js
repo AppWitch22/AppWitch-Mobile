@@ -43,13 +43,12 @@ function readPermGrid(idPrefix) {
 }
 
 async function adminSavePermissions(userId, permissions) {
-  const { data: { session } } = await supa.auth.getSession();
-  const res = await fetch(`${SUPA_URL}/rest/v1/profiles?id=eq.${userId}`, {
-    method: 'PATCH',
-    headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + session.access_token, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
-    body: JSON.stringify({ permissions })
+  const { error } = await supa.rpc('admin_update_permissions', {
+    p_user_id: userId,
+    p_permissions: permissions
   });
-  return res.ok;
+  if (error) console.error('[adminSavePermissions] RPC error:', error);
+  return !error;
 }
 
 async function openAdmin() {
