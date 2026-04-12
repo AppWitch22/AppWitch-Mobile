@@ -1,2 +1,6 @@
 // ── GESTIONE BENE: scheda dispositivo, lookup, aggiornamento/sostituzione massiva ──
-// TODO: Fase 2-8 del piano di lavoro
+
+function openGestioneBene() {
+  const sec = document.getElementById('gestione-bene-section');
+  if (sec) sec.style.display = '';
+}

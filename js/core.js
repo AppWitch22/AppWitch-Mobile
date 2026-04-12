@@ -255,6 +255,20 @@ const supa = supabase.createClient(SUPA_URL, SUPA_KEY);
 
 let currentUser = null;
 
+const ROLE_LABELS = {
+  tecnico:        'Tecnico',
+  responsabile:   'Responsabile',
+  amministrativo: 'Amministrativo',
+  admin:          'Admin'
+};
+
+function can(flag) {
+  const p = currentUser?.profile;
+  if (!p) return false;
+  if (p.role === 'admin') return true;
+  return p.permissions?.[flag] === true;
+}
+
 document.body.insertAdjacentHTML('afterbegin', `
 <div id="login-screen">
   <div class="login-box">
@@ -331,23 +345,119 @@ async function onLogin(user) {
   await showApp();
 }
 
+const CP_ICONS = {
+  verifica:  `<svg width="18" height="18" viewBox="0 0 14 14" fill="none"><circle cx="6" cy="6" r="3.5" stroke="currentColor" stroke-width="1.4"/><path d="M9 9L11.5 11.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>`,
+  sessioni:  `<svg width="18" height="18" viewBox="0 0 14 14" fill="none"><rect x="1.5" y="1.5" width="11" height="11" rx="2" stroke="currentColor" stroke-width="1.3"/><path d="M4 5h6M4 7.5h4" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>`,
+  anagrafica:`<svg width="18" height="18" viewBox="0 0 14 14" fill="none"><path d="M1.5 11L4 6l3 3 2-5L13 11" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  tabella:   `<svg width="18" height="18" viewBox="0 0 14 14" fill="none"><rect x="1.5" y="1.5" width="11" height="11" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M1.5 5h11M5 5v7" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>`,
+  archivio:  `<svg width="18" height="18" viewBox="0 0 14 14" fill="none"><path d="M2 5h10v7a1 1 0 01-1 1H3a1 1 0 01-1-1V5z" stroke="currentColor" stroke-width="1.3"/><path d="M1 2h12v3H1z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><path d="M5.5 8.5h3" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>`,
+  gestione:  `<svg width="18" height="18" viewBox="0 0 14 14" fill="none"><rect x="1.5" y="2.5" width="11" height="9" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M4.5 6h5M4.5 8.5h3" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/><circle cx="7" cy="1.5" r="1" stroke="currentColor" stroke-width="1.1"/></svg>`,
+  admin:     `<svg width="18" height="18" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="2" stroke="currentColor" stroke-width="1.3"/><path d="M7 1v1.5M7 11.5V13M1 7h1.5M11.5 7H13M2.93 2.93l1.06 1.06M10.01 10.01l1.06 1.06M2.93 11.07l1.06-1.06M10.01 3.99l1.06-1.06" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>`,
+};
+
+function buildCPGrid(role) {
+  const grid = document.getElementById('cp-grid');
+  if (!grid) return;
+  const cards = [
+    { key:'verifica',   color:'',      title:'Verifica',            desc:'Cerca e compila schede dispositivi',      action:"sbNav('verifica');document.getElementById('search-input').focus()" },
+    { key:'sessioni',   color:'',      title:'Sessioni',            desc:'Crea o riprendi una sessione di lavoro',  action:"openSessModal()" },
+    { key:'anagrafica', color:'green', title:'Anagrafica',          desc:'Consulta l\'elenco dispositivi',          action:"sbNav('anagrafica');toggleAnagrafica()" },
+    { key:'tabella',    color:'green', title:'Tabella',             desc:'Vista tabellare con filtri avanzati',     action:"sbNav('tabella');toggleTabella()" },
+    { key:'archivio',   color:'slate', title:'Archivio cloud',      desc:'Sessioni salvate e report Excel',         action:"sbNav('archivio');openArchivioModal()" },
+  ];
+  if (can('anagrafica_write')) {
+    cards.push({ key:'gestione', color:'gold', title:'Gestione Bene', desc:'Scheda dispositivo, storico e scadenze', action:"sbNav('gestione');openGestioneBene()" });
+  }
+  if (currentUser?.profile?.role === 'admin') {
+    cards.push({ key:'admin', color:'red', title:'Amministrazione', desc:'Utenti, ruoli e gestione database', action:"openAdmin()" });
+  }
+  grid.innerHTML = cards.map(c => `
+    <div class="cp-card" onclick="${c.action}">
+      <div class="cp-card-icon${c.color ? ' '+c.color : ''}">${CP_ICONS[c.key]}</div>
+      <div class="cp-card-title">${c.title}</div>
+      <div class="cp-card-desc">${c.desc}</div>
+    </div>`).join('');
+}
+
+function showHome() {
+  ['verifica','sessione','anagrafica','tabella','archivio','gestione'].forEach(k => {
+    const sb = document.getElementById('sb-nav-' + k); if (sb) sb.classList.remove('active');
+    const bn = document.getElementById('bnav-' + k);   if (bn) bn.classList.remove('active');
+  });
+  ['verifica-section','anag-section','tabella-section','gestione-bene-section'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.style.display = 'none';
+  });
+  const home = document.getElementById('home-section');
+  if (home) home.style.display = '';
+  renderHome();
+  if (window.innerWidth < 768 && document.body.classList.contains('sidebar-open')) {
+    if (typeof toggleSidebar === 'function') toggleSidebar();
+  }
+}
+
+function renderHome() {
+  const box = document.getElementById('home-sess-box');
+  if (!box) return;
+  if (currentSessionId) {
+    const count = Object.keys(saved).length;
+    const attesiCount = attesi ? attesi.size : 0;
+    const dateStr = currentSessionDate
+      ? new Date(currentSessionDate).toLocaleDateString('it-IT', {day:'2-digit',month:'short',year:'numeric'})
+      : '';
+    box.innerHTML = `
+      <div class="home-sess-box">
+        <div class="home-sess-label">
+          <span class="sess-sync-dot synced" style="display:inline-block;flex-shrink:0"></span>
+          Sessione in corso
+        </div>
+        <div class="home-sess-title">${currentSessionTitle || '—'}</div>
+        <div class="home-sess-meta">${count} dispositivi compilati${attesiCount ? ' · ' + attesiCount + ' attesi' : ''}${dateStr ? ' · ' + dateStr : ''}</div>
+        <div class="home-sess-acts">
+          <button class="btn-salva" onclick="sbNav('verifica');document.getElementById('search-input').focus()">→ Continua verifica</button>
+          <button class="btn-sm danger" onclick="chiudiSessione()">✕ Chiudi sessione</button>
+        </div>
+      </div>`;
+  } else {
+    box.innerHTML = '';
+  }
+}
+
 async function showApp() {
   const p = currentUser?.profile;
   if (!p) { console.error('showApp: profilo non disponibile'); return; }
+  const roleLabel = ROLE_LABELS[p.role] || p.role || '—';
   document.getElementById('u-name').textContent = p.full_name || '—';
-  document.getElementById('u-role').textContent = ' · ' + (p.role || '');
+  document.getElementById('u-role').textContent = ' · ' + roleLabel;
   document.getElementById('user-bar').style.display = 'flex';
   if (p.role === 'admin') document.getElementById('btn-admin').style.display = '';
   document.getElementById('login-screen').style.display = 'none';
   // Sidebar + bottom nav
   document.getElementById('sb-name').textContent = p.full_name || '—';
-  document.getElementById('sb-meta').textContent = (p.role || '') + (p.asl_key ? ' · ASL ' + p.asl_key.toUpperCase() : '');
+  document.getElementById('sb-meta').textContent = roleLabel + (p.asl_key ? ' · ASL ' + p.asl_key.toUpperCase() : '');
   document.body.classList.add('logged-in');
+  // Popola header pannello di controllo
+  const nome = p.full_name ? p.full_name.split(' ')[0] : '—';
+  const greetEl = document.getElementById('home-greeting');
+  if (greetEl) greetEl.textContent = 'Benvenuto, ' + nome;
+  const roleEl = document.getElementById('home-role');
+  if (roleEl) roleEl.textContent = roleLabel + (p.asl_key ? ' · ASL ' + p.asl_key.toUpperCase() : '');
+  // Costruisce le card del pannello (una volta sola, in base al ruolo)
+  buildCPGrid(p.role);
+  // Mostra pannello come landing screen
+  showHome();
   if (p.role === 'admin') {
     document.getElementById('sb-btn-admin').style.display = '';
     document.getElementById('sb-btn-gestione-db').style.display = '';
   }
-  if (p.role === 'responsabile') {
+  // Gestione Bene: visibile a chi ha anagrafica_write
+  if (can('anagrafica_write')) {
+    const sbGestione = document.getElementById('sb-nav-gestione');
+    if (sbGestione) sbGestione.style.display = '';
+    const bnavGestione = document.getElementById('bnav-gestione');
+    if (bnavGestione) bnavGestione.style.display = '';
+  }
+  // Bottoni preset personali: visibili solo a chi ha preset_edit_personal
+  if (!can('preset_edit_personal')) {
     ['btn-salva-preset','btn-carica-preset','btn-salva-preset-m','btn-carica-preset-m'].forEach(id => {
       const el = document.getElementById(id); if (el) el.style.display = 'none';
     });
@@ -366,6 +476,15 @@ async function doLogout() {
   if (lBtn) { lBtn.disabled = false; lBtn.textContent = 'Accedi'; }
   const lErr = document.getElementById('l-err');
   if (lErr) lErr.style.display = 'none';
+  // Reset visibilità voci sidebar dipendenti dal ruolo
+  const sbGestione = document.getElementById('sb-nav-gestione');
+  if (sbGestione) sbGestione.style.display = 'none';
+  const bnavGestione = document.getElementById('bnav-gestione');
+  if (bnavGestione) bnavGestione.style.display = 'none';
+  // Nascondi home e tutte le sezioni
+  ['home-section','verifica-section','anag-section','tabella-section','gestione-bene-section'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.style.display = 'none';
+  });
 }
 
 async function checkSession() {
@@ -496,6 +615,8 @@ async function activateSession(id, titolo, dataVerifica) {
   updateSyncBar(titolo, true);
   renderSession();
   closeSessModal();
+  const home = document.getElementById('home-section');
+  if (home && home.style.display !== 'none') renderHome();
   toast('Sessione "' + titolo + '" caricata', 'ok');
 }
 
@@ -681,6 +802,8 @@ function chiudiSessione() {
   document.getElementById('form-area').style.display = 'none';
   updateSyncBar(null, null);
   renderSession();
+  const home = document.getElementById('home-section');
+  if (home && home.style.display !== 'none') renderHome();
   toast('Sessione chiusa', 'ok');
 }
 
@@ -692,7 +815,7 @@ async function loadSessList() {
   const role  = currentUser?.profile?.role;
   // Responsabile e admin vedono tutte le sessioni dell'ASL
   let url = `${SUPA_URL}/rest/v1/sessioni?asl=eq.${encodeURIComponent(asl)}&order=data_aggiornamento.desc&limit=50`;
-  if (role === 'verificatore') {
+  if (!can('sessioni_altrui')) {
     url = `${SUPA_URL}/rest/v1/sessioni?utente_id=eq.${currentUser.id}&order=data_aggiornamento.desc&limit=50`;
   }
   const resp = await fetch(url, {
@@ -790,7 +913,7 @@ async function presetUpsert(table, codice, tipo, dati, token) {
 
 // ── PRESET: Salva sessione corrente come preset ───────────────
 async function saveSessionAsPresets() {
-  if (currentUser?.profile?.role === 'responsabile') { toast('Operazione non consentita per questo profilo', 'warn'); return; }
+  if (!can('preset_edit_personal')) { toast('Operazione non consentita per questo profilo', 'warn'); return; }
   const keys = Object.keys(saved).filter(k => saved[k].vse_saved || saved[k].mp_saved || saved[k].vsp_saved || saved[k].cq_saved);
   if (!keys.length) { toast('Nessun dispositivo compilato nella sessione', 'warn'); return; }
   const asl = currentUser?.profile?.asl || 'ASL Benevento';
@@ -847,7 +970,7 @@ async function saveSessionAsPresets() {
 
 // ── PRESET: Importa da file Excel (formato AppWitch_2_INSERIMENTO) ─────
 async function importPresetsFromExcel(input) {
-  if (currentUser?.profile?.role === 'responsabile') { toast('Operazione non consentita per questo profilo', 'warn'); input.value=''; return; }
+  if (!can('preset_edit_personal')) { toast('Operazione non consentita per questo profilo', 'warn'); input.value=''; return; }
   const file = input.files[0]; if (!file) return;
   input.value = '';
   if (typeof XLSX === 'undefined') {
@@ -1057,7 +1180,7 @@ async function importPresetsFromExcel(input) {
 
 // ── PRESET: Esporta preset correnti in formato Excel compatibile con import ──
 async function exportPresetsToExcel() {
-  if (currentUser?.profile?.role === 'responsabile') { toast('Operazione non consentita per questo profilo', 'warn'); return; }
+  if (!can('preset_edit_personal')) { toast('Operazione non consentita per questo profilo', 'warn'); return; }
   if (!PRESETS || !Object.keys(PRESETS).length) { toast('Nessun preset in memoria — ricarica prima', 'warn'); return; }
   if (typeof XLSX === 'undefined') {
     toast('Caricamento libreria Excel...','warn');

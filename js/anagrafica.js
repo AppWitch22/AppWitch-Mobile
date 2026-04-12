@@ -57,13 +57,21 @@ function toggleSidebar() {
 }
 
 function sbNav(key) {
-  ['verifica','sessione','anagrafica','tabella','archivio'].forEach(k => {
+  ['verifica','sessione','anagrafica','tabella','archivio','gestione'].forEach(k => {
     const sb = document.getElementById('sb-nav-' + k);
     if (sb) sb.classList.toggle('active', k === key);
+    const bn = document.getElementById('bnav-' + k);
+    if (bn) bn.classList.toggle('active', k === key);
   });
-  // chiudi sezioni inline quando si naviga altrove
+  // sezioni principali
+  const homeSec = document.getElementById('home-section');
+  if (homeSec) homeSec.style.display = 'none';
+  const verifSec = document.getElementById('verifica-section');
+  if (verifSec) verifSec.style.display = key === 'verifica' ? '' : 'none';
   if (key !== 'anagrafica') document.getElementById('anag-section').style.display = 'none';
   if (key !== 'tabella')    document.getElementById('tabella-section').style.display = 'none';
+  const gbSec = document.getElementById('gestione-bene-section');
+  if (gbSec) gbSec.style.display = key === 'gestione' ? '' : 'none';
   // chiudi sidebar su mobile dopo la navigazione
   if (window.innerWidth < 768 && document.body.classList.contains('sidebar-open')) {
     toggleSidebar();

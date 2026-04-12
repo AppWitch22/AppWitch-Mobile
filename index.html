@@ -23,8 +23,8 @@
 
 <!-- SIDEBAR (desktop: sempre visibile; mobile: a scomparsa) -->
 <div id="sidebar">
-  <div class="sb-logo" style="display:flex;align-items:center;justify-content:space-between;gap:6px">
-    <svg style="flex:1;min-width:0" viewBox="0 0 420 82" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <div class="sb-logo" style="display:flex;align-items:center;justify-content:space-between;gap:6px" onclick="showHome()" title="Home" role="button" tabindex="0" style="cursor:pointer">
+    <svg style="flex:1;min-width:0;cursor:pointer" viewBox="0 0 420 82" fill="none" xmlns="http://www.w3.org/2000/svg">
       <line x1="0" y1="8" x2="420" y2="8" stroke="#C8A96E" stroke-width="0.8"/>
       <text x="0" y="54" font-family="'Playfair Display',serif" font-size="42" font-weight="700" fill="#E8EEF8" letter-spacing="-1">App</text>
       <text x="98" y="54" font-family="'Playfair Display',serif" font-size="42" font-weight="700" fill="#C8A96E" letter-spacing="-1">Witch</text>
@@ -37,20 +37,25 @@
   </div>
   <div class="sb-scroll">
   <nav class="sb-nav">
+    <div class="sb-section-title" style="padding-top:4px">Manutenzione</div>
     <div class="sb-item active" id="sb-nav-verifica" onclick="sbNav('verifica');document.getElementById('search-input').focus()">
       <span class="sb-icon"><svg width="16" height="16" viewBox="0 0 14 14" fill="none"><circle cx="6" cy="6" r="3.5" stroke="currentColor" stroke-width="1.4"/><path d="M9 9L11.5 11.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></span> Verifica
     </div>
     <div class="sb-item" id="sb-nav-sessione" onclick="sbNav('sessione');openSessModal()">
       <span class="sb-icon"><svg width="16" height="16" viewBox="0 0 14 14" fill="none"><rect x="1.5" y="1.5" width="11" height="11" rx="2" stroke="currentColor" stroke-width="1.3"/><path d="M4 5h6M4 7.5h4" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg></span> Sessione
     </div>
+    <div class="sb-item" id="sb-nav-archivio" onclick="sbNav('archivio');openArchivioModal()">
+      <span class="sb-icon"><svg width="16" height="16" viewBox="0 0 14 14" fill="none"><path d="M2 5h10v7a1 1 0 01-1 1H3a1 1 0 01-1-1V5z" stroke="currentColor" stroke-width="1.3"/><path d="M1 2h12v3H1z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><path d="M5.5 8.5h3" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg></span> Archivio
+    </div>
+    <div class="sb-section-title" style="margin-top:8px;padding-top:10px;border-top:1px solid #1a2e44">Gestione Apparecchiature</div>
     <div class="sb-item" id="sb-nav-anagrafica" onclick="sbNav('anagrafica');toggleAnagrafica()">
       <span class="sb-icon"><svg width="16" height="16" viewBox="0 0 14 14" fill="none"><path d="M1.5 11L4 6l3 3 2-5L13 11" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg></span> Anagrafica
     </div>
     <div class="sb-item" id="sb-nav-tabella" onclick="sbNav('tabella');toggleTabella()">
       <span class="sb-icon"><svg width="16" height="16" viewBox="0 0 14 14" fill="none"><rect x="1.5" y="1.5" width="11" height="11" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M1.5 5h11M5 5v7" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg></span> Tabella
     </div>
-    <div class="sb-item" id="sb-nav-archivio" onclick="sbNav('archivio');openArchivioModal()">
-      <span class="sb-icon"><svg width="16" height="16" viewBox="0 0 14 14" fill="none"><path d="M2 5h10v7a1 1 0 01-1 1H3a1 1 0 01-1-1V5z" stroke="currentColor" stroke-width="1.3"/><path d="M1 2h12v3H1z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><path d="M5.5 8.5h3" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg></span> Archivio
+    <div class="sb-item" id="sb-nav-gestione" style="display:none" onclick="sbNav('gestione');openGestioneBene()">
+      <span class="sb-icon"><svg width="16" height="16" viewBox="0 0 14 14" fill="none"><rect x="1.5" y="2.5" width="11" height="9" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M4.5 6h5M4.5 8.5h3" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/><circle cx="7" cy="1.5" r="1" stroke="currentColor" stroke-width="1.1"/></svg></span> Gestione Bene
     </div>
   </nav>
   <div class="sb-section">
@@ -96,44 +101,58 @@
   </div>
   <h1>AppWitch</h1>
   <div class="subtitle">Verifiche Dispositivi Medici</div>
-  <div class="db-bar loading" id="db-bar" style="display:flex;align-items:center"><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#6b85a6;margin-right:8px;vertical-align:middle;flex-shrink:0;"></span><span>Caricamento database...</span></div>
 
-  <div class="card">
-    <div class="card-title">Cerca apparecchio</div>
-    <div class="search-row">
-      <input type="text" id="search-input" placeholder="Codice o nome apparecchio"
-        inputmode="numeric" autocomplete="off" autocorrect="off" spellcheck="false"
-        oninput="onSearch()" onkeydown="if(event.key==='Enter')doSearch()">
-      <button onclick="doSearch()">Cerca</button>
+  <!-- PANNELLO DI CONTROLLO (visibile subito dopo login) -->
+  <div id="home-section" style="display:none">
+    <div class="cp-header">
+      <div class="cp-greeting" id="home-greeting">—</div>
+      <div class="cp-meta" id="home-role">—</div>
     </div>
-    <div class="results" id="results"></div>
+    <div class="db-bar loading" id="db-bar" style="display:flex;align-items:center"><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#6b85a6;margin-right:8px;vertical-align:middle;flex-shrink:0;"></span><span>Caricamento database...</span></div>
+    <div id="home-sess-box"></div>
+    <div class="cp-section-label">Cosa vuoi fare?</div>
+    <div class="cp-grid" id="cp-grid"></div>
   </div>
 
-  <div class="card">
-    <div class="sess-hdr">
-      <div class="card-title" style="margin-bottom:0">Sessione</div>
-      <div class="sess-btns">
-        <button class="btn-sm" id="btn-sess-open" onclick="openSessModal()">📋 Sessioni</button>
-        <button class="btn-sm danger" id="btn-chiudi-sess" onclick="chiudiSessione()" style="display:none">✕ Chiudi</button>
+  <!-- VERIFICA: ricerca + sessione corrente -->
+  <div id="verifica-section" style="display:none">
+    <div class="card">
+      <div class="card-title">Cerca apparecchio</div>
+      <div class="search-row">
+        <input type="text" id="search-input" placeholder="Codice o nome apparecchio"
+          inputmode="numeric" autocomplete="off" autocorrect="off" spellcheck="false"
+          oninput="onSearch()" onkeydown="if(event.key==='Enter')doSearch()">
+        <button onclick="doSearch()">Cerca</button>
       </div>
-      <div class="sess-mobile-actions">
-        <button class="btn-sm" id="btn-xlsx-mobile" onclick="exportXLSX()" disabled>⬇ Excel</button>
-        <button class="btn-sm" id="btn-salva-preset-m" onclick="saveSessionAsPresets()">💾 Salva Preset</button>
-        <label class="btn-sm" id="btn-carica-preset-m" style="cursor:pointer">📥 Carica Preset<input type="file" accept=".xlsx,.xls" onchange="importPresetsFromExcel(this)" style="display:none"></label>
-        <button class="btn-sm" onclick="exportPresetsToExcel()">📤 Esporta Preset</button>
-        <button class="btn-sm" onclick="uploadSessionToCloud()">☁️ Carica</button>
-        <button class="btn-sm" id="btn-export-massivo-m" onclick="exportSessioneMassiva()" disabled>⬇ Sessione</button>
-        <button class="btn-sm" onclick="downloadMacroPDF()">📄 Macro PDF</button>
-        <button class="btn-sm" id="btn-compila-odl-m" onclick="compilaODL()" disabled>📋 ODL</button>
-        <button class="btn-sm danger" id="btn-chiudi-sess-m" onclick="chiudiSessione()" style="display:none">✕ Chiudi Sessione</button>
+      <div class="results" id="results"></div>
+    </div>
+
+    <div class="card">
+      <div class="sess-hdr">
+        <div class="card-title" style="margin-bottom:0">Sessione</div>
+        <div class="sess-btns">
+          <button class="btn-sm" id="btn-sess-open" onclick="openSessModal()">📋 Sessioni</button>
+          <button class="btn-sm danger" id="btn-chiudi-sess" onclick="chiudiSessione()" style="display:none">✕ Chiudi</button>
+        </div>
+        <div class="sess-mobile-actions">
+          <button class="btn-sm" id="btn-xlsx-mobile" onclick="exportXLSX()" disabled>⬇ Excel</button>
+          <button class="btn-sm" id="btn-salva-preset-m" onclick="saveSessionAsPresets()">💾 Salva Preset</button>
+          <label class="btn-sm" id="btn-carica-preset-m" style="cursor:pointer">📥 Carica Preset<input type="file" accept=".xlsx,.xls" onchange="importPresetsFromExcel(this)" style="display:none"></label>
+          <button class="btn-sm" onclick="exportPresetsToExcel()">📤 Esporta Preset</button>
+          <button class="btn-sm" onclick="uploadSessionToCloud()">☁️ Carica</button>
+          <button class="btn-sm" id="btn-export-massivo-m" onclick="exportSessioneMassiva()" disabled>⬇ Sessione</button>
+          <button class="btn-sm" onclick="downloadMacroPDF()">📄 Macro PDF</button>
+          <button class="btn-sm" id="btn-compila-odl-m" onclick="compilaODL()" disabled>📋 ODL</button>
+          <button class="btn-sm danger" id="btn-chiudi-sess-m" onclick="chiudiSessione()" style="display:none">✕ Chiudi Sessione</button>
+        </div>
       </div>
+      <div id="sess-sync-bar" style="display:none;font-size:11px;color:var(--text3);margin-bottom:6px;display:flex;align-items:center;gap:6px">
+        <div class="sess-sync-dot offline" id="sync-dot"></div>
+        <span id="sync-label">Nessuna sessione attiva</span>
+      </div>
+      <div class="chips" id="chips"><span class="sess-empty">Nessun apparecchio compilato</span></div>
+      <div class="sess-stats" id="sess-stats" style="display:none"></div>
     </div>
-    <div id="sess-sync-bar" style="display:none;font-size:11px;color:var(--text3);margin-bottom:6px;display:flex;align-items:center;gap:6px">
-      <div class="sess-sync-dot offline" id="sync-dot"></div>
-      <span id="sync-label">Nessuna sessione attiva</span>
-    </div>
-    <div class="chips" id="chips"><span class="sess-empty">Nessun apparecchio compilato</span></div>
-    <div class="sess-stats" id="sess-stats" style="display:none"></div>
   </div>
 
   <!-- SEZIONE ANAGRAFICA -->
@@ -203,6 +222,16 @@
     </div>
     <div class="tbl-loading" id="tbl-loading">Caricamento dati...</div>
     <div class="tbl-wrap" id="tbl-table-wrap"></div>
+  </div>
+
+  <!-- SEZIONE GESTIONE BENE -->
+  <div class="card" id="gestione-bene-section" style="display:none">
+    <div class="sess-hdr">
+      <div class="card-title" style="margin-bottom:0">Gestione Apparecchiature</div>
+    </div>
+    <div id="gestione-bene-content" style="padding:24px 0;text-align:center;color:var(--muted)">
+      In costruzione — Fase 2
+    </div>
   </div>
 
   <!-- MODAL CREA SESSIONE DA TABELLA -->
@@ -532,14 +561,14 @@
   <div class="bnav-item" id="bnav-sessione" onclick="sbNav('sessione');openSessModal()">
     <div class="bnav-icon">📋</div>Sessione
   </div>
-  <div class="bnav-item" id="bnav-anagrafica" onclick="sbNav('anagrafica');toggleAnagrafica()">
-    <div class="bnav-icon">📊</div>Anagrafica
-  </div>
-  <div class="bnav-item" id="bnav-tabella" onclick="sbNav('tabella');toggleTabella()">
-    <div class="bnav-icon">📋</div>Tabella
-  </div>
   <div class="bnav-item" id="bnav-archivio" onclick="sbNav('archivio');openArchivioModal()">
     <div class="bnav-icon">☁️</div>Archivio
+  </div>
+  <div class="bnav-item" id="bnav-anagrafica" onclick="sbNav('anagrafica');toggleAnagrafica()">
+    <div class="bnav-icon">📊</div>Anagr.
+  </div>
+  <div class="bnav-item" id="bnav-gestione" style="display:none" onclick="sbNav('gestione');openGestioneBene()">
+    <div class="bnav-icon">🏥</div>Gestione
   </div>
 </nav>
 

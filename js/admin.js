@@ -1,5 +1,57 @@
 // ── ADMIN: pannello admin, gestione DB ──
 
+const PERM_LABELS = {
+  verifica:              'Verifica dispositivi',
+  sessioni:              'Sessioni proprie',
+  sessioni_altrui:       'Sessioni di altri',
+  export_excel:          'Esporta Excel',
+  archivio_cloud:        'Archivio cloud',
+  preset_use:            'Usa preset',
+  preset_edit_personal:  'Preset personali',
+  preset_edit_default:   'Preset di default',
+  anagrafica_read:       'Anagrafica (lettura)',
+  anagrafica_write:      'Anagrafica (scrittura)',
+  dispositivo_nuovo:     'Nuovo dispositivo',
+  dispositivo_elimina:   'Elimina dispositivo',
+  aggiornamento_massivo: 'Aggiornamento massivo',
+  import_excel:          'Importa da Excel',
+};
+
+const DEFAULT_PERMISSIONS = {
+  tecnico:        { verifica:true,  sessioni:true,  sessioni_altrui:false, export_excel:true,  archivio_cloud:true,  preset_use:true,  preset_edit_personal:true,  preset_edit_default:false, anagrafica_read:true,  anagrafica_write:false, dispositivo_nuovo:false, dispositivo_elimina:false, aggiornamento_massivo:false, import_excel:false },
+  responsabile:   { verifica:true,  sessioni:true,  sessioni_altrui:true,  export_excel:true,  archivio_cloud:true,  preset_use:true,  preset_edit_personal:false, preset_edit_default:true,  anagrafica_read:true,  anagrafica_write:true,  dispositivo_nuovo:true,  dispositivo_elimina:true,  aggiornamento_massivo:true,  import_excel:true  },
+  amministrativo: { verifica:false, sessioni:false, sessioni_altrui:false, export_excel:false, archivio_cloud:false, preset_use:false, preset_edit_personal:false, preset_edit_default:false, anagrafica_read:true,  anagrafica_write:true,  dispositivo_nuovo:true,  dispositivo_elimina:true,  aggiornamento_massivo:true,  import_excel:true  },
+  admin:          { verifica:true,  sessioni:true,  sessioni_altrui:true,  export_excel:true,  archivio_cloud:true,  preset_use:true,  preset_edit_personal:true,  preset_edit_default:true,  anagrafica_read:true,  anagrafica_write:true,  dispositivo_nuovo:true,  dispositivo_elimina:true,  aggiornamento_massivo:true,  import_excel:true  },
+};
+
+function renderPermGrid(perms, idPrefix, disabled) {
+  const p = perms || {};
+  return Object.entries(PERM_LABELS).map(([key, label]) => `
+    <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:${disabled?'default':'pointer'};color:var(--text);user-select:none">
+      <input type="checkbox" id="${idPrefix}_${key}" ${p[key]===true?'checked':''} ${disabled?'disabled':''}>
+      ${label}
+    </label>`).join('');
+}
+
+function readPermGrid(idPrefix) {
+  const perms = {};
+  Object.keys(PERM_LABELS).forEach(key => {
+    const el = document.getElementById(`${idPrefix}_${key}`);
+    perms[key] = el ? el.checked : false;
+  });
+  return perms;
+}
+
+async function adminSavePermissions(userId, permissions) {
+  const { data: { session } } = await supa.auth.getSession();
+  const res = await fetch(`${SUPA_URL}/rest/v1/profiles?id=eq.${userId}`, {
+    method: 'PATCH',
+    headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + session.access_token, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+    body: JSON.stringify({ permissions })
+  });
+  return res.ok;
+}
+
 async function openAdmin() {
   if (!currentUser || currentUser.profile?.role !== 'admin') return;
   let modal = document.getElementById('admin-modal');
@@ -15,9 +67,10 @@ async function openAdmin() {
           <input id="adm-email" type="email" placeholder="Email" style="flex:1;min-width:160px;padding:8px 10px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text);font-size:14px">
           <input id="adm-name" type="text" placeholder="Nome completo" style="flex:1;min-width:160px;padding:8px 10px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text);font-size:14px">
           <input id="adm-pass" type="password" placeholder="Password" style="flex:1;min-width:140px;padding:8px 10px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text);font-size:14px">
-          <select id="adm-role" style="padding:8px 10px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text);font-size:14px">
-            <option value="verificatore">Verificatore</option>
+          <select id="adm-role" onchange="adminRoleChanged()" style="padding:8px 10px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text);font-size:14px">
+            <option value="tecnico">Tecnico</option>
             <option value="responsabile">Responsabile</option>
+            <option value="amministrativo">Amministrativo</option>
             <option value="admin">Admin</option>
           </select>
           <select id="adm-asl" style="padding:8px 10px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text);font-size:14px">
@@ -26,10 +79,17 @@ async function openAdmin() {
 </select>
           <button onclick="adminCreate()" style="padding:8px 14px;font-size:13px;font-weight:600;background:var(--info);color:#fff;border:none;border-radius:var(--rad);cursor:pointer">+ Crea</button>
         </div>
+        <div style="margin-bottom:12px;padding:10px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--rad)">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);margin-bottom:8px;display:flex;justify-content:space-between">
+            Permessi <span style="font-weight:400">Pre-compilati dal ruolo — modificabili</span>
+          </div>
+          <div id="adm-perm-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:5px 16px"></div>
+        </div>
         <div id="adm-msg" style="display:none;padding:8px 12px;border-radius:var(--rad);font-size:13px;margin-bottom:12px"></div>
         <div id="adm-list" style="font-size:13px;color:var(--text2)">Caricamento...</div>
       </div>
     </div>`);
+    setTimeout(adminRoleChanged, 0);
   } else {
     modal.style.display = 'flex';
   }
@@ -56,23 +116,39 @@ async function adminLoadUsers() {
   const users = await adminCall({ action: 'list' });
   if (!Array.isArray(users)) { list.innerHTML = 'Errore caricamento utenti.'; return; }
   if (users.length === 0) { list.innerHTML = 'Nessun utente.'; return; }
-  list.innerHTML = users.map(u => `
-    <div style="display:flex;align-items:center;gap:8px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--rad);margin-bottom:6px;flex-wrap:wrap">
-      <div style="flex:1;min-width:160px">
-        <div style="font-weight:500;color:var(--text)">${u.profile?.full_name || '—'}</div>
-        <div style="font-size:11px;color:var(--text3)">${u.email}</div>
+  list.innerHTML = users.map(u => {
+    const role = u.profile?.role || 'tecnico';
+    const isAdmin = role === 'admin';
+    const perms = (u.profile?.permissions && Object.keys(u.profile.permissions).length)
+      ? u.profile.permissions
+      : (DEFAULT_PERMISSIONS[role] || {});
+    return `
+    <div style="border:1px solid var(--border);border-radius:var(--rad);margin-bottom:6px;overflow:hidden">
+      <div style="display:flex;align-items:center;gap:8px;padding:10px 12px;flex-wrap:wrap">
+        <div style="flex:1;min-width:160px">
+          <div style="font-weight:500;color:var(--text)">${u.profile?.full_name || '—'}</div>
+          <div style="font-size:11px;color:var(--text3)">${u.email}</div>
+        </div>
+        <select onchange="adminUpdateRole('${u.id}', this.value)" style="padding:4px 8px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text);font-size:12px">
+          <option value="tecnico"        ${role==='tecnico'?'selected':''}>Tecnico</option>
+          <option value="responsabile"   ${role==='responsabile'?'selected':''}>Responsabile</option>
+          <option value="amministrativo" ${role==='amministrativo'?'selected':''}>Amministrativo</option>
+          <option value="admin"          ${role==='admin'?'selected':''}>Admin</option>
+        </select>
+        <button onclick="adminTogglePermissions('${u.id}')" style="padding:4px 10px;font-size:12px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text2);cursor:pointer">⚙ Permessi</button>
+        <button onclick="adminBan('${u.id}', ${u.banned})" style="padding:4px 10px;font-size:12px;border:1px solid ${u.banned ? 'var(--ok)' : 'var(--warn)'};border-radius:var(--rad);background:var(--bg);color:${u.banned ? 'var(--ok)' : 'var(--warn)'};cursor:pointer">
+          ${u.banned ? 'Riabilita' : 'Disabilita'}
+        </button>
+        <button onclick="adminDelete('${u.id}', '${u.email}')" style="padding:4px 10px;font-size:12px;border:1px solid var(--ko);border-radius:var(--rad);background:var(--bg);color:var(--ko);cursor:pointer">Elimina</button>
       </div>
-      <select onchange="adminUpdateRole('${u.id}', this.value)" style="padding:4px 8px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text);font-size:12px">
-        <option value="verificatore" ${u.profile?.role==='verificatore'?'selected':''}>Verificatore</option>
-        <option value="responsabile" ${u.profile?.role==='responsabile'?'selected':''}>Responsabile</option>
-        <option value="admin" ${u.profile?.role==='admin'?'selected':''}>Admin</option>
-      </select>
-      <button onclick="adminBan('${u.id}', ${u.banned})" style="padding:4px 10px;font-size:12px;border:1px solid ${u.banned ? 'var(--ok)' : 'var(--warn)'};border-radius:var(--rad);background:var(--bg);color:${u.banned ? 'var(--ok)' : 'var(--warn)'};cursor:pointer">
-        ${u.banned ? 'Riabilita' : 'Disabilita'}
-      </button>
-      <button onclick="adminDelete('${u.id}', '${u.email}')" style="padding:4px 10px;font-size:12px;border:1px solid var(--ko);border-radius:var(--rad);background:var(--bg);color:var(--ko);cursor:pointer">Elimina</button>
-    </div>
-  `).join('');
+      <div id="adm-perms-${u.id}" style="display:none;padding:10px 12px;border-top:1px solid var(--border);background:var(--bg3)">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px 16px;margin-bottom:10px">
+          ${renderPermGrid(perms, 'adm-up-' + u.id, isAdmin)}
+        </div>
+        ${isAdmin ? '<div style="font-size:11px;color:var(--text3)">L\'admin ha sempre tutti i permessi attivi.</div>' : `<button onclick="adminSaveUserPermissions('${u.id}')" style="padding:5px 14px;font-size:12px;font-weight:600;background:var(--info);color:#fff;border:none;border-radius:var(--rad);cursor:pointer">Salva permessi</button>`}
+      </div>
+    </div>`;
+  }).join('');
 }
 
 async function adminCreate() {
@@ -85,8 +161,13 @@ const asl = document.getElementById('adm-asl').value;
   if (!email || !fullName || !password) {
     adminMsg('Compila tutti i campi.', false); return;
   }
- const res = await adminCall({ action: 'create', email, fullName, password, role, asl });
+  const res = await adminCall({ action: 'create', email, fullName, password, role, asl });
   if (res.error) { adminMsg('Errore: ' + res.error, false); return; }
+  // Salva permessi personalizzati sull'utente appena creato
+  const permissions = readPermGrid('adm-perm');
+  const users = await adminCall({ action: 'list' });
+  const newUser = Array.isArray(users) ? users.find(u => u.email === email) : null;
+  if (newUser) await adminSavePermissions(newUser.id, permissions);
   adminMsg('Utente creato con successo!', true);
   document.getElementById('adm-email').value = '';
   document.getElementById('adm-name').value = '';
@@ -120,6 +201,30 @@ function adminMsg(text, ok) {
   msg.style.background = ok ? 'var(--ok-bg)' : 'var(--ko-bg)';
   msg.style.color = ok ? 'var(--ok)' : 'var(--ko)';
   setTimeout(() => { msg.style.display = 'none'; }, 3000);
+}
+
+function adminRoleChanged() {
+  const role = document.getElementById('adm-role')?.value || 'tecnico';
+  const grid = document.getElementById('adm-perm-grid');
+  if (!grid) return;
+  const isAdmin = role === 'admin';
+  const perms = DEFAULT_PERMISSIONS[role] || DEFAULT_PERMISSIONS.tecnico;
+  grid.innerHTML = renderPermGrid(perms, 'adm-perm', isAdmin);
+  if (isAdmin) {
+    grid.insertAdjacentHTML('beforeend', '<div style="grid-column:1/-1;font-size:11px;color:var(--text3);margin-top:4px">L\'admin ha sempre tutti i permessi attivi.</div>');
+  }
+}
+
+function adminTogglePermissions(userId) {
+  const panel = document.getElementById('adm-perms-' + userId);
+  if (!panel) return;
+  panel.style.display = panel.style.display === 'none' ? '' : 'none';
+}
+
+async function adminSaveUserPermissions(userId) {
+  const permissions = readPermGrid('adm-up-' + userId);
+  const ok = await adminSavePermissions(userId, permissions);
+  adminMsg(ok ? 'Permessi salvati.' : 'Errore salvataggio permessi.', ok);
 }
 
 // ── GESTIONE DB ──────────────────────────────────────────────
