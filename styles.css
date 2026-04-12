@@ -388,6 +388,9 @@ body.logged-in h1,body.logged-in .subtitle{display:none}
 .anag-field input::placeholder,.anag-field textarea::placeholder{color:var(--text3)}
 .jolly-lbl-btn{background:none;border:none;padding:0;color:var(--text3);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;cursor:pointer;display:inline-flex;align-items:center;gap:3px}
 .jolly-lbl-btn:hover{color:var(--info)}
+/* Gestione Bene modal */
+.gb-field-val{font-size:14px;padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--rad);background:var(--bg2);color:var(--text);min-height:38px;word-break:break-word}
+.gb-field-val:empty::before{content:'—';color:var(--text3)}
 
 /* FILTRI ANAGRAFICA */
 .anag-filter-hdr{display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:6px 0;font-size:13px;font-weight:600;color:var(--text2);user-select:none;-webkit-tap-highlight-color:transparent;margin-bottom:6px}

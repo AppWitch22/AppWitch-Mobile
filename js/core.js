@@ -845,6 +845,7 @@ async function loadSessList() {
       </div>
       <div class="sess-item-btns">
         ${isActive ? '<span style="font-size:11px;color:var(--info);font-weight:600">ATTIVA</span>' : ''}
+        ${isActive ? '<button class="btn-sess" data-chiudi="1" title="Chiudi sessione" style="color:var(--warn);border-color:var(--warn)">Chiudi</button>' : ''}
         <button class="btn-sess" data-exp="1" title="Esporta Excel">⬇</button>
         <button class="btn-sess danger" data-del="1">✕</button>
       </div>
@@ -852,6 +853,8 @@ async function loadSessList() {
   }).join('');
   list.querySelectorAll('.sess-item').forEach(el => {
     el.addEventListener('click', () => activateSession(el.dataset.sid, el.dataset.titolo, el.dataset.data||null));
+    const chiudiBtn = el.querySelector('[data-chiudi]');
+    if (chiudiBtn) chiudiBtn.addEventListener('click', e => { e.stopPropagation(); chiudiSessione(); closeSessModal(); });
     const expBtn = el.querySelector('[data-exp]');
     if (expBtn) expBtn.addEventListener('click', e => { e.stopPropagation(); exportSessioneByID(el.dataset.sid, el.dataset.titolo); });
     const delBtn = el.querySelector('[data-del]');

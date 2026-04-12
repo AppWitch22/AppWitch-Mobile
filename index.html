@@ -162,6 +162,7 @@
       <div class="sess-btns">
         <button class="btn-sm" onclick="openNewDevice()" title="Inserisci nuovo dispositivo">+ Nuovo</button>
         <label class="btn-sm" style="cursor:pointer" title="Importa anagrafica da file Excel">📥 Importa<input type="file" accept=".xlsx,.xls" onchange="importAnagraficaFromExcel(this)" style="display:none"></label>
+        <button class="btn-sm" id="btn-toggle-archiviati-anag" onclick="toggleArchiviati()" style="opacity:0.6" title="Mostra/nascondi dispositivi archiviati">Archiviati: OFF</button>
         <button class="btn-sm" onclick="closeAnagrafica()" title="Chiudi sezione">✕ Chiudi</button>
       </div>
     </div>
@@ -176,7 +177,6 @@
       <div class="anag-filter-grid" id="anag-filter-grid"></div>
       <div class="anag-filter-actions">
         <button class="btn-sm" onclick="resetAnagFilters()">✕ Reset filtri</button>
-        <button class="btn-sm" id="btn-toggle-archiviati-anag" onclick="toggleArchiviati()" title="Mostra/nascondi dispositivi archiviati">Archiviati: OFF</button>
       </div>
     </div>
     <div id="anag-list"></div>

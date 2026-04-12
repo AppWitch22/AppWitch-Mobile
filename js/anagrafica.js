@@ -391,7 +391,9 @@ function renderAnagDetail() {
   const _jollyField = jf => {
     const k='jolly_'+jf.idx, v=_esc(d[k]||'');
     return `<div class="anag-field">
-      <label><button class="jolly-lbl-btn" onclick="editJollyLabel(${jf.idx})" title="Clicca per configurare">${_esc(jf.label)} ✎</button></label>
+      <label>${currentUser?.profile?.role === 'admin'
+        ? `<button class="jolly-lbl-btn" onclick="editJollyLabel(${jf.idx})" title="Clicca per configurare">${_esc(jf.label)} ✎</button>`
+        : `<span style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.04em">${_esc(jf.label)}</span>`}</label>
       <input type="text" id="anag-f-${k}" data-k="${k}" value="${v}">
     </div>`;
   };
@@ -501,12 +503,20 @@ async function saveAnagDetail() {
     const cod = anagCurDev.codice;
     Object.assign(anagCurDev, data);
     if (DB[cod]) {
-      if (data.descrizione_classe!==undefined) DB[cod].n = data.descrizione_classe||'';
-      if (data.costruttore!==undefined) DB[cod].b = data.costruttore||'';
-      if (data.modello!==undefined) DB[cod].m = data.modello||'';
-      if (data.matricola!==undefined) DB[cod].mat = data.matricola||'';
-      if (data.presidio!==undefined) DB[cod].loc = data.presidio||'';
-      if (data.reparto!==undefined) DB[cod].rep = data.reparto||'';
+      if (data.descrizione_classe!==undefined)   DB[cod].n   = data.descrizione_classe||'';
+      if (data.costruttore!==undefined)          DB[cod].b   = data.costruttore||'';
+      if (data.modello!==undefined)              DB[cod].m   = data.modello||'';
+      if (data.matricola!==undefined)            DB[cod].mat = data.matricola||'';
+      if (data.presidio!==undefined)             DB[cod].loc = data.presidio||'';
+      if (data.reparto!==undefined)              DB[cod].rep = data.reparto||'';
+      if (data.presenze_effettive!==undefined)   DB[cod].pe  = data.presenze_effettive||'';
+      if (data.sede_struttura!==undefined)       DB[cod].ss  = data.sede_struttura||'';
+      if (data.nuova_area!==undefined)           DB[cod].na  = data.nuova_area||'';
+    }
+    // Aggiorna anche tableData se caricata
+    if (tableData) {
+      const row = tableData.find(r => r.codice === cod);
+      if (row) Object.assign(row, data);
     }
     toast('Salvato','ok');
   }
