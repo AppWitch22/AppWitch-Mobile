@@ -519,10 +519,19 @@ async function gbLoadStorico() {
   // Raccogli tutte le date già presenti (storico + app)
   const dateGiaPresenti = new Set();
   [...Object.values(sessMap), ...Object.values(storMap)].forEach(r => { if (r._date) dateGiaPresenti.add(r._date); });
+  // Normalizza data in formato ISO YYYY-MM-DD (gestisce GG/MM/AAAA e ISO)
+  const _normDate = v => {
+    if (!v) return null;
+    const s = String(v).trim();
+    if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.substring(0,10);
+    const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (m) return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+    return null;
+  };
   // Raggruppa le date DB per data
   const dbMap = {};
   tipiDB.forEach(({ tipo, kData, kEsito }) => {
-    const d = dev[kData] ? String(dev[kData]).substring(0,10) : null;
+    const d = _normDate(dev[kData]);
     if (!d) return;
     if (!dbMap[d]) dbMap[d] = { _source:'db', _date:d, data:_fmt(d), nome:'—', VSE:null, MP:null, VSP:null, CQ:null };
     const esito = dev[kEsito] || '✓';
