@@ -135,6 +135,7 @@ const DATE_KEYS = new Set([
   'data_ultima_vse','data_prossima_vse','data_ultima_vsp','data_prossima_vsp',
   'data_ultima_mo','data_prossima_mo','data_ultima_cq','data_prossima_cq',
   'fine_service_comodato','data_collaudo',
+  'data_inizio_gestione','data_delibera',
 ]);
 
 const FIELD_DL = {
