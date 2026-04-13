@@ -940,9 +940,15 @@ function _fmtDateIT(v) {
     const [y,m,dd] = s.substring(0,10).split('-');
     d = new Date(+y, +m-1, +dd);
   } else {
-    const mITA = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-    if (mITA) d = new Date(+mITA[3], +mITA[2]-1, +mITA[1]);
-    const mDD  = s.match(/^(\d{1,2})-([a-z]{3})-(\d{4})$/i);
+    // Formati con slash: M/D/YY, M/D/YYYY, D/M/YYYY (con eventuale suffisso orario)
+    const mSlash = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})(?:\s+\d{1,2}:\d{2}.*)?$/);
+    if (mSlash) {
+      const yr = mSlash[3].length === 2 ? 2000 + +mSlash[3] : +mSlash[3];
+      const a = +mSlash[1], b = +mSlash[2];
+      if (b > 12) d = new Date(yr, a-1, b);      // M/D: b è giorno > 12
+      else        d = new Date(yr, b-1, a);      // D/M: formato italiano
+    }
+    const mDD = s.match(/^(\d{1,2})-([a-z]{3})-(\d{4})$/i);
     if (mDD) {
       const mo = _MESI_IT_NUM[mDD[2].toLowerCase()];
       if (mo) d = new Date(+mDD[3], mo-1, +mDD[1]);
@@ -957,9 +963,15 @@ function _toISODate(v) {
   if (!v) return null;
   const s = String(v).trim();
   if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.substring(0,10);
-  const mITA = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-  if (mITA) return `${mITA[3]}-${mITA[2].padStart(2,'0')}-${mITA[1].padStart(2,'0')}`;
-  const mDD  = s.match(/^(\d{1,2})-([a-z]{3})-(\d{4})$/i);
+  // Formati con slash: M/D/YY, M/D/YYYY, D/M/YYYY (con eventuale suffisso orario)
+  const mSlash = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})(?:\s+\d{1,2}:\d{2}.*)?$/);
+  if (mSlash) {
+    const yr = mSlash[3].length === 2 ? '20' + mSlash[3] : mSlash[3];
+    const a = +mSlash[1], b = +mSlash[2];
+    if (b > 12) return `${yr}-${String(a).padStart(2,'0')}-${String(b).padStart(2,'0')}`;  // M/D
+    return `${yr}-${String(b).padStart(2,'0')}-${String(a).padStart(2,'0')}`;              // D/M italiano
+  }
+  const mDD = s.match(/^(\d{1,2})-([a-z]{3})-(\d{4})$/i);
   if (mDD) {
     const mo = _MESI_IT_NUM[mDD[2].toLowerCase()];
     if (mo) return `${mDD[3]}-${String(mo).padStart(2,'0')}-${mDD[1].padStart(2,'0')}`;
