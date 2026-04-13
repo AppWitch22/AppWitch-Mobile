@@ -260,6 +260,16 @@ function openGestioneDB() {
           </label>
         </div>
 
+        <!-- IMPORT STORICO -->
+        <div style="border:1px solid var(--border);border-radius:var(--rad);padding:14px">
+          <div style="font-weight:600;font-size:13px;margin-bottom:6px;color:var(--text2)">📋 Import storico verifiche</div>
+          <div style="font-size:12px;color:var(--text3);margin-bottom:10px">Carica il file Excel con lo storico verifiche 2021-2024. I record esistenti non vengono duplicati.</div>
+          <label style="display:inline-block;padding:8px 16px;font-size:13px;font-weight:600;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--rad);cursor:pointer;color:var(--text)">
+            📂 Seleziona file storico
+            <input type="file" accept=".xlsx,.xls" onchange="importStorico(this)" style="display:none">
+          </label>
+        </div>
+
         <!-- PROGRESS -->
         <div id="gdb-progress" style="display:none;border:1px solid var(--border);border-radius:var(--rad);padding:14px">
           <div style="font-size:13px;font-weight:600;margin-bottom:8px;color:var(--text2)" id="gdb-prog-label">In corso...</div>
@@ -524,6 +534,119 @@ const LOOKUP_LABELS = {
   proprieta:          'Proprietà',
   forma_presenza:     'Forma presenza',
 };
+
+// ── Import Storico Verifiche ──────────────────────────────────
+async function importStorico(input) {
+  if (typeof XLSX === 'undefined') {
+    toast('Caricamento libreria Excel...', 'warn');
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+    s.onload = () => importStorico(input);
+    document.head.appendChild(s); return;
+  }
+  const file = input.files[0];
+  if (!file) return;
+  input.value = '';
+
+  const setProgress = (pct, label, detail) => {
+    const box = document.getElementById('gdb-progress');
+    if (box) box.style.display = '';
+    const bar = document.getElementById('gdb-prog-bar');
+    if (bar) bar.style.width = pct + '%';
+    const lbl = document.getElementById('gdb-prog-label');
+    if (lbl) lbl.textContent = label;
+    const det = document.getElementById('gdb-prog-detail');
+    if (det) det.textContent = detail || '';
+  };
+
+  try {
+    setProgress(5, 'Lettura file...', '');
+    const buf  = await file.arrayBuffer();
+    const wb   = XLSX.read(buf, { type: 'array', cellDates: true });
+    const ws   = wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+
+    const asl     = currentUser?.profile?.asl || 'ASL Benevento';
+    const token   = await supaToken();
+    const headers = supaHdrs(token);
+
+    // Normalizzatori
+    const normTipo = t => {
+      const s = String(t).trim().toUpperCase();
+      if (s === 'VS') return 'VSE';
+      if (['VSE','VSP','MO','CQ'].includes(s)) return s;
+      return null;
+    };
+    const normEsito = e => {
+      const s = String(e).trim();
+      if (!s || s === '-') return null;
+      if (s.toLowerCase() === 'non eseguita') return 'Non Eseguita';
+      return s;
+    };
+    const normData = v => {
+      if (!v) return null;
+      if (v instanceof Date) return isNaN(v) ? null : v.toISOString().split('T')[0];
+      const s = String(v).trim();
+      // GG/MM/AAAA
+      const m1 = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+      if (m1) return `${m1[3]}-${m1[2].padStart(2,'0')}-${m1[1].padStart(2,'0')}`;
+      // AAAA-MM-GG
+      const m2 = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+      if (m2) return s;
+      return null;
+    };
+    const normCodice = v => {
+      const s = String(v || '').replace(/\D/g,'');
+      return s ? s.padStart(7,'0') : null;
+    };
+
+    // Pulisci e valida righe
+    setProgress(15, 'Elaborazione righe...', '');
+    const clean = [];
+    let skipped = 0;
+    rows.forEach(r => {
+      const codice = normCodice(r.codice);
+      const data   = normData(r.data);
+      const tipo   = normTipo(r.tipo);
+      if (!codice || !data || !tipo) { skipped++; return; }
+      clean.push({
+        asl,
+        codice,
+        data,
+        tipo,
+        esito:        normEsito(r.esito),
+        verificatore: String(r.verificatore || '').trim() || null,
+        note:         String(r.note || '').trim() || null,
+      });
+    });
+
+    if (!clean.length) { toast('Nessuna riga valida trovata nel file', 'warn'); return; }
+
+    // Insert a batch (ON CONFLICT DO NOTHING via upsert ignoreSelf)
+    const BATCH = 200;
+    const total = clean.length;
+    let inserted = 0, errors = 0;
+
+    for (let i = 0; i < total; i += BATCH) {
+      const batch = clean.slice(i, i + BATCH);
+      const pct   = Math.round(15 + (i / total) * 83);
+      setProgress(pct, 'Inserimento...', `${Math.min(i + BATCH, total)} / ${total} record`);
+      const resp = await fetch(`${SUPA_URL}/rest/v1/storico_verifiche`, {
+        method: 'POST',
+        headers: { ...headers, 'Prefer': 'return=minimal,resolution=ignore-duplicates' },
+        body: JSON.stringify(batch),
+      });
+      if (!resp.ok) { console.error('Batch error', i, await resp.text()); errors += batch.length; }
+      else inserted += batch.length;
+    }
+
+    setProgress(100, 'Completato', `${inserted} record inseriti, ${skipped} righe saltate, ${errors} errori`);
+    toast(`Storico importato: ${inserted} record`, 'ok');
+  } catch (e) {
+    console.error('importStorico error:', e);
+    toast('Errore import storico: ' + e.message, 'warn');
+  }
+}
 
 function openGestioneListe() {
   if (!can('lookup_write')) return;
