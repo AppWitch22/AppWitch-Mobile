@@ -127,7 +127,21 @@ function gbRenderDati(dev, editMode) {
 
     // Sola lettura o fuori edit mode
     if (!editMode || roFinal) {
-      const displayVal = DATE_KEYS.has(k) ? _fmtDate(raw) : (raw != null ? String(raw) : '');
+      let displayVal = DATE_KEYS.has(k) ? _fmtDate(raw) : (raw != null ? String(raw) : '');
+      // Calcola data prossima se vuota
+      if (!displayVal && DATE_KEYS.has(k)) {
+        const proxMap = {
+          data_prossima_vse: ['data_ultima_vse','periodicita_vse'],
+          data_prossima_vsp: ['data_ultima_vsp','periodicita_vsp'],
+          data_prossima_mo:  ['data_ultima_mo', 'periodicita_mo'],
+          data_prossima_cq:  ['data_ultima_cq', 'periodicita_cq'],
+        };
+        if (proxMap[k]) {
+          const [ultKey, perKey] = proxMap[k];
+          const calc = _calcProssima(dev[ultKey], dev[perKey]);
+          if (calc) displayVal = _fmtDate(calc);
+        }
+      }
       return `<div class="${cls}"><label>${_esc(label)}</label><div class="gb-field-val">${_esc(displayVal)}</div></div>`;
     }
 
@@ -139,8 +153,21 @@ function gbRenderDati(dev, editMode) {
 
     // Campo data
     if (DATE_KEYS.has(k)) {
-      const dateVal = raw ? String(raw).substring(0, 10) : '';
-      return `<div class="${cls}"><label>${_esc(label)}</label><input type="date" id="gb-f-${k}" data-k="${k}" value="${dateVal}" style="${_inputStyle}"></div>`;
+      let dateVal = raw ? String(raw).substring(0, 10) : '';
+      // Pre-compila data prossima se vuota
+      const proxMapEdit = {
+        data_prossima_vse: ['data_ultima_vse','periodicita_vse'],
+        data_prossima_vsp: ['data_ultima_vsp','periodicita_vsp'],
+        data_prossima_mo:  ['data_ultima_mo', 'periodicita_mo'],
+        data_prossima_cq:  ['data_ultima_cq', 'periodicita_cq'],
+      };
+      if (!dateVal && proxMapEdit[k]) {
+        const [ultKey, perKey] = proxMapEdit[k];
+        dateVal = _calcProssima(dev[ultKey], dev[perKey]) || '';
+      }
+      const tipoUlt = k.match(/^data_ultima_(\w+)$/)?.[1];
+      const oiUlt   = tipoUlt ? ` oninput="gbUpdateProssima('${tipoUlt}')"` : '';
+      return `<div class="${cls}"><label>${_esc(label)}</label><input type="date" id="gb-f-${k}" data-k="${k}" value="${dateVal}"${oiUlt} style="${_inputStyle}"></div>`;
     }
 
     // Campo codice con auto-pad
@@ -154,7 +181,10 @@ function gbRenderDati(dev, editMode) {
       const val     = raw != null ? String(raw) : '';
       const dlId    = FIELD_DL[k] || '';
       const listAttr = dlId ? ` list="${dlId}"` : '';
-      const onInput  = k === 'costruttore' ? ` oninput="updateModelloDatalist(this.value)"` : '';
+      const tipoPeriodicita = k.match(/^periodicita_(\w+)$/)?.[1];
+      const onInput  = k === 'costruttore'
+        ? ` oninput="updateModelloDatalist(this.value)"`
+        : tipoPeriodicita ? ` oninput="gbUpdateProssima('${tipoPeriodicita}')"` : '';
       const addBtn   = can('lookup_write')
         ? `<button type="button" onclick="gbAddLookupValue('${k}','${_esc(label)}')" title="Aggiungi nuovo valore alla lista" style="flex-shrink:0;padding:0 10px;height:38px;font-size:18px;font-weight:600;border:1.5px solid var(--border2);border-radius:var(--rad);background:var(--bg3);color:var(--info);cursor:pointer;line-height:1">+</button>`
         : '';
@@ -206,6 +236,16 @@ function gbRenderDati(dev, editMode) {
   }
 
   return html || '<div style="padding:24px;text-align:center;color:var(--text3)">Nessun campo disponibile</div>';
+}
+
+// ── Ricalcolo dinamico data prossima in Gestione Bene ────────
+function gbUpdateProssima(tipo) {
+  const ultEl = document.getElementById(`gb-f-data_ultima_${tipo}`);
+  const perEl = document.getElementById(`gb-f-periodicita_${tipo}`);
+  const proEl = document.getElementById(`gb-f-data_prossima_${tipo}`);
+  if (!ultEl || !perEl || !proEl) return;
+  const calcolata = _calcProssima(ultEl.value, perEl.value);
+  if (calcolata) proEl.value = calcolata;
 }
 
 // ── Edit mode ────────────────────────────────────────────────
