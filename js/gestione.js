@@ -460,7 +460,7 @@ async function gbLoadStorico() {
   if (!content) return;
   const token = await supaToken();
   const r = await fetch(
-    `${SUPA_URL}/rest/v1/sessione_schede?codice=eq.${encodeURIComponent(gestioneCodice)}&select=sessione_id,dati_vse,dati_mp,dati_vsp,dati_cq,vsp_type,cq_type,sessioni(titolo,data_verifica)&order=sessione_id.desc&limit=50`,
+    `${SUPA_URL}/rest/v1/sessione_schede?codice=eq.${encodeURIComponent(gestioneCodice)}&select=sessione_id,dati_vse,dati_mp,dati_vsp,dati_cq,vsp_type,cq_type,sessioni(titolo,data_verifica,profiles(full_name))&order=sessione_id.desc&limit=50`,
     { headers: supaHdrs(token) }
   );
   if (!r.ok) { content.innerHTML = '<div style="padding:24px;text-align:center;color:var(--ko)">Errore caricamento storico</div>'; return; }
@@ -492,9 +492,9 @@ async function gbLoadStorico() {
       </thead>
       <tbody>
         ${rows.map(row => {
-          const sess  = row.sessioni || {};
-          const data  = _fmt(sess.data_verifica);
-          const nome  = '—';
+          const sess   = row.sessioni || {};
+          const data   = _fmt(sess.data_verifica);
+          const nome   = sess.profiles?.full_name || '—';
           const titolo = sess.titolo || '—';
           // VSE: campo giu = POSITIVO / NEGATIVO / altro
           const giu = row.dati_vse?.giu;
