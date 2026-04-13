@@ -993,7 +993,10 @@ function _calcProssima(dataUltima, periodicita) {
   if (!dataUltima || !periodicita) return null;
   const mesi = _parsePeriodicitaMesi(periodicita);
   if (!mesi) return null;
-  const d = new Date(dataUltima);
+  const iso = _toISODate(dataUltima);
+  if (!iso) return null;
+  const [y,m,dd] = iso.split('-');
+  const d = new Date(+y, +m-1, +dd);
   if (isNaN(d.getTime())) return null;
   d.setMonth(d.getMonth() + mesi);
   return d.toISOString().split('T')[0]; // YYYY-MM-DD

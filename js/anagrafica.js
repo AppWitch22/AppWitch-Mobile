@@ -419,7 +419,7 @@ function renderAnagDetail() {
       } else if (f.ta) {
         html += `<div class="${cls}"><label>${f.l}</label><textarea id="anag-f-${f.k}" data-k="${f.k}">${_esc(String(raw))}</textarea></div>`;
       } else if (DATE_KEYS.has(f.k)) {
-        let dateVal = raw ? String(raw).substring(0,10) : '';
+        let dateVal = raw ? (_toISODate(raw) || '') : '';
         // Calcola data prossima se vuota
         const proxMap = {
           data_prossima_vse: ['data_ultima_vse','periodicita_vse'],
@@ -942,7 +942,11 @@ function _tblRenderSlice(wrap) {
     const sel = tableSelected.has(row.codice);
     html += `<tr class="${sel?'tbl-row-sel':''}" data-cod="${_esc(row.codice)}" style="height:${TBL_ROW_H}px" onclick="tblRowClick(event,'${_esc(row.codice)}')">`;
     html += `<td class="tbl-td-chk"><input type="checkbox"${sel?' checked':''} onclick="event.stopPropagation();tblToggleRow('${_esc(row.codice)}',this.checked)"></td>`;
-    for (const c of cols) html += `<td class="tbl-td" title="${_esc(row[c.k]||'')}">${_esc(row[c.k]||'')}</td>`;
+    for (const c of cols) {
+      const raw = row[c.k] || '';
+      const disp = DATE_KEYS.has(c.k) ? (_fmtDateIT(raw) || raw) : raw;
+      html += `<td class="tbl-td" title="${_esc(disp)}">${_esc(disp)}</td>`;
+    }
     html += '</tr>';
   }
   tbody.innerHTML = html;

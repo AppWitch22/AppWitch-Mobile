@@ -153,7 +153,7 @@ function gbRenderDati(dev, editMode) {
 
     // Campo data
     if (DATE_KEYS.has(k)) {
-      let dateVal = raw ? String(raw).substring(0, 10) : '';
+      let dateVal = raw ? (_toISODate(raw) || '') : '';
       // Pre-compila data prossima se vuota
       const proxMapEdit = {
         data_prossima_vse: ['data_ultima_vse','periodicita_vse'],
@@ -520,14 +520,7 @@ async function gbLoadStorico() {
   const dateGiaPresenti = new Set();
   [...Object.values(sessMap), ...Object.values(storMap)].forEach(r => { if (r._date) dateGiaPresenti.add(r._date); });
   // Normalizza data in formato ISO YYYY-MM-DD (gestisce GG/MM/AAAA e ISO)
-  const _normDate = v => {
-    if (!v) return null;
-    const s = String(v).trim();
-    if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.substring(0,10);
-    const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-    if (m) return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
-    return null;
-  };
+  const _normDate = v => _toISODate(v);
   // Raggruppa le date DB per data
   const dbMap = {};
   tipiDB.forEach(({ tipo, kData, kEsito }) => {
