@@ -70,7 +70,7 @@ async function initDB(){
     const {data:{session}}=await supa.auth.getSession();
     const token=session?.access_token;
     const resp=await fetch(
-      `${SUPA_URL}/rest/v1/${tabella}?select=codice,descrizione_classe,costruttore,modello,matricola,presidio,reparto,sede_struttura,codice_padre,nuova_area,presenze_effettive,verifiche&limit=10000`,
+      `${SUPA_URL}/rest/v1/${tabella}?select=codice,descrizione_classe,costruttore,modello,matricola,presidio,reparto,sede_struttura,codice_padre,nuova_area,presenze_effettive,verifiche,dettagli_stato,forma_presenza,manutentore,civab&limit=10000`,
       {headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+token}}
     );
     if(!resp.ok)throw new Error('HTTP '+resp.status);
@@ -89,7 +89,12 @@ async function initDB(){
         ss:r.sede_struttura||'',
         cp:r.codice_padre||'',
         na:r.nuova_area||'',
-        pe:r.presenze_effettive||''
+        pe:r.presenze_effettive||'',
+        ds:r.dettagli_stato||'',
+        fp:r.forma_presenza||'',
+        man:r.manutentore||'',
+        ver:r.verifiche||'',
+        civ:r.civab||''
       };
       if(r.verifiche){
         const parts=r.verifiche.split(',').map(s=>s.trim());
@@ -107,12 +112,228 @@ async function initDB(){
     bar.innerHTML='<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#1a3a6b;margin-right:8px;vertical-align:middle;flex-shrink:0;"></span><span>Database pronto</span><span style="font-family:\'IBM Plex Mono\',ui-monospace,monospace;font-size:12px;color:#1a3a6b;margin-left:6px;">— '+Object.keys(DB).length.toLocaleString()+' dispositivi</span>';
     bar.className='db-bar ready';
     await loadJollyMetaFromDB();
+    await loadLookupsFromDB();
     await loadPresets();
   }catch(e){
     console.error('DB error:',e);
     bar.textContent='Errore caricamento database: '+e.message;
     bar.className='db-bar error';
   }
+}
+
+// ── Costanti globali lookup ───────────────────────────────────
+const LOOKUP_KEYS = new Set([
+  'descrizione_classe','costruttore','modello','presidio','reparto','nuova_area',
+  'sede_struttura','civab','verifiche','dettagli_stato','manutentore',
+  'periodicita_vse','periodicita_vsp','periodicita_mo','periodicita_cq',
+  'esito_ultima_vse','esito_ultima_vsp','esito_ultima_mo','esito_ultima_cq',
+  'presenze_effettive','cliente','proprieta','forma_presenza',
+]);
+
+const DATE_KEYS = new Set([
+  'proposta_dismissione','dismissione_effettiva','data_fine_garanzia',
+  'data_ultima_vse','data_prossima_vse','data_ultima_vsp','data_prossima_vsp',
+  'data_ultima_mo','data_prossima_mo','data_ultima_cq','data_prossima_cq',
+  'fine_service_comodato','data_collaudo',
+]);
+
+const FIELD_DL = {
+  descrizione_classe: 'dl-classe',
+  costruttore:        'dl-costruttore',
+  modello:            'dl-modello',
+  presidio:           'dl-presidio',
+  reparto:            'dl-reparto',
+  nuova_area:         'dl-area',
+  sede_struttura:     'dl-sede',
+  civab:              'dl-civab',
+  verifiche:          'dl-verifiche',
+  dettagli_stato:     'dl-stato',
+  manutentore:        'dl-manutentore',
+  periodicita_vse:    'dl-periodicita',
+  periodicita_vsp:    'dl-periodicita',
+  periodicita_mo:     'dl-periodicita',
+  periodicita_cq:     'dl-periodicita',
+  esito_ultima_vse:   'dl-esito',
+  esito_ultima_vsp:   'dl-esito',
+  esito_ultima_mo:    'dl-esito',
+  esito_ultima_cq:    'dl-esito',
+  presenze_effettive: 'dl-presenze',
+  cliente:            'dl-cliente',
+  proprieta:          'dl-proprieta',
+  forma_presenza:     'dl-presenza',
+};
+
+function buildLookups() {
+  const sets = {
+    descrizione_classe: new Set(), costruttore: new Set(), modello: new Set(),
+    presidio: new Set(), reparto: new Set(), sede_struttura: new Set(), nuova_area: new Set(),
+    verifiche: new Set(), manutentore: new Set(), dettagli_stato: new Set(),
+    presenze_effettive: new Set(), forma_presenza: new Set(),
+    periodicita_vse: new Set(), periodicita_vsp: new Set(), periodicita_mo: new Set(), periodicita_cq: new Set(),
+    esito_ultima_vse: new Set(), esito_ultima_vsp: new Set(), esito_ultima_mo: new Set(), esito_ultima_cq: new Set(),
+    civab: new Set(), cliente: new Set(), proprieta: new Set(),
+  };
+  const modelliByCostr = {};
+  for (const d of Object.values(DB)) {
+    if (d.n)   sets.descrizione_classe.add(d.n);
+    if (d.b)   sets.costruttore.add(d.b);
+    if (d.m)   { sets.modello.add(d.m); if (d.b) { if (!modelliByCostr[d.b]) modelliByCostr[d.b] = new Set(); modelliByCostr[d.b].add(d.m); } }
+    if (d.loc) sets.presidio.add(d.loc);
+    if (d.rep) sets.reparto.add(d.rep);
+    if (d.ss)  sets.sede_struttura.add(d.ss);
+    if (d.na)  sets.nuova_area.add(d.na);
+    if (d.man) sets.manutentore.add(d.man);
+    if (d.ds)  sets.dettagli_stato.add(d.ds);
+    if (d.pe)  sets.presenze_effettive.add(d.pe);
+    if (d.fp)  sets.forma_presenza.add(d.fp);
+    if (d.ver) sets.verifiche.add(d.ver);
+    if (d.civ) sets.civab.add(d.civ);
+  }
+  // Merge con stored lookups (da Supabase)
+  const stored = window._storedLookups || {};
+  for (const [campo, values] of Object.entries(stored)) {
+    if (!sets[campo]) sets[campo] = new Set();
+    for (const v of (values || [])) if (v) sets[campo].add(v);
+  }
+  window._lookupSets     = sets;
+  window._modelliByCostr = modelliByCostr;
+  // Popola datalist statici
+  const periodicita = new Set([...sets.periodicita_vse,...sets.periodicita_vsp,...sets.periodicita_mo,...sets.periodicita_cq]);
+  const esito       = new Set([...sets.esito_ultima_vse,...sets.esito_ultima_vsp,...sets.esito_ultima_mo,...sets.esito_ultima_cq]);
+  const dlMap = {
+    'dl-classe':      sets.descrizione_classe,
+    'dl-presidio':    sets.presidio,
+    'dl-reparto':     sets.reparto,
+    'dl-sede':        sets.sede_struttura,
+    'dl-area':        sets.nuova_area,
+    'dl-costruttore': sets.costruttore,
+    'dl-modello':     sets.modello,
+    'dl-manutentore': sets.manutentore,
+    'dl-stato':       sets.dettagli_stato,
+    'dl-presenza':    sets.forma_presenza,
+    'dl-presenze':    sets.presenze_effettive,
+    'dl-verifiche':   sets.verifiche,
+    'dl-cliente':     sets.cliente,
+    'dl-proprieta':   sets.proprieta,
+    'dl-civab':       sets.civab,
+    'dl-periodicita': periodicita,
+    'dl-esito':       esito,
+  };
+  for (const [id, set] of Object.entries(dlMap)) {
+    const dl = document.getElementById(id);
+    if (!dl) continue;
+    dl.innerHTML = [...set].sort().map(v => `<option value="${_esc(v)}">`).join('');
+  }
+  // Datalist jolly bloccate (create on demand)
+  try {
+    const jmeta = getJollyMeta();
+    jmeta.forEach((m, idx) => {
+      if (m.type !== 'bloccata') return;
+      const jollyKey = `jolly_${idx + 1}`;
+      const dlId     = `dl-${jollyKey}`;
+      let dl = document.getElementById(dlId);
+      if (!dl) { dl = document.createElement('datalist'); dl.id = dlId; document.body.appendChild(dl); }
+      const jollySet = sets[jollyKey] || new Set();
+      dl.innerHTML = [...jollySet].sort().map(v => `<option value="${_esc(v)}">`).join('');
+    });
+  } catch(e) {}
+}
+
+function updateModelloDatalist(costruttore) {
+  const dl = document.getElementById('dl-modello');
+  if (!dl || !window._modelliByCostr) return;
+  const set = window._modelliByCostr[costruttore] || new Set();
+  dl.innerHTML = [...set].sort().map(v => `<option value="${_esc(v)}">`).join('');
+}
+
+async function loadLookupsFromDB() {
+  const aslKey = (currentUser?.profile?.asl || 'ASL Benevento').toLowerCase().replace('asl ', '');
+  try {
+    const token = await supaToken();
+    const r = await fetch(
+      `${SUPA_URL}/rest/v1/lookup_asl?asl=eq.${encodeURIComponent(aslKey)}&select=campo,valore`,
+      { headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + token } }
+    );
+    if (r.ok) {
+      const rows = await r.json();
+      const stored = {};
+      for (const { campo, valore } of rows) {
+        if (!stored[campo]) stored[campo] = [];
+        stored[campo].push(valore);
+      }
+      window._storedLookups = stored;
+    }
+  } catch(e) {}
+  buildLookups();
+}
+
+async function saveLookupValue(campo, valore) {
+  if (!campo || !valore) return;
+  // Aggiorna memoria locale
+  if (!window._storedLookups) window._storedLookups = {};
+  if (!Array.isArray(window._storedLookups[campo])) window._storedLookups[campo] = [];
+  if (!window._storedLookups[campo].includes(valore)) window._storedLookups[campo].push(valore);
+  if (!window._lookupSets) window._lookupSets = {};
+  if (!window._lookupSets[campo]) window._lookupSets[campo] = new Set();
+  window._lookupSets[campo].add(valore);
+  // Aggiorna datalist
+  const dlId = FIELD_DL[campo] || (campo.startsWith('jolly_') ? `dl-${campo}` : null);
+  if (dlId) {
+    const dl = document.getElementById(dlId);
+    if (dl && ![...dl.options].some(o => o.value === valore)) {
+      const opt = document.createElement('option'); opt.value = valore; dl.appendChild(opt);
+    }
+  }
+  // Aggiorna modelliByCostr per campo modello
+  if (campo === 'modello') {
+    const costrEl = document.querySelector('[data-k="costruttore"]');
+    const costr = costrEl?.value?.trim();
+    if (costr) {
+      if (!window._modelliByCostr) window._modelliByCostr = {};
+      if (!window._modelliByCostr[costr]) window._modelliByCostr[costr] = new Set();
+      window._modelliByCostr[costr].add(valore);
+      updateModelloDatalist(costr);
+    }
+  }
+  // Salva su Supabase
+  const aslKey = (currentUser?.profile?.asl || 'ASL Benevento').toLowerCase().replace('asl ', '');
+  const token = await supaToken();
+  fetch(`${SUPA_URL}/rest/v1/lookup_asl`, {
+    method: 'POST',
+    headers: { ...supaHdrs(token), 'Prefer': 'resolution=ignore-duplicates' },
+    body: JSON.stringify({ asl: aslKey, campo, valore })
+  }).catch(e => console.warn('[saveLookupValue]', e));
+}
+
+async function deleteLookupValue(campo, valore) {
+  if (!campo || !valore) return;
+  // Rimuovi da memoria locale
+  if (window._storedLookups?.[campo]) {
+    window._storedLookups[campo] = window._storedLookups[campo].filter(v => v !== valore);
+  }
+  if (window._lookupSets?.[campo]) {
+    window._lookupSets[campo].delete(valore);
+  }
+  // Aggiorna datalist
+  const dlId = FIELD_DL[campo] || (campo.startsWith('jolly_') ? `dl-${campo}` : null);
+  if (dlId) {
+    const dl = document.getElementById(dlId);
+    if (dl) { const opt = [...dl.options].find(o => o.value === valore); if (opt) opt.remove(); }
+  }
+  // Elimina da Supabase
+  const aslKey = (currentUser?.profile?.asl || 'ASL Benevento').toLowerCase().replace('asl ', '');
+  const token = await supaToken();
+  fetch(`${SUPA_URL}/rest/v1/lookup_asl?asl=eq.${encodeURIComponent(aslKey)}&campo=eq.${encodeURIComponent(campo)}&valore=eq.${encodeURIComponent(valore)}`, {
+    method: 'DELETE',
+    headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + token }
+  }).catch(e => console.warn('[deleteLookupValue]', e));
+}
+
+function isValidLookup(campo, valore) {
+  if (!valore) return true;
+  const set = window._lookupSets?.[campo];
+  // Set vuoto = nessun valore configurato = nessuna restrizione
+  return !set || set.size === 0 || set.has(valore);
 }
 
 function onSearch(){const q=document.getElementById('search-input').value.trim();if(q.length>=2)doSearch();else document.getElementById('results').innerHTML='';}
@@ -447,6 +668,10 @@ async function showApp() {
     document.getElementById('sb-btn-admin').style.display = '';
     document.getElementById('sb-btn-gestione-db').style.display = '';
   }
+  const listBtn = document.getElementById('sb-btn-liste');
+  if (listBtn) listBtn.style.display = can('lookup_write') ? '' : 'none';
+  const amBtn = document.getElementById('btn-agg-massivo');
+  if (amBtn) amBtn.style.display = can('aggiornamento_massivo') ? '' : 'none';
   // Sidebar: mostra/nascondi voci in base ai permessi
   const sbShow = (id, flag) => {
     const el = document.getElementById(id);
@@ -478,6 +703,10 @@ async function doLogout() {
   if (lBtn) { lBtn.disabled = false; lBtn.textContent = 'Accedi'; }
   const lErr = document.getElementById('l-err');
   if (lErr) lErr.style.display = 'none';
+  // Nascondi bottoni sidebar ruolo-dipendenti
+  ['sb-btn-admin','sb-btn-gestione-db','sb-btn-liste'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.style.display = 'none';
+  });
   // Nascondi home e tutte le sezioni
   ['home-section','verifica-section','anag-section','tabella-section'].forEach(id => {
     const el = document.getElementById(id); if (el) el.style.display = 'none';

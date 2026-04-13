@@ -15,13 +15,14 @@ const PERM_LABELS = {
   dispositivo_elimina:   'Elimina dispositivo',
   aggiornamento_massivo: 'Aggiornamento massivo',
   import_excel:          'Importa da Excel',
+  lookup_write:          'Gestione liste lookup',
 };
 
 const DEFAULT_PERMISSIONS = {
-  tecnico:        { verifica:true,  sessioni:true,  sessioni_altrui:false, export_excel:true,  archivio_cloud:true,  preset_use:true,  preset_edit_personal:true,  preset_edit_default:false, anagrafica_read:true,  anagrafica_write:false, dispositivo_nuovo:false, dispositivo_elimina:false, aggiornamento_massivo:false, import_excel:false },
-  responsabile:   { verifica:true,  sessioni:true,  sessioni_altrui:true,  export_excel:true,  archivio_cloud:true,  preset_use:true,  preset_edit_personal:false, preset_edit_default:true,  anagrafica_read:true,  anagrafica_write:true,  dispositivo_nuovo:true,  dispositivo_elimina:true,  aggiornamento_massivo:true,  import_excel:true  },
-  amministrativo: { verifica:false, sessioni:false, sessioni_altrui:false, export_excel:false, archivio_cloud:false, preset_use:false, preset_edit_personal:false, preset_edit_default:false, anagrafica_read:true,  anagrafica_write:true,  dispositivo_nuovo:true,  dispositivo_elimina:true,  aggiornamento_massivo:true,  import_excel:true  },
-  admin:          { verifica:true,  sessioni:true,  sessioni_altrui:true,  export_excel:true,  archivio_cloud:true,  preset_use:true,  preset_edit_personal:true,  preset_edit_default:true,  anagrafica_read:true,  anagrafica_write:true,  dispositivo_nuovo:true,  dispositivo_elimina:true,  aggiornamento_massivo:true,  import_excel:true  },
+  tecnico:        { verifica:true,  sessioni:true,  sessioni_altrui:false, export_excel:true,  archivio_cloud:true,  preset_use:true,  preset_edit_personal:true,  preset_edit_default:false, anagrafica_read:true,  anagrafica_write:false, dispositivo_nuovo:false, dispositivo_elimina:false, aggiornamento_massivo:false, import_excel:false, lookup_write:false },
+  responsabile:   { verifica:true,  sessioni:true,  sessioni_altrui:true,  export_excel:true,  archivio_cloud:true,  preset_use:true,  preset_edit_personal:false, preset_edit_default:true,  anagrafica_read:true,  anagrafica_write:true,  dispositivo_nuovo:true,  dispositivo_elimina:true,  aggiornamento_massivo:true,  import_excel:true,  lookup_write:true  },
+  amministrativo: { verifica:false, sessioni:false, sessioni_altrui:false, export_excel:false, archivio_cloud:false, preset_use:false, preset_edit_personal:false, preset_edit_default:false, anagrafica_read:true,  anagrafica_write:true,  dispositivo_nuovo:true,  dispositivo_elimina:true,  aggiornamento_massivo:true,  import_excel:true,  lookup_write:false },
+  admin:          { verifica:true,  sessioni:true,  sessioni_altrui:true,  export_excel:true,  archivio_cloud:true,  preset_use:true,  preset_edit_personal:true,  preset_edit_default:true,  anagrafica_read:true,  anagrafica_write:true,  dispositivo_nuovo:true,  dispositivo_elimina:true,  aggiornamento_massivo:true,  import_excel:true,  lookup_write:true  },
 };
 
 function renderPermGrid(perms, idPrefix, disabled) {
@@ -494,4 +495,152 @@ async function importDatabaseDispositivi(input) {
     setProgress(0, 'Errore', e.message);
     toast('Errore import: ' + e.message, 'ko');
   }
+}
+
+// ── GESTIONE LISTE LOOKUP ──────────────────────────────────────
+
+const LOOKUP_LABELS = {
+  descrizione_classe: 'Classe / Tipo',
+  costruttore:        'Costruttore',
+  modello:            'Modello',
+  presidio:           'Presidio',
+  reparto:            'Reparto',
+  nuova_area:         'Area',
+  sede_struttura:     'Sede struttura',
+  civab:              'CIVAB',
+  verifiche:          'Verifiche',
+  dettagli_stato:     'Stato',
+  manutentore:        'Manutentore',
+  periodicita_vse:    'Periodicità VSE',
+  periodicita_vsp:    'Periodicità VSP',
+  periodicita_mo:     'Periodicità MO',
+  periodicita_cq:     'Periodicità CQ',
+  esito_ultima_vse:   'Esito VSE',
+  esito_ultima_vsp:   'Esito VSP',
+  esito_ultima_mo:    'Esito MO',
+  esito_ultima_cq:    'Esito CQ',
+  presenze_effettive: 'Presenze effettive',
+  cliente:            'Cliente',
+  proprieta:          'Proprietà',
+  forma_presenza:     'Forma presenza',
+};
+
+function openGestioneListe() {
+  if (!can('lookup_write')) return;
+  document.getElementById('gl-modal')?.remove();
+  // Costruisce opzioni campo: standard + jolly bloccate
+  const campi = { ...LOOKUP_LABELS };
+  try {
+    getJollyMeta().forEach((m, i) => {
+      if (m.type === 'bloccata') campi[`jolly_${i + 1}`] = m.label || `Jolly ${i + 1}`;
+    });
+  } catch(e) {}
+  const opts = Object.entries(campi).map(([k, lbl]) =>
+    `<option value="${k}">${lbl}</option>`).join('');
+  document.body.insertAdjacentHTML('beforeend', `
+  <div id="gl-modal" style="position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:10000;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto">
+    <div style="background:var(--bg);border-radius:var(--rad-lg);width:100%;max-width:520px;padding:20px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <div style="font-size:16px;font-weight:600">Gestione Liste</div>
+        <button onclick="document.getElementById('gl-modal').remove()" style="padding:4px 10px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text);cursor:pointer">✕</button>
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
+        <select id="gl-campo" onchange="glLoadCampo()" style="flex:1;padding:8px 10px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text);font-size:14px">${opts}</select>
+        <button onclick="glSincronizzaDaDB()" title="Importa valori unici già presenti nel database dispositivi" style="padding:8px 12px;font-size:12px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg3);color:var(--text2);cursor:pointer;white-space:nowrap">↻ Sync da DB</button>
+      </div>
+      <div style="display:flex;gap:6px;margin-bottom:12px">
+        <input id="gl-nuovo" type="text" placeholder="Nuovo valore..." style="flex:1;padding:8px 10px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text);font-size:13px">
+        <button onclick="glAggiungi()" style="padding:8px 14px;font-size:13px;font-weight:600;background:var(--info);color:#fff;border:none;border-radius:var(--rad);cursor:pointer">+ Aggiungi</button>
+      </div>
+      <div id="gl-lista" style="max-height:340px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--rad);min-height:60px">
+        <div style="padding:12px;text-align:center;color:var(--text3);font-size:13px">Seleziona un campo...</div>
+      </div>
+      <div id="gl-msg" style="display:none;margin-top:10px;padding:8px 12px;border-radius:var(--rad);font-size:13px"></div>
+    </div>
+  </div>`);
+  glLoadCampo();
+}
+
+function glMsg(text, ok) {
+  const el = document.getElementById('gl-msg');
+  if (!el) return;
+  el.textContent = text;
+  el.style.display = 'block';
+  el.style.background = ok ? 'var(--ok-bg)' : 'var(--ko-bg)';
+  el.style.color = ok ? 'var(--ok)' : 'var(--ko)';
+  setTimeout(() => { el.style.display = 'none'; }, 2500);
+}
+
+function glLoadCampo() {
+  const campo = document.getElementById('gl-campo')?.value;
+  if (!campo) return;
+  const lista = document.getElementById('gl-lista');
+  if (!lista) return;
+  const vals = [...(window._storedLookups?.[campo] || [])].sort();
+  if (!vals.length) {
+    lista.innerHTML = '<div style="padding:12px;text-align:center;color:var(--text3);font-size:13px">Nessun valore configurato</div>';
+    return;
+  }
+  lista.innerHTML = vals.map(v => `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:7px 12px;border-bottom:1px solid var(--border);font-size:13px">
+      <span style="color:var(--text)">${_esc(v)}</span>
+      <button onclick="glElimina(${JSON.stringify(campo)}, ${JSON.stringify(v)})"
+        style="padding:2px 8px;font-size:11px;border:1px solid var(--ko);border-radius:var(--rad);background:var(--bg);color:var(--ko);cursor:pointer">
+        Elimina
+      </button>
+    </div>`).join('');
+}
+
+async function glAggiungi() {
+  const campo = document.getElementById('gl-campo')?.value;
+  const input = document.getElementById('gl-nuovo');
+  const valore = input?.value?.trim();
+  if (!campo || !valore) return;
+  const set = window._storedLookups?.[campo];
+  if (Array.isArray(set) && set.includes(valore)) {
+    glMsg('Valore già presente.', false); return;
+  }
+  await saveLookupValue(campo, valore);
+  if (input) input.value = '';
+  glLoadCampo();
+  glMsg('Valore aggiunto.', true);
+}
+
+async function glElimina(campo, valore) {
+  if (!confirm(`Eliminare "${valore}" dalla lista "${campo}"?`)) return;
+  await deleteLookupValue(campo, valore);
+  glLoadCampo();
+  glMsg('Valore eliminato.', true);
+}
+
+async function glSincronizzaDaDB() {
+  const campo = document.getElementById('gl-campo')?.value;
+  if (!campo) return;
+  const lista = document.getElementById('gl-lista');
+  if (lista) lista.innerHTML = '<div style="padding:12px;text-align:center;color:var(--text3);font-size:13px">Sincronizzazione...</div>';
+  // Raccoglie valori unici dal DB in-memory per questo campo
+  const KEY_MAP = {
+    descrizione_classe:'n', costruttore:'b', modello:'m', presidio:'loc',
+    reparto:'rep', nuova_area:'na', sede_struttura:'ss', civab:'civ',
+    verifiche:'ver', dettagli_stato:'ds', manutentore:'man',
+    presenze_effettive:'pe', forma_presenza:'fp', cliente:'cli', proprieta:'pro',
+  };
+  const dbKey = KEY_MAP[campo];
+  const vals = new Set();
+  if (dbKey) {
+    for (const d of Object.values(DB || {})) {
+      if (d[dbKey]) vals.add(String(d[dbKey]).trim());
+    }
+  }
+  if (!vals.size) { glMsg('Nessun valore trovato nel DB per questo campo.', false); glLoadCampo(); return; }
+  let added = 0;
+  for (const v of vals) {
+    const existing = window._storedLookups?.[campo];
+    if (!Array.isArray(existing) || !existing.includes(v)) {
+      await saveLookupValue(campo, v);
+      added++;
+    }
+  }
+  glLoadCampo();
+  glMsg(`Sincronizzati ${added} nuovi valori da ${vals.size} trovati nel DB.`, true);
 }

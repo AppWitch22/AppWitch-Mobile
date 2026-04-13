@@ -117,27 +117,69 @@ function gbRenderDati(dev, editMode) {
     jollyBySection[sec].push({ label: m.label, key: `jolly_${idx + 1}`, idx: idx + 1 });
   });
 
+  const _inputStyle = 'font-size:14px;padding:8px 10px;border:1.5px solid var(--border2);border-radius:var(--rad);background:var(--bg3);color:var(--text);width:100%;-webkit-appearance:none;box-sizing:border-box';
+
   const _field = (k, label, opts = {}) => {
-    const isDate = opts.date || k.includes('data_') || k.includes('fine_') || k.includes('collaudo');
-    const raw = dev[k];
-    const val = isDate ? _fmtDate(raw) : (raw != null ? String(raw) : '');
-    const cls = 'anag-field' + (opts.full ? ' full' : '');
-    // In modalità copia (nuovo), il campo codice deve essere editabile
+    const raw     = dev[k];
+    const cls     = 'anag-field' + (opts.full ? ' full' : '');
     const roFinal = opts.ro && !(gbIsNew && k === 'codice');
+    const reqMark = opts.req ? ' <span style="color:var(--ko)">*</span>' : '';
+
+    // Sola lettura o fuori edit mode
     if (!editMode || roFinal) {
-      return `<div class="${cls}"><label>${_esc(label)}</label><div class="gb-field-val">${_esc(val)}</div></div>`;
+      const displayVal = DATE_KEYS.has(k) ? _fmtDate(raw) : (raw != null ? String(raw) : '');
+      return `<div class="${cls}"><label>${_esc(label)}</label><div class="gb-field-val">${_esc(displayVal)}</div></div>`;
     }
+
+    // Textarea
     if (opts.ta) {
-      return `<div class="${cls}"><label>${_esc(label)}</label><textarea id="gb-f-${k}" data-k="${k}" class="anag-field" style="font-size:14px;padding:8px 10px;border:1.5px solid var(--border2);border-radius:var(--rad);background:var(--bg3);color:var(--text);width:100%;min-height:58px;resize:vertical;font-family:inherit">${_esc(val)}</textarea></div>`;
+      const val = raw != null ? String(raw) : '';
+      return `<div class="${cls}"><label>${_esc(label)}</label><textarea id="gb-f-${k}" data-k="${k}" style="font-size:14px;padding:8px 10px;border:1.5px solid var(--border2);border-radius:var(--rad);background:var(--bg3);color:var(--text);width:100%;min-height:58px;resize:vertical;font-family:inherit;box-sizing:border-box">${_esc(val)}</textarea></div>`;
     }
-    return `<div class="${cls}"><label>${_esc(label)}${opts.req ? ' <span style="color:var(--ko)">*</span>' : ''}</label><input type="text" id="gb-f-${k}" data-k="${k}" value="${_esc(val)}"${roFinal ? ' readonly' : ''} style="font-size:14px;padding:8px 10px;border:1.5px solid var(--border2);border-radius:var(--rad);background:var(--bg3);color:var(--text);width:100%;-webkit-appearance:none"></div>`;
+
+    // Campo data
+    if (DATE_KEYS.has(k)) {
+      const dateVal = raw ? String(raw).substring(0, 10) : '';
+      return `<div class="${cls}"><label>${_esc(label)}</label><input type="date" id="gb-f-${k}" data-k="${k}" value="${dateVal}" style="${_inputStyle}"></div>`;
+    }
+
+    // Campo codice con auto-pad
+    if (k === 'codice' || k === 'codice_padre') {
+      const val = raw != null ? String(raw) : '';
+      return `<div class="${cls}"><label>${_esc(label)}${reqMark}</label><input type="text" id="gb-f-${k}" data-k="${k}" value="${_esc(val)}" onblur="const v=this.value.replace(/\\D/g,'');this.value=v?v.padStart(7,'0').slice(0,7):'';" style="${_inputStyle}"></div>`;
+    }
+
+    // Campo lookup bloccato
+    if (LOOKUP_KEYS.has(k)) {
+      const val     = raw != null ? String(raw) : '';
+      const dlId    = FIELD_DL[k] || '';
+      const listAttr = dlId ? ` list="${dlId}"` : '';
+      const onInput  = k === 'costruttore' ? ` oninput="updateModelloDatalist(this.value)"` : '';
+      const addBtn   = can('lookup_write')
+        ? `<button type="button" onclick="gbAddLookupValue('${k}','${_esc(label)}')" title="Aggiungi nuovo valore alla lista" style="flex-shrink:0;padding:0 10px;height:38px;font-size:18px;font-weight:600;border:1.5px solid var(--border2);border-radius:var(--rad);background:var(--bg3);color:var(--info);cursor:pointer;line-height:1">+</button>`
+        : '';
+      return `<div class="${cls}"><label>${_esc(label)}${reqMark}</label><div style="display:flex;gap:4px"><input type="text" id="gb-f-${k}" data-k="${k}" value="${_esc(val)}"${listAttr}${onInput} style="${_inputStyle};flex:1;min-width:0">${addBtn}</div></div>`;
+    }
+
+    // Testo libero
+    const val = raw != null ? String(raw) : '';
+    return `<div class="${cls}"><label>${_esc(label)}${reqMark}</label><input type="text" id="gb-f-${k}" data-k="${k}" value="${_esc(val)}" style="${_inputStyle}"></div>`;
   };
 
   const _jollyField = jf => {
-    const val = dev[jf.key] != null ? String(dev[jf.key]) : '';
-    const cls = 'anag-field';
+    const m          = jmeta[jf.idx - 1];
+    const isBloccata = m?.type === 'bloccata';
+    const val        = dev[jf.key] != null ? String(dev[jf.key]) : '';
+    const cls        = 'anag-field';
     if (!editMode) return `<div class="${cls}"><label>${_esc(jf.label)}</label><div class="gb-field-val">${_esc(val)}</div></div>`;
-    return `<div class="${cls}"><label>${_esc(jf.label)}</label><input type="text" id="gb-f-${jf.key}" data-k="${jf.key}" value="${_esc(val)}" style="font-size:14px;padding:8px 10px;border:1.5px solid var(--border2);border-radius:var(--rad);background:var(--bg3);color:var(--text);width:100%;-webkit-appearance:none"></div>`;
+    if (isBloccata) {
+      const dlId   = `dl-jolly-${jf.idx}`;
+      const addBtn = can('lookup_write')
+        ? `<button type="button" onclick="gbAddLookupValue('${jf.key}','${_esc(jf.label)}')" title="Aggiungi nuovo valore" style="flex-shrink:0;padding:0 10px;height:38px;font-size:18px;font-weight:600;border:1.5px solid var(--border2);border-radius:var(--rad);background:var(--bg3);color:var(--info);cursor:pointer;line-height:1">+</button>`
+        : '';
+      return `<div class="${cls}"><label>${_esc(jf.label)}</label><div style="display:flex;gap:4px"><input type="text" id="gb-f-${jf.key}" data-k="${jf.key}" data-jolly-bloccata="1" value="${_esc(val)}" list="${dlId}" style="${_inputStyle};flex:1;min-width:0">${addBtn}</div></div>`;
+    }
+    return `<div class="${cls}"><label>${_esc(jf.label)}</label><input type="text" id="gb-f-${jf.key}" data-k="${jf.key}" value="${_esc(val)}" style="${_inputStyle}"></div>`;
   };
 
   let html = '';
@@ -192,28 +234,43 @@ function gbCancelEdit() {
 // ── Salva (modifica o nuovo) ─────────────────────────────────
 async function gbSave() {
   if (gbIsNew) { await _gbSaveNew(); return; }
+  const errors = _gbValidateLookups();
+  if (errors.length) {
+    gbMsg('Valore non presente in lista: ' + errors.map(e => `${e.lbl} = "${e.val}"`).join(', ') + '. Usa + per aggiungerlo.', false);
+    return;
+  }
   const data = _gbReadFields();
   const required = ['descrizione_classe', 'costruttore', 'modello'];
   const missing  = required.filter(k => !data[k] && !gbFullDev[k]);
   if (missing.length) { gbMsg('Campi obbligatori mancanti: ' + missing.join(', '), false); return; }
 
-  const aslKey = (currentUser?.profile?.asl || 'ASL Benevento').toLowerCase().replace('asl ', '');
-  const token  = await supaToken();
-  const r = await fetch(`${SUPA_URL}/rest/v1/dispositivi_${aslKey}?codice=eq.${encodeURIComponent(gestioneCodice)}`, {
-    method: 'PATCH',
-    headers: { ...supaHdrs(token), 'Prefer': 'return=minimal' },
-    body: JSON.stringify(data)
-  });
-  if (!r.ok) { gbMsg('Errore salvataggio: ' + r.status, false); return; }
-
-  Object.assign(gbFullDev, data);
-  _gbUpdateCache(gestioneCodice, data);
-  gbCancelEdit();
-  gbMsg('Modifiche salvate.', true);
+  try {
+    const aslKey = (currentUser?.profile?.asl || 'ASL Benevento').toLowerCase().replace('asl ', '');
+    const token  = await supaToken();
+    const r = await fetch(`${SUPA_URL}/rest/v1/dispositivi_${aslKey}?codice=eq.${encodeURIComponent(gestioneCodice)}`, {
+      method: 'PATCH',
+      headers: { ...supaHdrs(token), 'Prefer': 'return=minimal' },
+      body: JSON.stringify(data)
+    });
+    if (!r.ok) { gbMsg('Errore salvataggio: ' + r.status, false); return; }
+    Object.assign(gbFullDev, data);
+    _gbUpdateCache(gestioneCodice, data);
+    _gbRefreshViews();
+    gbCancelEdit();
+    gbMsg('Modifiche salvate.', true);
+  } catch(e) { gbMsg('Errore di rete: ' + e.message, false); }
 }
 
 async function _gbSaveNew() {
+  const errors = _gbValidateLookups();
+  if (errors.length) {
+    gbMsg('Valore non presente in lista: ' + errors.map(e => `${e.lbl} = "${e.val}"`).join(', ') + '. Usa + per aggiungerlo.', false);
+    return;
+  }
   const data = _gbReadFields();
+  // Auto-pad codice
+  if (data.codice) data.codice = data.codice.replace(/\D/g, '').padStart(7, '0').slice(0, 7) || data.codice;
+  if (data.codice_padre) data.codice_padre = data.codice_padre.replace(/\D/g, '').padStart(7, '0').slice(0, 7) || null;
   const required = ['codice', 'descrizione_classe', 'costruttore', 'modello'];
   const missing  = required.filter(k => !data[k]);
   if (missing.length) { gbMsg('Campi obbligatori: ' + missing.join(', '), false); return; }
@@ -221,26 +278,33 @@ async function _gbSaveNew() {
   data.cliente = (currentUser?.profile?.asl || 'ASL BENEVENTO').toUpperCase();
   Object.keys(data).forEach(k => { if (data[k] == null) delete data[k]; });
 
-  const aslKey = (currentUser?.profile?.asl || 'ASL Benevento').toLowerCase().replace('asl ', '');
-  const token  = await supaToken();
-  const r = await fetch(`${SUPA_URL}/rest/v1/dispositivi_${aslKey}`, {
-    method: 'POST',
-    headers: { ...supaHdrs(token), 'Prefer': 'return=minimal' },
-    body: JSON.stringify(data)
-  });
-  if (!r.ok) {
-    const txt = await r.text();
-    gbMsg(txt.includes('duplicate') || txt.includes('unique') ? 'Codice già esistente nel DB' : 'Errore inserimento: ' + r.status, false);
-    return;
-  }
-
-  const cod = data.codice;
-  DB[cod] = { c: cod, n: data.descrizione_classe || '', b: data.costruttore || '', m: data.modello || '', mat: data.matricola || '', loc: data.presidio || '', rep: data.reparto || '', ss: data.sede_struttura || '', nuova_area: data.nuova_area || '' };
-  gestioneCodice = cod;
-  gbIsNew   = false;
-  gbFullDev = { ...data };
-  gbCancelEdit();
-  gbMsg('Dispositivo inserito con successo!', true);
+  try {
+    const aslKey = (currentUser?.profile?.asl || 'ASL Benevento').toLowerCase().replace('asl ', '');
+    const token  = await supaToken();
+    const r = await fetch(`${SUPA_URL}/rest/v1/dispositivi_${aslKey}`, {
+      method: 'POST',
+      headers: { ...supaHdrs(token), 'Prefer': 'return=minimal' },
+      body: JSON.stringify(data)
+    });
+    if (!r.ok) {
+      const txt = await r.text();
+      gbMsg(txt.includes('duplicate') || txt.includes('unique') || txt.includes('23505')
+        ? 'Codice già esistente nel DB' : 'Errore inserimento: ' + r.status, false);
+      return;
+    }
+    const cod = data.codice;
+    DB[cod] = { c: cod, n: data.descrizione_classe||'', b: data.costruttore||'', m: data.modello||'',
+      mat: data.matricola||'', loc: data.presidio||'', rep: data.reparto||'',
+      ss: data.sede_struttura||'', cp: data.codice_padre||'', na: data.nuova_area||'',
+      pe: data.presenze_effettive||'', ds: data.dettagli_stato||'', fp: data.forma_presenza||'',
+      man: data.manutentore||'', ver: data.verifiche||'', civ: data.civab||'' };
+    gestioneCodice = cod;
+    gbIsNew   = false;
+    gbFullDev = { ...data };
+    _gbRefreshViews();
+    gbCancelEdit();
+    gbMsg('Dispositivo inserito con successo!', true);
+  } catch(e) { gbMsg('Errore di rete: ' + e.message, false); }
 }
 
 function _gbReadFields() {
@@ -356,41 +420,67 @@ async function gbLoadStorico() {
   if (!content) return;
   const token = await supaToken();
   const r = await fetch(
-    `${SUPA_URL}/rest/v1/sessione_schede?codice=eq.${encodeURIComponent(gestioneCodice)}&select=dati_vse,dati_mp,sessioni!sessione_id(titolo,data_verifica,data_aggiornamento)&order=sessioni(data_aggiornamento).desc&limit=50`,
+    `${SUPA_URL}/rest/v1/sessione_schede?codice=eq.${encodeURIComponent(gestioneCodice)}&select=sessione_id,dati_vse,dati_mp,dati_vsp,dati_cq,vsp_type,cq_type,sessioni(titolo,data_verifica)&order=sessione_id.desc&limit=50`,
     { headers: supaHdrs(token) }
   );
   if (!r.ok) { content.innerHTML = '<div style="padding:24px;text-align:center;color:var(--ko)">Errore caricamento storico</div>'; return; }
   const rows = await r.json();
   if (!rows.length) {
-    content.innerHTML = '<div style="padding:32px;text-align:center;color:var(--text3)">Nessuna verifica registrata per questo dispositivo</div>';
+    content.innerHTML = '<div style="padding:32px;text-align:center;color:var(--text3);font-size:13px">Nessuna verifica registrata per questo dispositivo</div>';
     return;
   }
-  const _fmt = v => v ? new Date(v).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
+  const _fmt = v => v ? new Date(v).toLocaleDateString('it-IT', { day:'2-digit', month:'2-digit', year:'numeric' }) : '—';
+  const _badge = (ok, label) => {
+    if (!label) return '<span style="color:var(--text3);font-size:12px">—</span>';
+    const col = ok === true ? 'var(--ok)' : ok === false ? 'var(--ko)' : 'var(--info)';
+    const bg  = ok === true ? 'var(--ok-bg)' : ok === false ? 'var(--ko-bg)' : 'var(--info-bg)';
+    return `<span style="display:inline-block;padding:1px 7px;border-radius:10px;font-size:11px;font-weight:600;color:${col};background:${bg}">${_esc(label)}</span>`;
+  };
   content.innerHTML = `
-    <table style="width:100%;border-collapse:collapse;font-size:13px">
+    <div style="overflow-x:auto">
+    <table style="width:100%;border-collapse:collapse;font-size:13px;min-width:480px">
       <thead>
         <tr style="border-bottom:2px solid var(--border)">
           <th style="text-align:left;padding:6px 10px;color:var(--text3);font-weight:600;white-space:nowrap">Data</th>
           <th style="text-align:left;padding:6px 10px;color:var(--text3);font-weight:600">Sessione</th>
-          <th style="text-align:left;padding:6px 10px;color:var(--text3);font-weight:600">Esito VSE</th>
-          <th style="text-align:left;padding:6px 10px;color:var(--text3);font-weight:600">Esito MP</th>
+          <th style="text-align:left;padding:6px 10px;color:var(--text3);font-weight:600">Verificatore</th>
+          <th style="text-align:center;padding:6px 8px;color:var(--text3);font-weight:600">VSE</th>
+          <th style="text-align:center;padding:6px 8px;color:var(--text3);font-weight:600">MP</th>
+          <th style="text-align:center;padding:6px 8px;color:var(--text3);font-weight:600">VSP</th>
+          <th style="text-align:center;padding:6px 8px;color:var(--text3);font-weight:600">CQ</th>
         </tr>
       </thead>
       <tbody>
         ${rows.map(row => {
-          const sess = row.sessioni || {};
-          const dataStr = _fmt(sess.data_verifica || sess.data_aggiornamento);
-          const esitoVse = row.dati_vse?.giu || '—';
-          const esitoMp  = row.dati_mp?.esito || '—';
+          const sess  = row.sessioni || {};
+          const data  = _fmt(sess.data_verifica);
+          const nome  = '—';
+          const titolo = sess.titolo || '—';
+          // VSE: campo giu = POSITIVO / NEGATIVO / altro
+          const giu = row.dati_vse?.giu;
+          const vseOk = giu === 'POSITIVO' ? true : giu ? false : null;
+          const vseLbl = giu || (row.dati_vse ? '✓' : null);
+          // MP: solo presenza
+          const mpLbl = row.dati_mp ? '✓' : null;
+          // VSP: tipo abbreviato
+          const vspTipo = (row.vsp_type || '').replace('VSP_', '');
+          const vspLbl = row.dati_vsp ? (vspTipo || '✓') : null;
+          // CQ: tipo abbreviato
+          const cqTipo = (row.cq_type || '').replace('CQ_', '');
+          const cqLbl = row.dati_cq ? (cqTipo || '✓') : null;
           return `<tr style="border-bottom:1px solid var(--border)">
-            <td style="padding:8px 10px;white-space:nowrap">${dataStr}</td>
-            <td style="padding:8px 10px;color:var(--text2)">${_esc(sess.titolo || '—')}</td>
-            <td style="padding:8px 10px">${_esc(esitoVse)}</td>
-            <td style="padding:8px 10px">${_esc(esitoMp)}</td>
+            <td style="padding:8px 10px;white-space:nowrap;color:var(--text)">${data}</td>
+            <td style="padding:8px 10px;color:var(--text2);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${_esc(titolo)}">${_esc(titolo)}</td>
+            <td style="padding:8px 10px;color:var(--text3);font-size:12px;white-space:nowrap">${_esc(nome)}</td>
+            <td style="padding:8px;text-align:center">${_badge(vseOk, vseLbl)}</td>
+            <td style="padding:8px;text-align:center">${_badge(null, mpLbl)}</td>
+            <td style="padding:8px;text-align:center">${_badge(null, vspLbl)}</td>
+            <td style="padding:8px;text-align:center">${_badge(null, cqLbl)}</td>
           </tr>`;
         }).join('')}
       </tbody>
-    </table>`;
+    </table>
+    </div>`;
 }
 
 // ── Tab Scadenze ─────────────────────────────────────────────
@@ -419,7 +509,7 @@ function gbRenderScadenze(dev) {
           <th style="text-align:left;padding:6px 10px;color:var(--text3);font-weight:600">Tipo</th>
           <th style="text-align:left;padding:6px 10px;color:var(--text3);font-weight:600">Periodicità</th>
           <th style="text-align:left;padding:6px 10px;color:var(--text3);font-weight:600">Ultima</th>
-          <th style="text-align:left;padding:6px 10px;color:var(--text3);font-weight:600">Esito</th>
+          <th style="text-align:left;padding:6px 10px;color:var(--text3);font-weight:600">Verif. prec.</th>
           <th style="text-align:left;padding:6px 10px;color:var(--text3);font-weight:600">Prossima</th>
           <th style="text-align:left;padding:6px 10px;color:var(--text3);font-weight:600">Stato</th>
         </tr>
@@ -430,7 +520,7 @@ function gbRenderScadenze(dev) {
             <td style="padding:8px 10px;font-weight:600">${t.tipo}</td>
             <td style="padding:8px 10px;color:var(--text2)">${dev[t.per] || '—'}</td>
             <td style="padding:8px 10px">${_fmt(dev[t.ult])}</td>
-            <td style="padding:8px 10px;color:var(--text2)">${dev[t.esi] || '—'}</td>
+            <td style="padding:8px 10px;color:var(--text2)">${_fmt(dev[t.esi]) !== '—' ? _fmt(dev[t.esi]) : (dev[t.esi] || '—')}</td>
             <td style="padding:8px 10px">${_fmt(dev[t.pro])}</td>
             <td style="padding:8px 10px">${_semaforo(dev[t.pro])}</td>
           </tr>`).join('')}
@@ -438,8 +528,81 @@ function gbRenderScadenze(dev) {
     </table>`;
 }
 
+// ── Lookup: aggiunta valore ───────────────────────────────────
+function gbAddLookupValue(campo, label) {
+  const input = document.getElementById('gb-f-' + campo);
+  const valore = input ? input.value.trim() : '';
+  if (!valore) { gbMsg('Inserisci un valore nel campo prima di aggiungerlo alla lista.', false); return; }
+  if (isValidLookup(campo, valore)) { gbMsg(`"${_esc(valore)}" è già presente nella lista.`, false); return; }
+
+  document.getElementById('gb-add-lookup-modal')?.remove();
+  document.body.insertAdjacentHTML('beforeend', `
+    <div id="gb-add-lookup-modal" style="position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:20000;display:flex;align-items:center;justify-content:center;padding:20px">
+      <div style="background:var(--bg);border-radius:var(--rad-lg);width:100%;max-width:340px;padding:20px">
+        <div style="font-size:14px;font-weight:600;margin-bottom:10px;color:var(--text)">Aggiungi alla lista</div>
+        <div style="font-size:13px;color:var(--text2);margin-bottom:16px">
+          Aggiungere <strong>${_esc(valore)}</strong> alla lista del campo <em>${_esc(label)}</em>?<br>
+          <span style="font-size:11px;color:var(--text3)">Il valore sarà disponibile per tutti gli utenti dell'ASL.</span>
+        </div>
+        <div style="display:flex;gap:8px;justify-content:flex-end">
+          <button onclick="document.getElementById('gb-add-lookup-modal').remove()"
+            style="padding:7px 14px;font-size:13px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg3);color:var(--text);cursor:pointer">Annulla</button>
+          <button onclick="gbConfirmAddLookup('${_esc(campo)}','${_esc(valore)}')"
+            style="padding:7px 14px;font-size:13px;font-weight:600;border:none;border-radius:var(--rad);background:var(--info);color:#fff;cursor:pointer">Aggiungi</button>
+        </div>
+      </div>
+    </div>`);
+}
+
+async function gbConfirmAddLookup(campo, valore) {
+  document.getElementById('gb-add-lookup-modal')?.remove();
+  await saveLookupValue(campo, valore);
+  gbMsg(`"${valore}" aggiunto alla lista.`, true);
+}
+
+function _gbValidateLookups() {
+  const errors = []; // [{k, val, label}]
+  // Campi lookup standard
+  LOOKUP_KEYS.forEach(k => {
+    const el = document.getElementById('gb-f-' + k);
+    if (!el) return;
+    const val = el.value.trim();
+    if (val && !isValidLookup(k, val)) {
+      const lbl = el.closest('.anag-field')?.querySelector('label')?.textContent?.trim() || k;
+      errors.push({ k, val, lbl });
+      el.style.outline = '2px solid var(--ko)';
+    } else {
+      el.style.outline = '';
+    }
+  });
+  // Jolly bloccate
+  document.querySelectorAll('#gb-tab-content [data-jolly-bloccata]').forEach(el => {
+    const k   = el.dataset.k;
+    const val = el.value.trim();
+    if (val && !isValidLookup(k, val)) {
+      const lbl = el.closest('.anag-field')?.querySelector('label')?.textContent?.trim() || k;
+      errors.push({ k, val, lbl });
+      el.style.outline = '2px solid var(--ko)';
+    } else {
+      el.style.outline = '';
+    }
+  });
+  return errors;
+}
+
+function _gbRefreshViews() {
+  // Aggiorna ricerca principale (verifica)
+  const q = document.getElementById('search-input')?.value?.trim();
+  if (q && q.length >= 2) doSearch();
+  // Aggiorna lista anagrafica e tabella
+  if (typeof searchAnagrafica === 'function') searchAnagrafica();
+  if (typeof tableData !== 'undefined' && tableData && typeof renderTableView === 'function') renderTableView();
+}
+
 // ── Messaggi ─────────────────────────────────────────────────
 function gbMsg(text, ok) {
+  // Toast sempre visibile (gb-msg può essere fuori dal viewport)
+  toast(text, ok ? 'ok' : 'warn');
   const msg = document.getElementById('gb-msg');
   if (!msg) return;
   msg.textContent = text;

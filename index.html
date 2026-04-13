@@ -79,6 +79,9 @@
     <button class="sb-btn" id="sb-btn-gestione-db" style="display:none" onclick="openGestioneDB()">
       🗄️ Gestione DB
     </button>
+    <button class="sb-btn" id="sb-btn-liste" style="display:none" onclick="openGestioneListe()">
+      📋 Gestione Liste
+    </button>
     <button class="sb-btn danger" onclick="doLogout()">
       ↩ Esci
     </button>
@@ -214,6 +217,7 @@
       <input type="text" id="tbl-search" placeholder="Cerca in tutte le colonne..." oninput="tblSearch(this.value)">
       <button id="tbl-clear-filters" onclick="tblClearAllFilters()">✕ Filtri</button>
       <button class="btn-sm" id="btn-toggle-archiviati-tbl" onclick="toggleArchiviati()" title="Mostra/nascondi dispositivi archiviati">Archiviati: OFF</button>
+      <button class="btn-sm" id="btn-agg-massivo" style="display:none" onclick="openAggiornamentoMassivo()" disabled>✎ Massivo</button>
       <span class="tbl-sel-count" id="tbl-sel-count"></span>
       <span class="tbl-counter" id="tbl-row-count"></span>
     </div>
@@ -625,6 +629,25 @@
   </div>
 </div>
 
+
+<!-- DATALIST LOOKUP -->
+<datalist id="dl-classe"></datalist>
+<datalist id="dl-presidio"></datalist>
+<datalist id="dl-reparto"></datalist>
+<datalist id="dl-sede"></datalist>
+<datalist id="dl-area"></datalist>
+<datalist id="dl-costruttore"></datalist>
+<datalist id="dl-modello"></datalist>
+<datalist id="dl-manutentore"></datalist>
+<datalist id="dl-stato"></datalist>
+<datalist id="dl-presenza"></datalist>
+<datalist id="dl-presenze"></datalist>
+<datalist id="dl-verifiche"></datalist>
+<datalist id="dl-civab"></datalist>
+<datalist id="dl-periodicita"></datalist>
+<datalist id="dl-esito"></datalist>
+<datalist id="dl-cliente"></datalist>
+<datalist id="dl-proprieta"></datalist>
 
 <script src="js/core.js"></script>
 <script src="js/verifica.js"></script>

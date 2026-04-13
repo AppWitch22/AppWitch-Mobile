@@ -387,13 +387,20 @@ function renderAnagDetail() {
   const _fmtDate = v => { const m=String(v||'').match(/^(\d{4})-(\d{2})-(\d{2})/); return m?`${m[3]}/${m[2]}/${m[1]}`:v||''; };
 
   const _jollyField = jf => {
-    const k='jolly_'+jf.idx, v=_esc(d[k]||'');
-    return `<div class="anag-field">
-      <label>${currentUser?.profile?.role === 'admin'
-        ? `<button class="jolly-lbl-btn" onclick="editJollyLabel(${jf.idx})" title="Clicca per configurare">${_esc(jf.label)} ✎</button>`
-        : `<span style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.04em">${_esc(jf.label)}</span>`}</label>
-      <input type="text" id="anag-f-${k}" data-k="${k}" value="${v}">
-    </div>`;
+    const k          = 'jolly_'+jf.idx;
+    const v          = _esc(d[k]||'');
+    const isBloccata = jf.type === 'bloccata';
+    const lbl = currentUser?.profile?.role === 'admin'
+      ? `<button class="jolly-lbl-btn" onclick="editJollyLabel(${jf.idx})" title="Clicca per configurare">${_esc(jf.label)} ✎</button>`
+      : `<span style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.04em">${_esc(jf.label)}</span>`;
+    if (isBloccata) {
+      const dlId   = `dl-jolly-${jf.idx}`;
+      const addBtn = can('lookup_write')
+        ? `<button type="button" onclick="anagAddLookupValue('${k}','${_esc(jf.label)}')" title="Aggiungi nuovo valore" style="flex-shrink:0;padding:0 10px;height:38px;font-size:18px;font-weight:600;border:1.5px solid var(--border2);border-radius:var(--rad);background:var(--bg3);color:var(--info);cursor:pointer;line-height:1">+</button>`
+        : '';
+      return `<div class="anag-field"><label>${lbl}</label><div style="display:flex;gap:4px"><input type="text" id="anag-f-${k}" data-k="${k}" value="${v}" list="${dlId}" style="flex:1;min-width:0">${addBtn}</div></div>`;
+    }
+    return `<div class="anag-field"><label>${lbl}</label><input type="text" id="anag-f-${k}" data-k="${k}" value="${v}"></div>`;
   };
 
   let html = '';
@@ -403,12 +410,28 @@ function renderAnagDetail() {
       <div class="anag-grp-hdr" onclick="toggleAnagGrp('${grp.id}')"><span>${grp.label}</span><span id="anag-tog-${grp.id}">▾</span></div>
       <div class="${bodyCls}" id="anag-grp-${grp.id}">`;
     for (const f of grp.fields) {
-      const raw = d[f.k]||'';
-      const v = _esc(f.ta ? raw : _fmtDate(raw));
-      const cls = 'anag-field'+(f.full?' full':'');
+      const raw  = d[f.k] != null ? d[f.k] : '';
+      const cls  = 'anag-field'+(f.full?' full':'');
       const isRo = f.ro && !anagIsNew;
-      if (f.ta) html += `<div class="${cls}"><label>${f.l}</label><textarea id="anag-f-${f.k}" data-k="${f.k}">${v}</textarea></div>`;
-      else      html += `<div class="${cls}"><label>${f.l}${f.req?' <span style="color:var(--ko)">*</span>':''}</label><input type="text" id="anag-f-${f.k}" data-k="${f.k}" value="${v}"${isRo?' readonly':''}></div>`;
+      const req  = f.req ? ' <span style="color:var(--ko)">*</span>' : '';
+      if (isRo) {
+        html += `<div class="${cls}"><label>${f.l}</label><input type="text" id="anag-f-${f.k}" data-k="${f.k}" value="${_esc(String(raw))}" readonly></div>`;
+      } else if (f.ta) {
+        html += `<div class="${cls}"><label>${f.l}</label><textarea id="anag-f-${f.k}" data-k="${f.k}">${_esc(String(raw))}</textarea></div>`;
+      } else if (DATE_KEYS.has(f.k)) {
+        const dateVal = raw ? String(raw).substring(0,10) : '';
+        html += `<div class="${cls}"><label>${f.l}</label><input type="date" id="anag-f-${f.k}" data-k="${f.k}" value="${dateVal}"></div>`;
+      } else if (LOOKUP_KEYS.has(f.k)) {
+        const dlId   = FIELD_DL[f.k] || '';
+        const listAttr = dlId ? ` list="${dlId}"` : '';
+        const oiAttr   = f.k === 'costruttore' ? ` oninput="updateModelloDatalist(this.value)"` : '';
+        const addBtn   = can('lookup_write')
+          ? `<button type="button" onclick="anagAddLookupValue('${f.k}','${_esc(f.l)}')" title="Aggiungi nuovo valore" style="flex-shrink:0;padding:0 10px;height:38px;font-size:18px;font-weight:600;border:1.5px solid var(--border2);border-radius:var(--rad);background:var(--bg3);color:var(--info);cursor:pointer;line-height:1">+</button>`
+          : '';
+        html += `<div class="${cls}"><label>${f.l}${req}</label><div style="display:flex;gap:4px"><input type="text" id="anag-f-${f.k}" data-k="${f.k}" value="${_esc(String(raw))}"${listAttr}${oiAttr} style="flex:1;min-width:0">${addBtn}</div></div>`;
+      } else {
+        html += `<div class="${cls}"><label>${f.l}${req}</label><input type="text" id="anag-f-${f.k}" data-k="${f.k}" value="${_esc(String(raw))}"></div>`;
+      }
     }
     // Jolly assegnati a questa sezione
     (jollyBySection[grp.id]||[]).forEach(jf => { html += _jollyField(jf); });
@@ -439,6 +462,36 @@ function toggleAnagGrp(id) {
   tog.textContent = h ? '▸' : '▾';
 }
 
+function anagAddLookupValue(campo, label) {
+  const input  = document.getElementById('anag-f-' + campo);
+  const valore = input ? input.value.trim() : '';
+  if (!valore) { toast('Inserisci un valore nel campo prima di aggiungerlo alla lista.', 'warn'); return; }
+  if (isValidLookup(campo, valore)) { toast(`"${valore}" è già presente nella lista.`, 'warn'); return; }
+  document.getElementById('anag-add-lookup-modal')?.remove();
+  document.body.insertAdjacentHTML('beforeend', `
+    <div id="anag-add-lookup-modal" style="position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:20000;display:flex;align-items:center;justify-content:center;padding:20px">
+      <div style="background:var(--bg);border-radius:var(--rad-lg);width:100%;max-width:340px;padding:20px">
+        <div style="font-size:14px;font-weight:600;margin-bottom:10px;color:var(--text)">Aggiungi alla lista</div>
+        <div style="font-size:13px;color:var(--text2);margin-bottom:16px">
+          Aggiungere <strong>${_esc(valore)}</strong> alla lista del campo <em>${_esc(label)}</em>?<br>
+          <span style="font-size:11px;color:var(--text3)">Il valore sarà disponibile per tutti gli utenti dell'ASL.</span>
+        </div>
+        <div style="display:flex;gap:8px;justify-content:flex-end">
+          <button onclick="document.getElementById('anag-add-lookup-modal').remove()"
+            style="padding:7px 14px;font-size:13px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg3);color:var(--text);cursor:pointer">Annulla</button>
+          <button onclick="anagConfirmAddLookup('${_esc(campo)}','${_esc(valore)}')"
+            style="padding:7px 14px;font-size:13px;font-weight:600;border:none;border-radius:var(--rad);background:var(--info);color:#fff;cursor:pointer">Aggiungi</button>
+        </div>
+      </div>
+    </div>`);
+}
+
+async function anagConfirmAddLookup(campo, valore) {
+  document.getElementById('anag-add-lookup-modal')?.remove();
+  await saveLookupValue(campo, valore);
+  toast(`"${valore}" aggiunto alla lista.`, 'ok');
+}
+
 async function saveAnagDetail() {
   if (!anagCurDev) return;
   const data = {};
@@ -452,6 +505,24 @@ async function saveAnagDetail() {
   const missing = required.filter(k => !data[k] && !(anagCurDev[k]));
   if (missing.length) {
     toast('Campi obbligatori mancanti: ' + missing.join(', '), 'warn');
+    return;
+  }
+
+  // Validazione lookup
+  const lookupErrors = [];
+  LOOKUP_KEYS.forEach(k => {
+    const el = document.getElementById('anag-f-' + k);
+    if (!el || el.readOnly) return;
+    const val = el.value.trim();
+    if (val && !isValidLookup(k, val)) {
+      lookupErrors.push(k);
+      el.style.outline = '2px solid var(--ko)';
+    } else {
+      el.style.outline = '';
+    }
+  });
+  if (lookupErrors.length) {
+    toast('Valori non validi in: ' + lookupErrors.join(', ') + '. Usa + per aggiungere nuovi valori.', 'warn');
     return;
   }
 
@@ -542,11 +613,19 @@ function editJollyLabel(i) {
           <input id="jolly-edit-label" type="text" value="${_esc(m.label)}"
             style="width:100%;padding:7px 10px;border:1px solid var(--border2);border-radius:var(--rad);font-size:13px;background:var(--bg2);color:var(--text);box-sizing:border-box">
         </div>
-        <div style="margin-bottom:16px">
+        <div style="margin-bottom:10px">
           <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:4px">Sezione</label>
           <select id="jolly-edit-section"
             style="width:100%;padding:7px 10px;border:1px solid var(--border2);border-radius:var(--rad);font-size:13px;background:var(--bg2);color:var(--text);box-sizing:border-box">
             ${opts}
+          </select>
+        </div>
+        <div style="margin-bottom:16px">
+          <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:4px">Tipo campo</label>
+          <select id="jolly-edit-type"
+            style="width:100%;padding:7px 10px;border:1px solid var(--border2);border-radius:var(--rad);font-size:13px;background:var(--bg2);color:var(--text);box-sizing:border-box">
+            <option value="libera"${(m.type||'libera')==='libera'?' selected':''}>Testo libero</option>
+            <option value="bloccata"${m.type==='bloccata'?' selected':''}>Lista bloccata (lookup)</option>
           </select>
         </div>
         <div style="display:flex;gap:8px;justify-content:flex-end">
@@ -560,11 +639,13 @@ function editJollyLabel(i) {
   document.getElementById('jolly-edit-label').focus();
 }
 function saveJollyEdit(i) {
-  const label = document.getElementById('jolly-edit-label').value.trim() || `Jolly ${i}`;
+  const label   = document.getElementById('jolly-edit-label').value.trim() || `Jolly ${i}`;
   const section = document.getElementById('jolly-edit-section').value;
+  const type    = document.getElementById('jolly-edit-type').value;
   const meta = getJollyMeta();
-  meta[i-1] = {label, section};
+  meta[i-1] = {label, section, type};
   saveJollyMeta(meta);
+  buildLookups(); // ricrea datalist jolly bloccate
   document.getElementById('jolly-edit-modal').remove();
   renderAnagDetail();
 }
@@ -781,6 +862,11 @@ function renderTableView() {
   const anyFilter = Object.values(tableColFilters).some(v => v?.size > 0);
   const clearBtn = document.getElementById('tbl-clear-filters');
   if (clearBtn) clearBtn.style.display = anyFilter ? 'inline-block' : 'none';
+  // bottone aggiornamento massivo
+  const amBtn = document.getElementById('btn-agg-massivo');
+  if (amBtn && amBtn.style.display !== 'none') {
+    amBtn.disabled = !(anyFilter || selCount > 0);
+  }
 
   // thead
   let thead = '<tr><th class="tbl-th-chk"><input type="checkbox"' + (allSel?' checked':'') + ' onchange="tblToggleAll(this.checked)"></th>';
@@ -1134,4 +1220,197 @@ async function confirmCreateSessionFromTable() {
   document.getElementById('tabella-section').style.display = 'none';
   sbNav('sessione');
   toast(`Sessione "${title}" creata con ${codici.length} dispositivi`, 'ok');
+}
+
+// ── AGGIORNAMENTO MASSIVO ─────────────────────────────────────
+
+function openAggiornamentoMassivo() {
+  if (!can('aggiornamento_massivo')) return;
+  const anyFilter = Object.values(tableColFilters).some(v => v?.size > 0);
+  const selInView = _tblRows.filter(r => tableSelected.has(r.codice));
+  const target    = selInView.length > 0 ? selInView : _tblRows;
+  if (!target.length) { toast('Nessun dispositivo da aggiornare', 'warn'); return; }
+
+  document.getElementById('am-modal')?.remove();
+
+  const _inp = (k, l, dl) => `
+    <div style="display:flex;flex-direction:column;gap:3px">
+      <label style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em">${l}</label>
+      <input id="am-f-${k}" type="text" list="${dl||''}" autocomplete="off"
+        style="padding:6px 8px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text);font-size:13px"
+        placeholder="—">
+    </div>`;
+  const _date = (k, l) => `
+    <div style="display:flex;flex-direction:column;gap:3px">
+      <label style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em">${l}</label>
+      <input id="am-f-${k}" type="date"
+        style="padding:6px 8px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text);font-size:13px">
+    </div>`;
+  const _sec = t => `<div style="grid-column:1/-1;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);border-bottom:1px solid var(--border);padding-bottom:4px;margin-top:6px">${t}</div>`;
+
+  // Jolly configurate
+  let jollyHtml = '';
+  try {
+    getJollyMeta().forEach((m, i) => {
+      if (!m.label) return;
+      const k = `jolly_${i+1}`;
+      const dl = m.type === 'bloccata' ? `dl-${k}` : '';
+      jollyHtml += _inp(k, m.label, dl);
+    });
+  } catch(e) {}
+
+  const label = selInView.length > 0
+    ? `${target.length} dispositivi selezionati`
+    : `${target.length} dispositivi (tutti i filtrati)`;
+
+  document.body.insertAdjacentHTML('beforeend', `
+  <div id="am-modal" style="position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:10000;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto">
+    <div style="background:var(--bg);border-radius:var(--rad-lg);width:100%;max-width:640px;padding:20px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+        <div style="font-size:16px;font-weight:600">Aggiornamento massivo</div>
+        <button onclick="document.getElementById('am-modal').remove()" style="padding:4px 10px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text);cursor:pointer">✕</button>
+      </div>
+      <div style="font-size:13px;color:var(--text3);margin-bottom:14px">${label} — compila solo i campi da modificare</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;max-height:65vh;overflow-y:auto;padding-right:4px">
+
+        ${_sec('Identificazione')}
+        ${_inp('codice_padre',       'Codice padre',       '')}
+        ${_inp('descrizione_classe', 'Classe / Tipo',      'dl-classe')}
+        ${_inp('costruttore',        'Costruttore',        'dl-costruttore')}
+        ${_inp('modello',            'Modello',            'dl-modello')}
+        ${_inp('civab',              'CIVAB',              'dl-civab')}
+        ${_inp('verifiche',          'Verifiche',          'dl-verifiche')}
+
+        ${_sec('Ubicazione')}
+        ${_inp('presidio',       'Presidio',       'dl-presidio')}
+        ${_inp('reparto',        'Reparto',        'dl-reparto')}
+        ${_inp('nuova_area',     'Area',           'dl-area')}
+        ${_inp('sede_struttura', 'Sede struttura', 'dl-sede')}
+        ${_inp('stanza',         'Stanza',         '')}
+
+        ${_sec('Stato / Logistica')}
+        ${_inp('dettagli_stato',     'Stato',          'dl-stato')}
+        ${_inp('presenze_effettive', 'Presenze',       'dl-presenze')}
+        ${_inp('forma_presenza',     'Forma presenza', 'dl-presenza')}
+        ${_inp('manutentore',        'Manutentore',    'dl-manutentore')}
+        ${_inp('cliente',            'Cliente',        'dl-cliente')}
+        ${_inp('proprieta',          'Proprietà',      'dl-proprieta')}
+
+        ${_sec('Verifiche / Scadenze')}
+        ${_inp('periodicita_vse',  'Periodicità VSE', 'dl-periodicita')}
+        ${_date('data_ultima_vse', 'Data ultima VSE')}
+        ${_inp('esito_ultima_vse', 'Esito ultima VSE','dl-esito')}
+        ${_date('data_prossima_vse','Prossima VSE')}
+        ${_inp('periodicita_vsp',  'Periodicità VSP', 'dl-periodicita')}
+        ${_date('data_ultima_vsp', 'Data ultima VSP')}
+        ${_inp('esito_ultima_vsp', 'Esito ultima VSP','dl-esito')}
+        ${_date('data_prossima_vsp','Prossima VSP')}
+        ${_inp('periodicita_mo',   'Periodicità MO',  'dl-periodicita')}
+        ${_date('data_ultima_mo',  'Data ultima MO')}
+        ${_inp('esito_ultima_mo',  'Esito ultima MO', 'dl-esito')}
+        ${_date('data_prossima_mo','Prossima MO')}
+        ${_inp('periodicita_cq',   'Periodicità CQ',  'dl-periodicita')}
+        ${_date('data_ultima_cq',  'Data ultima CQ')}
+        ${_inp('esito_ultima_cq',  'Esito ultima CQ', 'dl-esito')}
+        ${_date('data_prossima_cq','Prossima CQ')}
+
+        ${_sec('Date')}
+        ${_date('data_fine_garanzia',     'Fine garanzia')}
+        ${_date('fine_service_comodato',  'Fine comodato')}
+        ${_date('data_collaudo',          'Data collaudo')}
+        ${_date('proposta_dismissione',   'Proposta dismissione')}
+        ${_date('dismissione_effettiva',  'Dismissione effettiva')}
+
+        ${_sec('Note')}
+        ${_inp('note_programmate', 'Note programmate', '')}
+        ${_inp('note_inventario',  'Note inventario',  '')}
+
+        ${jollyHtml ? _sec('Campi aggiuntivi') + jollyHtml : ''}
+      </div>
+      <div id="am-warn" style="display:none;padding:8px 12px;border-radius:var(--rad);font-size:13px;background:var(--ko-bg);color:var(--ko);margin-bottom:12px"></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button onclick="document.getElementById('am-modal').remove()" style="padding:7px 16px;font-size:13px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text2);cursor:pointer">Annulla</button>
+        <button onclick="amApplica()" style="padding:7px 16px;font-size:13px;font-weight:600;background:var(--info);color:#fff;border:none;border-radius:var(--rad);cursor:pointer">Applica</button>
+      </div>
+    </div>
+  </div>`);
+
+  window._amTargetCodici = target.map(r => r.codice);
+}
+
+async function amApplica() {
+  const FIELDS = [
+    'codice_padre','descrizione_classe','costruttore','modello','civab','verifiche',
+    'presidio','reparto','nuova_area','sede_struttura','stanza',
+    'dettagli_stato','presenze_effettive','forma_presenza','manutentore','cliente','proprieta',
+    'periodicita_vse','data_ultima_vse','esito_ultima_vse','data_prossima_vse',
+    'periodicita_vsp','data_ultima_vsp','esito_ultima_vsp','data_prossima_vsp',
+    'periodicita_mo','data_ultima_mo','esito_ultima_mo','data_prossima_mo',
+    'periodicita_cq','data_ultima_cq','esito_ultima_cq','data_prossima_cq',
+    'data_fine_garanzia','fine_service_comodato','data_collaudo',
+    'proposta_dismissione','dismissione_effettiva',
+    'note_programmate','note_inventario',
+    ...(Array.from({length:10},(_,i)=>`jolly_${i+1}`)),
+  ];
+
+  // Raccoglie solo i campi valorizzati
+  const patch = {};
+  for (const k of FIELDS) {
+    const val = document.getElementById('am-f-' + k)?.value?.trim();
+    if (val) patch[k] = val;
+  }
+  if (!Object.keys(patch).length) {
+    const w = document.getElementById('am-warn');
+    if (w) { w.textContent = 'Compila almeno un campo da modificare.'; w.style.display = 'block'; }
+    return;
+  }
+
+  const codici = window._amTargetCodici || [];
+  if (!codici.length) return;
+
+  const aslKey = (currentUser?.profile?.asl || 'ASL Benevento').toLowerCase().replace('asl ', '');
+  const token  = await supaToken();
+  const hdrs   = { ...supaHdrs(token), 'Prefer': 'return=minimal' };
+
+  // PATCH a batch di 100 codici
+  const BATCH = 100;
+  let errors = 0;
+  for (let i = 0; i < codici.length; i += BATCH) {
+    const slice = codici.slice(i, i + BATCH);
+    const filter = `codice=in.(${slice.map(c => encodeURIComponent(c)).join(',')})`;
+    const res = await fetch(`${SUPA_URL}/rest/v1/dispositivi_${aslKey}?${filter}`, {
+      method: 'PATCH',
+      headers: hdrs,
+      body: JSON.stringify(patch)
+    });
+    if (!res.ok) { errors++; console.error('amApplica batch error:', await res.text()); }
+    else {
+      const sliceSet = new Set(slice);
+      // Aggiorna tableData (full column names)
+      if (tableData) {
+        for (const row of tableData) {
+          if (!sliceSet.has(row.codice)) continue;
+          for (const [k, v] of Object.entries(patch)) row[k] = v;
+        }
+      }
+      // Aggiorna cache DB (short keys)
+      const KEY_MAP = {
+        presidio:'loc', reparto:'rep', nuova_area:'na', sede_struttura:'ss',
+        manutentore:'man', dettagli_stato:'ds', presenze_effettive:'pe',
+        forma_presenza:'fp', cliente:'cli', proprieta:'pro',
+      };
+      for (const cod of slice) {
+        if (!DB[cod]) continue;
+        for (const [k, v] of Object.entries(patch)) {
+          const short = KEY_MAP[k];
+          if (short) DB[cod][short] = v;
+        }
+      }
+    }
+  }
+
+  document.getElementById('am-modal')?.remove();
+  if (errors) toast(`Aggiornamento completato con ${errors} errori`, 'warn');
+  else toast(`${codici.length} dispositivi aggiornati`, 'ok');
+  renderTableView();
 }
