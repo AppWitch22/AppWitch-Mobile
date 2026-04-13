@@ -508,22 +508,25 @@ function gbRenderScadenze(dev) {
         <tr style="border-bottom:2px solid var(--border)">
           <th style="text-align:left;padding:6px 10px;color:var(--text3);font-weight:600">Tipo</th>
           <th style="text-align:left;padding:6px 10px;color:var(--text3);font-weight:600">Periodicità</th>
-          <th style="text-align:left;padding:6px 10px;color:var(--text3);font-weight:600">Ultima</th>
-          <th style="text-align:left;padding:6px 10px;color:var(--text3);font-weight:600">Verif. prec.</th>
-          <th style="text-align:left;padding:6px 10px;color:var(--text3);font-weight:600">Prossima</th>
+          <th style="text-align:left;padding:6px 10px;color:var(--text3);font-weight:600">Ultima verifica</th>
+          <th style="text-align:left;padding:6px 10px;color:var(--text3);font-weight:600">Esito ultima verifica</th>
+          <th style="text-align:left;padding:6px 10px;color:var(--text3);font-weight:600">Prossima verifica</th>
           <th style="text-align:left;padding:6px 10px;color:var(--text3);font-weight:600">Stato</th>
         </tr>
       </thead>
       <tbody>
-        ${tipi.map(t => `
+        ${tipi.map(t => {
+          const prossima = dev[t.pro] || _calcProssima(dev[t.ult], dev[t.per]);
+          return `
           <tr style="border-bottom:1px solid var(--border)">
             <td style="padding:8px 10px;font-weight:600">${t.tipo}</td>
             <td style="padding:8px 10px;color:var(--text2)">${dev[t.per] || '—'}</td>
             <td style="padding:8px 10px">${_fmt(dev[t.ult])}</td>
-            <td style="padding:8px 10px;color:var(--text2)">${_fmt(dev[t.esi]) !== '—' ? _fmt(dev[t.esi]) : (dev[t.esi] || '—')}</td>
-            <td style="padding:8px 10px">${_fmt(dev[t.pro])}</td>
-            <td style="padding:8px 10px">${_semaforo(dev[t.pro])}</td>
-          </tr>`).join('')}
+            <td style="padding:8px 10px;color:var(--text2)">${dev[t.esi] || '—'}</td>
+            <td style="padding:8px 10px">${_fmt(prossima)}</td>
+            <td style="padding:8px 10px">${_semaforo(prossima)}</td>
+          </tr>`;
+        }).join('')}
       </tbody>
     </table>`;
 }

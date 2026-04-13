@@ -926,6 +926,30 @@ async function syncSessionNow() {
   updateSyncBar(null, true);
 }
 
+// ── Helpers scadenze ─────────────────────────────────────────
+function _parsePeriodicitaMesi(val) {
+  if (!val) return null;
+  const s = String(val).toLowerCase().trim();
+  if (s === 'non prevista') return null;
+  if (/^(annuale|1\s*anno|12\s*mesi|12)$/.test(s)) return 12;
+  if (/^(semestrale|6\s*mesi|6)$/.test(s)) return 6;
+  if (/^(biennale|2\s*anni|24\s*mesi|24)$/.test(s)) return 24;
+  if (/^(trimestrale|3\s*mesi|3)$/.test(s)) return 3;
+  if (/^(quadrimestrale|4\s*mesi|4)$/.test(s)) return 4;
+  const n = parseInt(s, 10);
+  return isNaN(n) ? null : n;
+}
+
+function _calcProssima(dataUltima, periodicita) {
+  if (!dataUltima || !periodicita) return null;
+  const mesi = _parsePeriodicitaMesi(periodicita);
+  if (!mesi) return null;
+  const d = new Date(dataUltima);
+  if (isNaN(d.getTime())) return null;
+  d.setMonth(d.getMonth() + mesi);
+  return d.toISOString().split('T')[0]; // YYYY-MM-DD
+}
+
 // ── Helpers raccolta dati per tipo ───────────────────────────
 function collectVSEFromRec(rec) {
   const keys = ['data','note','ten','tdp','frq','fdp','pot','pdp','mar','fud','fur',

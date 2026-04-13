@@ -419,7 +419,20 @@ function renderAnagDetail() {
       } else if (f.ta) {
         html += `<div class="${cls}"><label>${f.l}</label><textarea id="anag-f-${f.k}" data-k="${f.k}">${_esc(String(raw))}</textarea></div>`;
       } else if (DATE_KEYS.has(f.k)) {
-        const dateVal = raw ? String(raw).substring(0,10) : '';
+        let dateVal = raw ? String(raw).substring(0,10) : '';
+        // Calcola data prossima se vuota
+        if (!dateVal) {
+          const proxMap = {
+            data_prossima_vse: ['data_ultima_vse','periodicita_vse'],
+            data_prossima_vsp: ['data_ultima_vsp','periodicita_vsp'],
+            data_prossima_mo:  ['data_ultima_mo', 'periodicita_mo'],
+            data_prossima_cq:  ['data_ultima_cq', 'periodicita_cq'],
+          };
+          if (proxMap[f.k]) {
+            const [ultKey, perKey] = proxMap[f.k];
+            dateVal = _calcProssima(d[ultKey], d[perKey]) || '';
+          }
+        }
         html += `<div class="${cls}"><label>${f.l}</label><input type="date" id="anag-f-${f.k}" data-k="${f.k}" value="${dateVal}"></div>`;
       } else if (LOOKUP_KEYS.has(f.k)) {
         const dlId   = FIELD_DL[f.k] || '';
