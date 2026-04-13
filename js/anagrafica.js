@@ -421,23 +421,27 @@ function renderAnagDetail() {
       } else if (DATE_KEYS.has(f.k)) {
         let dateVal = raw ? String(raw).substring(0,10) : '';
         // Calcola data prossima se vuota
-        if (!dateVal) {
-          const proxMap = {
-            data_prossima_vse: ['data_ultima_vse','periodicita_vse'],
-            data_prossima_vsp: ['data_ultima_vsp','periodicita_vsp'],
-            data_prossima_mo:  ['data_ultima_mo', 'periodicita_mo'],
-            data_prossima_cq:  ['data_ultima_cq', 'periodicita_cq'],
-          };
-          if (proxMap[f.k]) {
-            const [ultKey, perKey] = proxMap[f.k];
-            dateVal = _calcProssima(d[ultKey], d[perKey]) || '';
-          }
+        const proxMap = {
+          data_prossima_vse: ['data_ultima_vse','periodicita_vse'],
+          data_prossima_vsp: ['data_ultima_vsp','periodicita_vsp'],
+          data_prossima_mo:  ['data_ultima_mo', 'periodicita_mo'],
+          data_prossima_cq:  ['data_ultima_cq', 'periodicita_cq'],
+        };
+        if (!dateVal && proxMap[f.k]) {
+          const [ultKey, perKey] = proxMap[f.k];
+          dateVal = _calcProssima(d[ultKey], d[perKey]) || '';
         }
-        html += `<div class="${cls}"><label>${f.l}</label><input type="date" id="anag-f-${f.k}" data-k="${f.k}" value="${dateVal}"></div>`;
+        // Campi data_ultima_* aggiornano la prossima al cambio
+        const tipoUlt = f.k.match(/^data_ultima_(\w+)$/)?.[1];
+        const oiUlt   = tipoUlt ? ` oninput="anagUpdateProssima('${tipoUlt}')"` : '';
+        html += `<div class="${cls}"><label>${f.l}</label><input type="date" id="anag-f-${f.k}" data-k="${f.k}" value="${dateVal}"${oiUlt}></div>`;
       } else if (LOOKUP_KEYS.has(f.k)) {
         const dlId   = FIELD_DL[f.k] || '';
         const listAttr = dlId ? ` list="${dlId}"` : '';
-        const oiAttr   = f.k === 'costruttore' ? ` oninput="updateModelloDatalist(this.value)"` : '';
+        const tipoPeriodicita = f.k.match(/^periodicita_(\w+)$/)?.[1];
+        const oiAttr = f.k === 'costruttore'
+          ? ` oninput="updateModelloDatalist(this.value)"`
+          : tipoPeriodicita ? ` oninput="anagUpdateProssima('${tipoPeriodicita}')"` : '';
         const addBtn   = can('lookup_write')
           ? `<button type="button" onclick="anagAddLookupValue('${f.k}','${_esc(f.l)}')" title="Aggiungi nuovo valore" style="flex-shrink:0;padding:0 10px;height:38px;font-size:18px;font-weight:600;border:1.5px solid var(--border2);border-radius:var(--rad);background:var(--bg3);color:var(--info);cursor:pointer;line-height:1">+</button>`
           : '';
@@ -1641,4 +1645,14 @@ async function smApplica() {
   if (errors) toast(`Sostituzione completata con ${errors} errori`, 'warn');
   else toast(`${codici.length} record aggiornati`, 'ok');
   renderTableView();
+}
+
+// ── Ricalcolo dinamico data prossima nel modal anagrafica ─────
+function anagUpdateProssima(tipo) {
+  const ultEl = document.getElementById(`anag-f-data_ultima_${tipo}`);
+  const perEl = document.getElementById(`anag-f-periodicita_${tipo}`);
+  const proEl = document.getElementById(`anag-f-data_prossima_${tipo}`);
+  if (!ultEl || !perEl || !proEl) return;
+  const calcolata = _calcProssima(ultEl.value, perEl.value);
+  if (calcolata) proEl.value = calcolata;
 }
