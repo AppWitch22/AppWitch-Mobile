@@ -947,6 +947,9 @@ function _tblRenderSlice(wrap, force = false) {
 
   topEl.firstChild.style.height = (startIdx * TBL_ROW_H) + 'px';
   botEl.firstChild.style.height = ((total - endIdx) * TBL_ROW_H) + 'px';
+  // Ripristina scrollTop: alcune implementazioni browser lo aggiustano
+  // automaticamente quando cambia l'altezza dei placeholder
+  if (wrap.scrollTop !== scrollTop) wrap.scrollTop = scrollTop;
 
   let html = '';
   for (let i = startIdx; i < endIdx; i++) {
