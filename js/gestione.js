@@ -507,7 +507,35 @@ async function gbLoadStorico() {
     if (row.tipo==='CQ')  s.CQ ={esito,ok};
   });
 
-  const all = [...Object.values(sessMap), ...Object.values(storMap)]
+  // data_ultima_* dal DB (gbFullDev) → righe sintetiche se la data non è già presente
+  const dbRows = [];
+  const dev = gbFullDev || {};
+  const tipiDB = [
+    { tipo:'VSE', kData:'data_ultima_vse', kEsito:'esito_ultima_vse' },
+    { tipo:'VSP', kData:'data_ultima_vsp', kEsito:'esito_ultima_vsp' },
+    { tipo:'MO',  kData:'data_ultima_mo',  kEsito:'esito_ultima_mo'  },
+    { tipo:'CQ',  kData:'data_ultima_cq',  kEsito:'esito_ultima_cq'  },
+  ];
+  // Raccogli tutte le date già presenti (storico + app)
+  const dateGiaPresenti = new Set();
+  [...Object.values(sessMap), ...Object.values(storMap)].forEach(r => { if (r._date) dateGiaPresenti.add(r._date); });
+  // Raggruppa le date DB per data
+  const dbMap = {};
+  tipiDB.forEach(({ tipo, kData, kEsito }) => {
+    const d = dev[kData] ? String(dev[kData]).substring(0,10) : null;
+    if (!d) return;
+    if (!dbMap[d]) dbMap[d] = { _source:'db', _date:d, data:_fmt(d), nome:'—', VSE:null, MP:null, VSP:null, CQ:null };
+    const esito = dev[kEsito] || '✓';
+    const ok = String(esito).toLowerCase()==='positivo' ? true : String(esito).toLowerCase()==='negativo' ? false : null;
+    const k = tipo === 'MO' ? 'MP' : tipo;
+    dbMap[d][k] = { esito, ok };
+  });
+  // Aggiungi solo le date che non compaiono già nello storico/app
+  Object.values(dbMap).forEach(row => {
+    if (!dateGiaPresenti.has(row._date)) dbRows.push(row);
+  });
+
+  const all = [...Object.values(sessMap), ...Object.values(storMap), ...dbRows]
     .sort((a,b) => (b._date||'').localeCompare(a._date||''));
 
   if (!all.length) {
@@ -519,6 +547,8 @@ async function gbLoadStorico() {
   const rows_html = all.map(row => {
     const fonte = row._source === 'storico'
       ? '<span style="font-size:11px;color:var(--text3);background:var(--bg3);padding:1px 6px;border-radius:8px">storico</span>'
+      : row._source === 'db'
+      ? '<span style="font-size:11px;color:var(--text2);background:var(--bg3);padding:1px 6px;border-radius:8px">anagrafica</span>'
       : '<span style="font-size:11px;color:var(--info);background:var(--info-bg);padding:1px 6px;border-radius:8px">app</span>';
     return `<tr style="border-bottom:1px solid var(--border)">
       <td style="padding:8px 10px;white-space:nowrap;color:var(--text)">${row.data}</td>
