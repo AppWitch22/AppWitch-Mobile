@@ -795,6 +795,8 @@ let _tblRows      = [];      // righe filtrate/ordinate correnti (cache)
 let _tblCols      = [];      // colonne visibili correnti (cache)
 let _tblRaf       = null;    // requestAnimationFrame handle
 let _tblSearchTm  = null;    // debounce handle per la ricerca
+let _tblSliceStart = -1;     // ultima slice renderizzata — evita loop scroll
+let _tblSliceEnd   = -1;
 
 function _getTblCols() {
   const jmeta = getJollyMeta();
@@ -918,11 +920,12 @@ function renderTableView() {
     _tblRaf = requestAnimationFrame(() => _tblRenderSlice(wrap));
   };
   wrap.addEventListener('scroll', wrap._tblScrollFn);
+  _tblSliceStart = -1; _tblSliceEnd = -1;
   wrap.scrollTop = 0;
-  _tblRenderSlice(wrap);
+  _tblRenderSlice(wrap, true);
 }
 
-function _tblRenderSlice(wrap) {
+function _tblRenderSlice(wrap, force = false) {
   const rows = _tblRows, cols = _tblCols;
   const total = rows.length;
   const tbody = document.getElementById('tbl-tbody');
@@ -936,6 +939,11 @@ function _tblRenderSlice(wrap) {
   const viewH     = wrap.clientHeight || 500;
   const startIdx  = Math.max(0,     Math.floor(scrollTop / TBL_ROW_H) - TBL_BUFFER);
   const endIdx    = Math.min(total, Math.ceil((scrollTop + viewH) / TBL_ROW_H) + TBL_BUFFER);
+
+  // Evita loop: se la slice non è cambiata, non aggiornare il DOM
+  if (!force && startIdx === _tblSliceStart && endIdx === _tblSliceEnd) return;
+  _tblSliceStart = startIdx;
+  _tblSliceEnd   = endIdx;
 
   topEl.firstChild.style.height = (startIdx * TBL_ROW_H) + 'px';
   botEl.firstChild.style.height = ((total - endIdx) * TBL_ROW_H) + 'px';
@@ -980,7 +988,7 @@ function tblToggleAll(checked) {
   else _tblRows.forEach(r => tableSelected.delete(r.codice));
   // aggiorna solo la slice visibile, non ricostruisce l'intera struttura
   const wrap = document.getElementById('tbl-table-wrap');
-  if (wrap) _tblRenderSlice(wrap);
+  if (wrap) _tblRenderSlice(wrap, true);
   const selCount = _tblRows.filter(r => tableSelected.has(r.codice)).length;
   document.getElementById('tbl-sel-count').textContent = selCount > 0 ? `${selCount} selezionati` : '';
   document.getElementById('btn-crea-sess-tbl').disabled = selCount === 0;
