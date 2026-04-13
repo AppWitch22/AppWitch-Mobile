@@ -384,7 +384,7 @@ function renderAnagDetail() {
   });
 
   // Converti data ISO → gg/mm/aaaa per la visualizzazione
-  const _fmtDate = v => { const m=String(v||'').match(/^(\d{4})-(\d{2})-(\d{2})/); return m?`${m[3]}/${m[2]}/${m[1]}`:v||''; };
+  const _fmtDate = v => _fmtDateIT(v);
 
   const _jollyField = jf => {
     const k          = 'jolly_'+jf.idx;

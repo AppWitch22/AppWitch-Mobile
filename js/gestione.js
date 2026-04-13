@@ -105,7 +105,7 @@ function gbRenderDati(dev, editMode) {
   if (!dev) return '<div style="padding:24px;text-align:center;color:var(--text3)">Nessun dato</div>';
 
   const jmeta = getJollyMeta();
-  const _fmtDate = v => { const m = String(v || '').match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? `${m[3]}/${m[2]}/${m[1]}` : v || ''; };
+  const _fmtDate = v => _fmtDateIT(v);
 
   // Jolly con etichetta, raggruppati per sezione
   const jollyBySection = {};
@@ -470,7 +470,7 @@ async function gbLoadStorico() {
   const appRows  = rApp.ok  ? await rApp.json()  : [];
   const storRows = rStor.ok ? await rStor.json() : [];
 
-  const _fmt = v => v ? new Date(v).toLocaleDateString('it-IT', { day:'2-digit', month:'2-digit', year:'numeric' }) : '—';
+  const _fmt = v => _fmtDateIT(v) || '—';
   const _badge = (ok, label) => {
     if (!label) return '<span style="color:var(--text3);font-size:12px">—</span>';
     const col = ok === true ? 'var(--ok)' : ok === false ? 'var(--ko)' : 'var(--info)';
@@ -596,7 +596,7 @@ function gbRenderScadenze(dev) {
     if (diff < 30) return '<span style="color:var(--warn)" title="Entro 30 giorni">● &lt;30gg</span>';
     return '<span style="color:var(--ok)">●</span>';
   };
-  const _fmt = v => { const m = String(v || '').match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? `${m[3]}/${m[2]}/${m[1]}` : '—'; };
+  const _fmt = v => _fmtDateIT(v) || '—';
 
   const tipi = [
     { tipo: 'VSE', per: 'periodicita_vse', ult: 'data_ultima_vse', esi: 'esito_ultima_vse', pro: 'data_prossima_vse' },

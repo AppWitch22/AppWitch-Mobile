@@ -323,7 +323,14 @@ async function exportDatabaseDispositivi() {
     const out = {};
     for (const [k, v] of Object.entries(r)) {
       if (SKIP_EXPORT.has(k)) continue;
-      out[jollyKeyToLabel[k] ?? k] = v;
+      const colName = jollyKeyToLabel[k] ?? k;
+      // Converti date in formato leggibile "12-mar-2026"
+      if (DATE_KEYS.has(k) && v) {
+        const iso = _toISODate(String(v));
+        out[colName] = iso ? _fmtDateIT(iso) : v;
+      } else {
+        out[colName] = v;
+      }
     }
     return out;
   });
@@ -435,6 +442,11 @@ async function importDatabaseDispositivi(input) {
         if (/^\d+$/.test(s)) {
           const n = parseInt(s, 10);
           if (n > 30000 && n < 70000) { obj[k] = xlsxDateToISO(n); continue; }
+        }
+        // Colonne data: normalizza qualsiasi formato (GG/MM/AAAA, DD-mmm-YYYY, ISO) → ISO
+        if (DATE_KEYS.has(k)) {
+          const iso = _toISODate(s);
+          obj[k] = iso; continue;
         }
         // Codici con zeri iniziali a 7 cifre
         if ((k === 'codice' || k === 'codice_padre') && /^\d+$/.test(s)) {

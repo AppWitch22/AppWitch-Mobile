@@ -926,6 +926,55 @@ async function syncSessionNow() {
   updateSyncBar(null, true);
 }
 
+// ── Helper formato data italiano ─────────────────────────────
+const _MESI_IT = ['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'];
+const _MESI_IT_NUM = { gen:1,feb:2,mar:3,apr:4,mag:5,giu:6,lug:7,ago:8,set:9,ott:10,nov:11,dic:12 };
+
+// Converte qualsiasi formato data in "12-mar-2026"
+function _fmtDateIT(v) {
+  if (!v) return '';
+  const s = String(v).trim();
+  let d;
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) {
+    // ISO: YYYY-MM-DD
+    const [y,m,dd] = s.substring(0,10).split('-');
+    d = new Date(+y, +m-1, +dd);
+  } else {
+    const mITA = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (mITA) d = new Date(+mITA[3], +mITA[2]-1, +mITA[1]);
+    const mDD  = s.match(/^(\d{1,2})-([a-z]{3})-(\d{4})$/i);
+    if (mDD) {
+      const mo = _MESI_IT_NUM[mDD[2].toLowerCase()];
+      if (mo) d = new Date(+mDD[3], mo-1, +mDD[1]);
+    }
+  }
+  if (!d || isNaN(d)) return s;
+  return `${String(d.getDate()).padStart(2,'0')}-${_MESI_IT[d.getMonth()]}-${d.getFullYear()}`;
+}
+
+// Converte qualsiasi formato data in ISO YYYY-MM-DD (per Supabase)
+function _toISODate(v) {
+  if (!v) return null;
+  const s = String(v).trim();
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.substring(0,10);
+  const mITA = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (mITA) return `${mITA[3]}-${mITA[2].padStart(2,'0')}-${mITA[1].padStart(2,'0')}`;
+  const mDD  = s.match(/^(\d{1,2})-([a-z]{3})-(\d{4})$/i);
+  if (mDD) {
+    const mo = _MESI_IT_NUM[mDD[2].toLowerCase()];
+    if (mo) return `${mDD[3]}-${String(mo).padStart(2,'0')}-${mDD[1].padStart(2,'0')}`;
+  }
+  // Seriale Excel numerico
+  if (/^\d+$/.test(s)) {
+    const n = parseInt(s, 10);
+    if (n > 30000 && n < 70000) {
+      const d = new Date(Math.round((n - 25569) * 86400 * 1000));
+      if (!isNaN(d)) return d.toISOString().split('T')[0];
+    }
+  }
+  return null;
+}
+
 // ── Helpers scadenze ─────────────────────────────────────────
 function _parsePeriodicitaMesi(val) {
   if (!val) return null;
