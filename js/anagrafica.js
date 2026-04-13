@@ -948,7 +948,9 @@ function _tblRenderSlice(wrap) {
     html += `<td class="tbl-td-chk"><input type="checkbox"${sel?' checked':''} onclick="event.stopPropagation();tblToggleRow('${_esc(row.codice)}',this.checked)"></td>`;
     for (const c of cols) {
       const raw = row[c.k] || '';
-      const disp = DATE_KEYS.has(c.k) ? (_fmtDateIT(raw) || raw) : raw;
+      const disp = (DATE_KEYS.has(c.k) || c.k.startsWith('jolly_'))
+        ? (_fmtDateIT(raw) || raw)
+        : raw;
       html += `<td class="tbl-td" title="${_esc(disp)}">${_esc(disp)}</td>`;
     }
     html += '</tr>';

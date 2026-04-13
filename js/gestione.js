@@ -199,7 +199,8 @@ function gbRenderDati(dev, editMode) {
   const _jollyField = jf => {
     const m          = jmeta[jf.idx - 1];
     const isBloccata = m?.type === 'bloccata';
-    const val        = dev[jf.key] != null ? String(dev[jf.key]) : '';
+    const rawVal     = dev[jf.key] != null ? String(dev[jf.key]) : '';
+    const val        = _fmtDateIT(rawVal) || rawVal;
     const cls        = 'anag-field';
     if (!editMode) return `<div class="${cls}"><label>${_esc(jf.label)}</label><div class="gb-field-val">${_esc(val)}</div></div>`;
     if (isBloccata) {
