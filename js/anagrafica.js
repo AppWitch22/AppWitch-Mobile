@@ -1182,7 +1182,7 @@ function deleteTblView(i) {
 
 function saveTableColConfig() {
   const uid = currentUser?.id || 'guest';
-  localStorage.setItem('tbl_cfg_'+uid, JSON.stringify({hidden:[...tableHiddenCols], views:tableViews}));
+  localStorage.setItem('tbl_cfg_'+uid, JSON.stringify({v:2, hidden:[...tableHiddenCols], views:tableViews}));
 }
 
 function loadTableColConfig() {
@@ -1191,6 +1191,12 @@ function loadTableColConfig() {
     const cfg = JSON.parse(localStorage.getItem('tbl_cfg_'+uid)||'{}');
     tableHiddenCols = new Set(cfg.hidden || []);
     tableViews = cfg.views || [];
+    // Migrazione v2: con la logica jolly-fantasma le jolly_N precedentemente
+    // nascoste potrebbero essere ora etichettate → reset visibilità jolly una tantum
+    if (!cfg.v || cfg.v < 2) {
+      for (let i = 1; i <= 22; i++) tableHiddenCols.delete('jolly_'+i);
+      saveTableColConfig();
+    }
   } catch { tableHiddenCols = new Set(); tableViews = []; }
 }
 
