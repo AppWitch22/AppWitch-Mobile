@@ -1414,3 +1414,218 @@ async function amApplica() {
   else toast(`${codici.length} dispositivi aggiornati`, 'ok');
   renderTableView();
 }
+
+// ── SOSTITUZIONE MASSIVA ──────────────────────────────────────
+
+const SM_FIELDS = [
+  {k:'codice_padre',        l:'Codice padre'},
+  {k:'descrizione_classe',  l:'Classe / Tipo'},
+  {k:'costruttore',         l:'Costruttore'},
+  {k:'modello',             l:'Modello'},
+  {k:'civab',               l:'CIVAB'},
+  {k:'verifiche',           l:'Verifiche'},
+  {k:'presidio',            l:'Presidio'},
+  {k:'reparto',             l:'Reparto'},
+  {k:'nuova_area',          l:'Area'},
+  {k:'sede_struttura',      l:'Sede struttura'},
+  {k:'stanza',              l:'Stanza'},
+  {k:'dettagli_stato',      l:'Stato'},
+  {k:'presenze_effettive',  l:'Presenze'},
+  {k:'forma_presenza',      l:'Forma presenza'},
+  {k:'manutentore',         l:'Manutentore'},
+  {k:'cliente',             l:'Cliente'},
+  {k:'proprieta',           l:'Proprietà'},
+  {k:'periodicita_vse',     l:'Periodicità VSE'},
+  {k:'esito_ultima_vse',    l:'Esito ultima VSE'},
+  {k:'periodicita_vsp',     l:'Periodicità VSP'},
+  {k:'esito_ultima_vsp',    l:'Esito ultima VSP'},
+  {k:'periodicita_mo',      l:'Periodicità MO'},
+  {k:'esito_ultima_mo',     l:'Esito ultima MO'},
+  {k:'periodicita_cq',      l:'Periodicità CQ'},
+  {k:'esito_ultima_cq',     l:'Esito ultima CQ'},
+  {k:'note_programmate',    l:'Note programmate'},
+  {k:'note_inventario',     l:'Note inventario'},
+];
+
+function openSostMassiva() {
+  if (!can('aggiornamento_massivo')) return;
+  document.getElementById('sm-modal')?.remove();
+
+  // Aggiungi jolly configurate
+  const fields = [...SM_FIELDS];
+  try {
+    getJollyMeta().forEach((m, i) => {
+      if (m.label) fields.push({ k: `jolly_${i+1}`, l: m.label });
+    });
+  } catch(e) {}
+
+  const opts = fields.map(f => `<option value="${f.k}">${_esc(f.l)}</option>`).join('');
+
+  document.body.insertAdjacentHTML('beforeend', `
+  <div id="sm-modal" style="position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:10000;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto">
+    <div style="background:var(--bg);border-radius:var(--rad-lg);width:100%;max-width:480px;padding:20px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <div style="font-size:16px;font-weight:600">Sostituzione massiva</div>
+        <button onclick="document.getElementById('sm-modal').remove()" style="padding:4px 10px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text);cursor:pointer">✕</button>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:16px">
+        <div style="display:flex;flex-direction:column;gap:3px">
+          <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text3)">Campo</label>
+          <select id="sm-campo" onchange="smUpdatePreview()" style="padding:8px 10px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text);font-size:14px">
+            <option value="">— seleziona —</option>
+            ${opts}
+          </select>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:3px">
+          <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text3)">Valore attuale</label>
+          <input id="sm-da" type="text" list="sm-dl-da" oninput="smUpdatePreview()" autocomplete="off"
+            style="padding:8px 10px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text);font-size:14px"
+            placeholder="Valore da sostituire">
+          <datalist id="sm-dl-da"></datalist>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:3px">
+          <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text3)">Nuovo valore</label>
+          <input id="sm-a" type="text" list="sm-dl-a" autocomplete="off"
+            oninput="smValidateNuovo()"
+            style="padding:8px 10px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text);font-size:14px"
+            placeholder="Nuovo valore">
+          <datalist id="sm-dl-a"></datalist>
+          <div id="sm-a-err" style="display:none;font-size:11px;color:var(--ko);margin-top:2px">Valore non presente nelle liste configurate</div>
+        </div>
+      </div>
+      <div id="sm-preview" style="padding:10px 12px;border-radius:var(--rad);background:var(--bg3);border:1px solid var(--border);font-size:13px;color:var(--text3);margin-bottom:14px;min-height:36px">
+        Seleziona campo e valore attuale per vedere l'anteprima.
+      </div>
+      <div id="sm-warn" style="display:none;padding:8px 12px;border-radius:var(--rad);font-size:13px;background:var(--ko-bg);color:var(--ko);margin-bottom:12px"></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button onclick="document.getElementById('sm-modal').remove()" style="padding:7px 16px;font-size:13px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text2);cursor:pointer">Annulla</button>
+        <button id="sm-btn-applica" onclick="smApplica()" disabled
+          style="padding:7px 16px;font-size:13px;font-weight:600;background:var(--info);color:#fff;border:none;border-radius:var(--rad);cursor:pointer;opacity:.5">
+          Sostituisci
+        </button>
+      </div>
+    </div>
+  </div>`);
+}
+
+function smValidateNuovo() {
+  const campo = document.getElementById('sm-campo')?.value;
+  const a     = document.getElementById('sm-a')?.value?.trim();
+  const err   = document.getElementById('sm-a-err');
+  const input = document.getElementById('sm-a');
+  if (!err || !input) return;
+  if (!a || !campo) {
+    err.style.display = 'none'; input.style.borderColor = ''; return;
+  }
+  // Valori validi = tutti i valori non vuoti presenti nel DB per quel campo
+  const validVals = new Set((tableData || []).map(r => r[campo] ?? '').filter(Boolean));
+  const valid = validVals.size === 0 || validVals.has(a);
+  err.style.display       = valid ? 'none' : 'block';
+  input.style.borderColor = valid ? '' : 'var(--ko)';
+}
+
+function smUpdatePreview() {
+  const campo   = document.getElementById('sm-campo')?.value;
+  const da      = document.getElementById('sm-da')?.value;
+  const btn     = document.getElementById('sm-btn-applica');
+  const preview = document.getElementById('sm-preview');
+
+  // Popola datalist con valori unici del campo dalle righe visibili
+  if (campo) {
+    const rows = _tblRows || [];
+    const vals = [...new Set(rows.map(r => r[campo] ?? ''))].sort();
+    const dlDa = document.getElementById('sm-dl-da');
+    if (dlDa) dlDa.innerHTML = vals.map(v => `<option value="${_esc(v)}">`).join('');
+    const dlA  = document.getElementById('sm-dl-a');
+    if (dlA) {
+      const allVals = [...new Set((tableData || []).map(r => r[campo] ?? '').filter(Boolean))].sort();
+      dlA.innerHTML = allVals.map(v => `<option value="${_esc(v)}">`).join('');
+    }
+  }
+
+  if (!campo || da === '' || da === undefined || da === null) {
+    if (preview) preview.innerHTML = 'Seleziona campo e valore attuale per vedere l\'anteprima.';
+    if (btn) { btn.disabled = true; btn.style.opacity = '.5'; }
+    return;
+  }
+
+  // Conta nelle righe visibili (filtrate)
+  const rows  = _tblRows || [];
+  const match = rows.filter(r => (r[campo] ?? '') === da);
+  if (preview) {
+    const daLabel = da === '' ? '(vuoto)' : `"${_esc(da)}"`;
+    preview.innerHTML = match.length > 0
+      ? `<span style="color:var(--text);font-weight:600">${match.length}</span> <span style="color:var(--text2)">dei ${rows.length} dispositivi visibili hanno il valore ${daLabel} nel campo <strong>${_esc(campo)}</strong></span>`
+      : `<span style="color:var(--text3)">Nessun record visibile con questo valore.</span>`;
+  }
+  if (btn) { btn.disabled = match.length === 0; btn.style.opacity = match.length > 0 ? '1' : '.5'; }
+  window._smMatchCodici = match.map(r => r.codice);
+}
+
+async function smApplica() {
+  const campo = document.getElementById('sm-campo')?.value;
+  const da    = document.getElementById('sm-da')?.value;
+  const a     = document.getElementById('sm-a')?.value?.trim() ?? '';
+  const warn  = document.getElementById('sm-warn');
+
+  if (!campo || da === undefined || da === null) {
+    if (warn) { warn.textContent = 'Seleziona campo e valore attuale.'; warn.style.display = 'block'; } return;
+  }
+  if (da === a) {
+    if (warn) { warn.textContent = 'Il nuovo valore è uguale a quello attuale.'; warn.style.display = 'block'; } return;
+  }
+  if (a) {
+    const validVals = new Set((tableData || []).map(r => r[campo] ?? '').filter(Boolean));
+    if (validVals.size > 0 && !validVals.has(a)) {
+      if (warn) { warn.textContent = 'Nuovo valore non presente nel database.'; warn.style.display = 'block'; } return;
+    }
+  }
+
+  const codici = window._smMatchCodici || [];
+  if (!codici.length) return;
+
+  const daLabel = da === '' ? '(vuoto)' : `"${da}"`;
+  const aLabel  = a  === '' ? '(vuoto)' : `"${a}"`;
+  if (!confirm(`Sostituire ${daLabel} con ${aLabel} in ${codici.length} record?\n\nCampo: ${campo}\n\nL'operazione non può essere annullata.`)) return;
+
+  const aslKey = (currentUser?.profile?.asl || 'ASL Benevento').toLowerCase().replace('asl ', '');
+  const token  = await supaToken();
+  const hdrs   = { ...supaHdrs(token), 'Prefer': 'return=minimal' };
+  const newVal = a === '' ? null : a;
+
+  // PATCH a batch di 100 codici
+  const BATCH = 100;
+  let errors = 0;
+  for (let i = 0; i < codici.length; i += BATCH) {
+    const slice  = codici.slice(i, i + BATCH);
+    const filter = `codice=in.(${slice.map(c => encodeURIComponent(c)).join(',')})`;
+    const res = await fetch(`${SUPA_URL}/rest/v1/dispositivi_${aslKey}?${filter}`, {
+      method: 'PATCH', headers: hdrs, body: JSON.stringify({ [campo]: newVal })
+    });
+    if (!res.ok) { errors++; console.error('smApplica batch error:', await res.text()); continue; }
+    // Aggiorna tableData e DB cache
+    const sliceSet = new Set(slice);
+    if (tableData) {
+      for (const row of tableData) {
+        if (sliceSet.has(row.codice)) row[campo] = newVal;
+      }
+    }
+    const KEY_MAP = {
+      descrizione_classe:'n', costruttore:'b', modello:'m', presidio:'loc',
+      reparto:'rep', nuova_area:'na', sede_struttura:'ss', manutentore:'man',
+      dettagli_stato:'ds', presenze_effettive:'pe', forma_presenza:'fp',
+      verifiche:'ver', civab:'civ',
+    };
+    const short = KEY_MAP[campo];
+    if (short) {
+      for (const cod of slice) {
+        if (DB[cod]) DB[cod][short] = newVal || '';
+      }
+    }
+  }
+
+  document.getElementById('sm-modal')?.remove();
+  if (errors) toast(`Sostituzione completata con ${errors} errori`, 'warn');
+  else toast(`${codici.length} record aggiornati`, 'ok');
+  renderTableView();
+}

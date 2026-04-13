@@ -672,6 +672,8 @@ async function showApp() {
   if (listBtn) listBtn.style.display = can('lookup_write') ? '' : 'none';
   const amBtn = document.getElementById('btn-agg-massivo');
   if (amBtn) amBtn.style.display = can('aggiornamento_massivo') ? '' : 'none';
+  const smBtn = document.getElementById('btn-sost-massiva');
+  if (smBtn) smBtn.style.display = can('aggiornamento_massivo') ? '' : 'none';
   // Sidebar: mostra/nascondi voci in base ai permessi
   const sbShow = (id, flag) => {
     const el = document.getElementById(id);
