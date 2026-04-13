@@ -797,9 +797,13 @@ let _tblRaf       = null;    // requestAnimationFrame handle
 let _tblSearchTm  = null;    // debounce handle per la ricerca
 
 function _getTblCols() {
-  const jl = getJollyLabels();
+  const jmeta = getJollyMeta();
   const cols = [...TBL_COLS];
-  for (let i=1;i<=22;i++) cols.push({k:'jolly_'+i, l:jl[i-1]||`Jolly ${i}`, w:100});
+  jmeta.forEach((m, idx) => {
+    // Colonne jolly senza etichetta personalizzata → fantasma (non mostrate in tabella)
+    const isDefault = /^jolly\s*\d*\s*\??$/i.test(m.label.trim());
+    if (!isDefault) cols.push({k:'jolly_'+(idx+1), l:m.label, w:100});
+  });
   return cols;
 }
 
