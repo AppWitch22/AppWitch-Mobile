@@ -70,7 +70,7 @@ async function initDB(){
     const {data:{session}}=await supa.auth.getSession();
     const token=session?.access_token;
     const resp=await fetch(
-      `${SUPA_URL}/rest/v1/${tabella}?select=codice,descrizione_classe,costruttore,modello,matricola,presidio,reparto,sede_struttura,codice_padre,nuova_area,presenze_effettive,verifiche,dettagli_stato,forma_presenza,manutentore,civab&limit=10000`,
+      `${SUPA_URL}/rest/v1/${tabella}?select=codice,descrizione_classe,costruttore,modello,matricola,presidio,reparto,sede_struttura,codice_padre,nuova_area,presenze_effettive,verifiche,dettagli_stato,forma_presenza,manutentore,civab,data_ultima_vse&limit=10000`,
       {headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+token}}
     );
     if(!resp.ok)throw new Error('HTTP '+resp.status);
@@ -94,7 +94,8 @@ async function initDB(){
         fp:r.forma_presenza||'',
         man:r.manutentore||'',
         ver:r.verifiche||'',
-        civ:r.civab||''
+        civ:r.civab||'',
+        data_ultima_vse:r.data_ultima_vse||null
       };
       if(r.verifiche){
         const parts=r.verifiche.split(',').map(s=>s.trim());
@@ -686,6 +687,8 @@ async function showApp() {
   sbShow('sb-nav-tabella',    can('anagrafica_read'));
   sbShow('sb-nav-archivio',   can('archivio_cloud'));
   sbShow('bnav-archivio',     can('archivio_cloud'));
+  sbShow('btn-data-ultima',   can('data_ultima_verifica'));
+  sbShow('btn-data-ultima-m', can('data_ultima_verifica'));
   // Bottoni preset personali: visibili solo a chi ha preset_edit_personal
   if (!can('preset_edit_personal')) {
     ['btn-salva-preset','btn-carica-preset','btn-salva-preset-m','btn-carica-preset-m'].forEach(id => {
@@ -707,7 +710,7 @@ async function doLogout() {
   const lErr = document.getElementById('l-err');
   if (lErr) lErr.style.display = 'none';
   // Nascondi bottoni sidebar ruolo-dipendenti
-  ['sb-btn-admin','sb-btn-gestione-db','sb-btn-liste'].forEach(id => {
+  ['sb-btn-admin','sb-btn-gestione-db','sb-btn-liste','btn-data-ultima','btn-data-ultima-m'].forEach(id => {
     const el = document.getElementById(id); if (el) el.style.display = 'none';
   });
   // Nascondi home e tutte le sezioni
@@ -744,6 +747,7 @@ let currentSessionDate  = null;   // Data verifica della sessione attiva (YYYY-M
 let attesi = new Set();         // codici dispositivi attesi nella sessione corrente
 let syncPending = false;        // ci sono modifiche da sincronizzare
 let syncTimer   = null;         // timer auto-save
+let useDataUltimaVerifica = false; // se true, usa data_ultima_vse di ogni dispositivo come data verifica
 
 // ── Helpers Supabase ─────────────────────────────────────────
 async function supaToken() {
@@ -807,6 +811,8 @@ async function activateSession(id, titolo, dataVerifica) {
   Object.keys(saved).forEach(k => delete saved[k]);
   attesi = new Set();
   cur = null; curVerif = null;
+  useDataUltimaVerifica = false;
+  _updateDataUltimaBtn();
   document.getElementById('form-area').style.display = 'none';
   currentSessionId    = id;
   currentSessionTitle = titolo || null;
@@ -1078,6 +1084,61 @@ function scheduleSync() {
   updateSyncBar(null, null);
   if (syncTimer) clearTimeout(syncTimer);
   syncTimer = setTimeout(() => syncSessionNow(), 3000);
+}
+
+// ── Toggle: usa data ultima verifica vs data sessione ─────────
+function toggleDataUltimaVerifica() {
+  if (!currentSessionId) { toast('Carica prima una sessione', 'warn'); return; }
+  useDataUltimaVerifica = !useDataUltimaVerifica;
+
+  // Applica/ripristina date per tutti i dispositivi già in saved
+  let countSet = 0, countNoDate = 0;
+  Object.keys(saved).forEach(cod => {
+    const d = DB[cod];
+    if (!d) return;
+    if (useDataUltimaVerifica) {
+      if (d.data_ultima_vse) { saved[cod].data = d.data_ultima_vse; countSet++; }
+      else countNoDate++;
+    } else {
+      saved[cod].data = currentSessionDate || '';
+    }
+  });
+
+  // Se c'è un dispositivo aperto aggiorna subito il campo f-data
+  if (cur) {
+    const d = DB[cur.c];
+    const val = (useDataUltimaVerifica && d?.data_ultima_vse)
+      ? d.data_ultima_vse
+      : (currentSessionDate || '');
+    const el = document.getElementById('f-data');
+    if (el) el.value = val;
+  }
+
+  _updateDataUltimaBtn();
+  scheduleSync();
+
+  if (useDataUltimaVerifica) {
+    const msg = countSet > 0
+      ? `Date impostate: ${countSet} disp.${countNoDate > 0 ? ', ' + countNoDate + ' senza data ultima' : ''}`
+      : 'Nessun dispositivo già compilato — verrà applicato all\'apertura';
+    toast(msg, 'ok');
+  } else {
+    toast('Ripristinata data sessione', 'ok');
+  }
+}
+
+function _updateDataUltimaBtn() {
+  ['btn-data-ultima', 'btn-data-ultima-m'].forEach(id => {
+    const btn = document.getElementById(id);
+    if (!btn) return;
+    if (useDataUltimaVerifica) {
+      btn.classList.add('active-mode');
+      btn.title = 'Usa data sessione (attualmente: date ultime verifiche)';
+    } else {
+      btn.classList.remove('active-mode');
+      btn.title = 'Imposta date ultime verifiche per tutti i dispositivi';
+    }
+  });
 }
 
 // ── Aggiungi dispositivi attesi alla sessione corrente ────────

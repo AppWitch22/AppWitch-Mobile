@@ -158,7 +158,8 @@ const lv=(id)=>{const e=document.getElementById(id);return e?e.textContent:'';};
 const sl=(id,v)=>{if(v)document.getElementById(id).textContent=v;};
 
 function fillVSE(d){
-  const t=currentSessionDate||new Date().toISOString().split('T')[0];
+  const _today=new Date().toISOString().split('T')[0];
+  const t=(useDataUltimaVerifica&&d.data_ultima_vse)?d.data_ultima_vse:(currentSessionDate||_today);
   sv('f-codice',d.c);sv('f-data',t);sv('f-note','-');
   sv('f-ten',d.ten);sr('rg-tdp',d.tdp);sv('f-frq',d.frq);sr('rg-fdp',d.fdp);
   sv('f-pot',d.pot);sr('rg-pdp',d.pdp);sv('f-mar',d.mar);sv('f-fud',d.fud);sv('f-fur',d.fur);
@@ -193,7 +194,8 @@ function fillVSE(d){
 }
 
 function restoreVSE(rec){
-  sv('f-data',currentSessionDate||rec.data);sv('f-note',rec.note);
+  const _dUlt=useDataUltimaVerifica&&cur&&DB[cur.c]?.data_ultima_vse;
+  sv('f-data',_dUlt||currentSessionDate||rec.data);sv('f-note',rec.note);
   sv('f-ten',rec.ten);sr('rg-tdp',rec.tdp);sv('f-frq',rec.frq);sr('rg-fdp',rec.fdp);
   sv('f-pot',rec.pot);sr('rg-pdp',rec.pdp);sv('f-mar',rec.mar);sv('f-fud',rec.fud);sv('f-fur',rec.fur);
   sr('rg-cls',rec.cls);sr('rg-cdp',rec.cdp);sr('rg-pa',rec.pat);sr('rg-padp',rec.pad);

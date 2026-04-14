@@ -27,6 +27,8 @@ body{font-family:'IBM Plex Sans',-apple-system,BlinkMacSystemFont,"Segoe UI",Rob
 .sb-btn{width:100%;padding:8px 12px;font-size:12px;font-weight:600;border:1px solid transparent;border-radius:var(--rad);background:transparent;color:#a8b8d0;cursor:pointer;text-align:left;display:flex;align-items:center;gap:6px;margin-bottom:4px;-webkit-tap-highlight-color:transparent;transition:background .1s,color .1s,border-color .1s}
 .sb-btn:hover{background:#1a2e44;border-color:#1a2e44;color:#c9d4e3}
 .sb-btn.danger{border-color:rgba(185,28,28,.25);color:var(--ko)}
+.sb-btn.active-mode{background:#1a3a5c;border-color:#2e6da4;color:#7ec8e3}
+.btn-sm.active-mode{background:#1a3a5c;border-color:#2e6da4;color:#7ec8e3}
 .sb-btn:disabled{opacity:.4;cursor:not-allowed}
 .sb-section{padding:8px 8px 4px;border-top:1px solid #1a2e44}
 .sb-section-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#6b85a6;padding:6px 12px 4px}
