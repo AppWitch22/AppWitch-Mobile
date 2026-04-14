@@ -598,6 +598,7 @@ async function saveAnagDetail() {
       if (data.presenze_effettive!==undefined)   DB[cod].pe  = data.presenze_effettive||'';
       if (data.sede_struttura!==undefined)       DB[cod].ss  = data.sede_struttura||'';
       if (data.nuova_area!==undefined)           DB[cod].na  = data.nuova_area||'';
+      if (data.data_ultima_vse!==undefined)      DB[cod].data_ultima_vse = data.data_ultima_vse||null;
     }
     // Aggiorna anche tableData se caricata
     if (tableData) {
