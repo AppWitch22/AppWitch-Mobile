@@ -180,15 +180,23 @@ function gbRenderDati(dev, editMode) {
     if (LOOKUP_KEYS.has(k)) {
       const val     = raw != null ? String(raw) : '';
       const dlId    = FIELD_DL[k] || '';
-      const listAttr = dlId ? ` list="${dlId}"` : '';
+      // Incorpora datalist inline nel modal per compatibilità con browser mobile
+      let listAttr = '';
+      let inlineDl = '';
+      if (dlId) {
+        const srcDl = document.getElementById(dlId);
+        const inlineId = 'gb-' + dlId + '-' + k;
+        inlineDl   = `<datalist id="${inlineId}">${srcDl ? srcDl.innerHTML : ''}</datalist>`;
+        listAttr   = ` list="${inlineId}"`;
+      }
       const tipoPeriodicita = k.match(/^periodicita_(\w+)$/)?.[1];
       const onInput  = k === 'costruttore'
-        ? ` oninput="updateModelloDatalist(this.value)"`
+        ? ` oninput="gbUpdateModelloInline(this)"`
         : tipoPeriodicita ? ` oninput="gbUpdateProssima('${tipoPeriodicita}')"` : '';
       const addBtn   = can('lookup_write')
         ? `<button type="button" onclick="gbAddLookupValue('${k}','${_esc(label)}')" title="Aggiungi nuovo valore alla lista" style="flex-shrink:0;padding:0 10px;height:38px;font-size:18px;font-weight:600;border:1.5px solid var(--border2);border-radius:var(--rad);background:var(--bg3);color:var(--info);cursor:pointer;line-height:1">+</button>`
         : '';
-      return `<div class="${cls}"><label>${_esc(label)}${reqMark}</label><div style="display:flex;gap:4px"><input type="text" id="gb-f-${k}" data-k="${k}" value="${_esc(val)}"${listAttr}${onInput} style="${_inputStyle};flex:1;min-width:0">${addBtn}</div></div>`;
+      return `<div class="${cls}"><label>${_esc(label)}${reqMark}</label>${inlineDl}<div style="display:flex;gap:4px"><input type="text" id="gb-f-${k}" data-k="${k}" value="${_esc(val)}"${listAttr}${onInput} style="${_inputStyle};flex:1;min-width:0">${addBtn}</div></div>`;
     }
 
     // Testo libero
@@ -204,11 +212,14 @@ function gbRenderDati(dev, editMode) {
     const cls        = 'anag-field';
     if (!editMode) return `<div class="${cls}"><label>${_esc(jf.label)}</label><div class="gb-field-val">${_esc(val)}</div></div>`;
     if (isBloccata) {
-      const dlId   = `dl-jolly-${jf.idx}`;
+      const dlId    = `dl-jolly-${jf.idx}`;
+      const srcDl   = document.getElementById(dlId);
+      const inlineId = 'gb-' + dlId;
+      const inlineDl = `<datalist id="${inlineId}">${srcDl ? srcDl.innerHTML : ''}</datalist>`;
       const addBtn = can('lookup_write')
         ? `<button type="button" onclick="gbAddLookupValue('${jf.key}','${_esc(jf.label)}')" title="Aggiungi nuovo valore" style="flex-shrink:0;padding:0 10px;height:38px;font-size:18px;font-weight:600;border:1.5px solid var(--border2);border-radius:var(--rad);background:var(--bg3);color:var(--info);cursor:pointer;line-height:1">+</button>`
         : '';
-      return `<div class="${cls}"><label>${_esc(jf.label)}</label><div style="display:flex;gap:4px"><input type="text" id="gb-f-${jf.key}" data-k="${jf.key}" data-jolly-bloccata="1" value="${_esc(val)}" list="${dlId}" style="${_inputStyle};flex:1;min-width:0">${addBtn}</div></div>`;
+      return `<div class="${cls}"><label>${_esc(jf.label)}</label>${inlineDl}<div style="display:flex;gap:4px"><input type="text" id="gb-f-${jf.key}" data-k="${jf.key}" data-jolly-bloccata="1" value="${_esc(val)}" list="${inlineId}" style="${_inputStyle};flex:1;min-width:0">${addBtn}</div></div>`;
     }
     return `<div class="${cls}"><label>${_esc(jf.label)}</label><input type="text" id="gb-f-${jf.key}" data-k="${jf.key}" value="${_esc(val)}" style="${_inputStyle}"></div>`;
   };
@@ -237,6 +248,20 @@ function gbRenderDati(dev, editMode) {
   }
 
   return html || '<div style="padding:24px;text-align:center;color:var(--text3)">Nessun campo disponibile</div>';
+}
+
+// ── Aggiorna datalist inline modello al cambio costruttore ───
+function gbUpdateModelloInline(input) {
+  const costruttore = input.value;
+  // Aggiorna anche datalist globale (per coerenza con anagrafica)
+  updateModelloDatalist(costruttore);
+  // Aggiorna datalist inline nel gb-modal
+  const inlineId = 'gb-dl-modello-modello';
+  const inlineDl = document.getElementById(inlineId);
+  if (inlineDl && window._modelliByCostr) {
+    const set = window._modelliByCostr[costruttore] || new Set();
+    inlineDl.innerHTML = [...set].sort().map(v => `<option value="${_esc(v)}">`).join('');
+  }
 }
 
 // ── Ricalcolo dinamico data prossima in Gestione Bene ────────
@@ -656,6 +681,17 @@ function gbAddLookupValue(campo, label) {
 async function gbConfirmAddLookup(campo, valore) {
   document.getElementById('gb-add-lookup-modal')?.remove();
   await saveLookupValue(campo, valore);
+  // Sincronizza il datalist inline nel gb-modal col datalist globale aggiornato
+  const isJolly = campo.startsWith('jolly_');
+  const globalDlId = isJolly
+    ? `dl-${campo}`
+    : (FIELD_DL[campo] || null);
+  if (globalDlId) {
+    const globalDl  = document.getElementById(globalDlId);
+    const inlineId  = isJolly ? `gb-dl-${campo}` : `gb-${globalDlId}-${campo}`;
+    const inlineDl  = document.getElementById(inlineId);
+    if (inlineDl && globalDl) inlineDl.innerHTML = globalDl.innerHTML;
+  }
   gbMsg(`"${valore}" aggiunto alla lista.`, true);
 }
 

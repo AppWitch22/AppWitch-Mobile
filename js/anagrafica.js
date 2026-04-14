@@ -137,7 +137,7 @@ function _deviceMatchesFilters(d, excludeKey) {
   for (const def of ANAG_FILTER_DEFS) {
     if (def.key === excludeKey) continue;
     const sel = afState[def.key];
-    if (sel.size > 0 && !sel.has(_anagDbVal(d, def.key))) return false;
+    if (sel?.size > 0 && !sel.has(_anagDbVal(d, def.key))) return false;
   }
   return true;
 }
