@@ -70,7 +70,7 @@ async function initDB(){
     const {data:{session}}=await supa.auth.getSession();
     const token=session?.access_token;
     const resp=await fetch(
-      `${SUPA_URL}/rest/v1/${tabella}?select=codice,descrizione_classe,costruttore,modello,matricola,presidio,reparto,sede_struttura,codice_padre,nuova_area,presenze_effettive,verifiche,dettagli_stato,forma_presenza,manutentore,civab,data_ultima_vse&limit=10000`,
+      `${SUPA_URL}/rest/v1/${tabella}?select=codice,descrizione_classe,costruttore,modello,matricola,presidio,reparto,sede_struttura,codice_padre,nuova_area,presenze_effettive,verifiche,dettagli_stato,forma_presenza,manutentore,civab,data_ultima_vse,data_ultima_vsp,data_ultima_mo,data_ultima_cq&limit=10000`,
       {headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+token}}
     );
     if(!resp.ok)throw new Error('HTTP '+resp.status);
@@ -95,7 +95,10 @@ async function initDB(){
         man:r.manutentore||'',
         ver:r.verifiche||'',
         civ:r.civab||'',
-        data_ultima_vse:r.data_ultima_vse||null
+        data_ultima_vse:r.data_ultima_vse||null,
+        data_ultima_vsp:r.data_ultima_vsp||null,
+        data_ultima_mo:r.data_ultima_mo||null,
+        data_ultima_cq:r.data_ultima_cq||null
       };
       if(r.verifiche){
         const parts=r.verifiche.split(',').map(s=>s.trim());
@@ -1097,21 +1100,34 @@ function toggleDataUltimaVerifica() {
     const d = DB[cod];
     if (!d) return;
     if (useDataUltimaVerifica) {
-      if (d.data_ultima_vse) { saved[cod].data = d.data_ultima_vse; countSet++; }
+      if (d.data_ultima_vse) { saved[cod].data    = d.data_ultima_vse; countSet++; }
       else countNoDate++;
+      if (d.data_ultima_mo)  saved[cod].mp_data  = d.data_ultima_mo;
+      else if (!saved[cod].mp_saved) saved[cod].mp_data = currentSessionDate || '';
+      if (d.data_ultima_vsp) saved[cod].vsp_data = d.data_ultima_vsp;
+      else if (!saved[cod].vsp_saved) saved[cod].vsp_data = currentSessionDate || '';
+      if (d.data_ultima_cq)  saved[cod].cq_data  = d.data_ultima_cq;
+      else if (!saved[cod].cq_saved) saved[cod].cq_data = currentSessionDate || '';
     } else {
-      saved[cod].data = currentSessionDate || '';
+      saved[cod].data    = currentSessionDate || '';
+      saved[cod].mp_data = currentSessionDate || '';
+      saved[cod].vsp_data = currentSessionDate || '';
+      saved[cod].cq_data = currentSessionDate || '';
     }
   });
 
-  // Se c'è un dispositivo aperto aggiorna subito il campo f-data
+  // Se c'è un dispositivo aperto aggiorna subito i campi data nei tab
   if (cur) {
     const d = DB[cur.c];
-    const val = (useDataUltimaVerifica && d?.data_ultima_vse)
-      ? d.data_ultima_vse
-      : (currentSessionDate || '');
-    const el = document.getElementById('f-data');
-    if (el) el.value = val;
+    const sess = currentSessionDate || '';
+    const setF = (id, ultVal) => {
+      const el = document.getElementById(id);
+      if (el) el.value = (useDataUltimaVerifica && ultVal) ? ultVal : sess;
+    };
+    setF('f-data',   d?.data_ultima_vse);
+    setF('mp-data',  d?.data_ultima_mo);
+    setF('vsp-data', d?.data_ultima_vsp);
+    setF('cq-data',  d?.data_ultima_cq);
   }
 
   _updateDataUltimaBtn();

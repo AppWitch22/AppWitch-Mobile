@@ -599,6 +599,9 @@ async function saveAnagDetail() {
       if (data.sede_struttura!==undefined)       DB[cod].ss  = data.sede_struttura||'';
       if (data.nuova_area!==undefined)           DB[cod].na  = data.nuova_area||'';
       if (data.data_ultima_vse!==undefined)      DB[cod].data_ultima_vse = data.data_ultima_vse||null;
+      if (data.data_ultima_vsp!==undefined)      DB[cod].data_ultima_vsp = data.data_ultima_vsp||null;
+      if (data.data_ultima_mo!==undefined)       DB[cod].data_ultima_mo  = data.data_ultima_mo||null;
+      if (data.data_ultima_cq!==undefined)       DB[cod].data_ultima_cq  = data.data_ultima_cq||null;
     }
     // Aggiorna anche tableData se caricata
     if (tableData) {
