@@ -420,7 +420,16 @@ function renderSession(){
   const bodlm=document.getElementById('btn-compila-odl-m');if(bodlm)bodlm.disabled=keys.length===0;
   const chips=document.getElementById('chips');
   const stats=document.getElementById('sess-stats');
-  if(!keys.length&&!pending.length){chips.innerHTML='<span class="sess-empty">Nessun apparecchio compilato</span>';stats.style.display='none';document.getElementById('export-preview').style.display='none';return;}
+  if(!keys.length&&!pending.length){
+    const _emptyAdd=currentSessionId&&canEditSession()?`<div style="display:flex;gap:6px;margin-top:8px;padding-top:8px;border-top:1px solid var(--border);flex-basis:100%">
+      <input type="text" id="inline-attesi-input" placeholder="Codice dispositivo..." autocomplete="off"
+        style="flex:1;padding:5px 8px;border:1px solid var(--border2);border-radius:var(--rad);font-size:12px;background:var(--bg);color:var(--text);min-width:0"
+        onkeydown="if(event.key==='Enter')addAttesiInline()">
+      <button onclick="addAttesiInline()" style="padding:5px 12px;font-size:12px;border:none;border-radius:var(--rad);background:var(--info);color:#fff;cursor:pointer;white-space:nowrap;font-weight:600">+ Aggiungi</button>
+    </div>`:'';
+    chips.innerHTML='<span class="sess-empty">Nessun apparecchio compilato</span>'+_emptyAdd;
+    stats.style.display='none';document.getElementById('export-preview').style.display='none';return;
+  }
   const _flagBtn=(cod,flag,label,active)=>
     `<span onclick="event.stopPropagation();toggleDevFlag('${cod}','${flag}')" title="${flag==='non_reperibile'?'Non reperibile':'Non eseguita'}"
       style="font-size:10px;font-weight:700;padding:1px 5px;border-radius:3px;margin-left:3px;cursor:pointer;line-height:1.4;${
@@ -435,12 +444,21 @@ function renderSession(){
       <div class="chip-dot"></div><span>${k}</span>${_flagBtn(k,'non_reperibile','NR',isNR)}${_flagBtn(k,'non_eseguita','NE',isNE)}
     </div>`;
   }).join('');
+  const _canEdit = canEditSession();
   const pendingChips=pending.map(c=>{
+    const rmBtn=_canEdit?`<span onclick="event.stopPropagation();removeFromAttesi('${c}')" title="Rimuovi dagli attesi"
+      style="font-size:10px;font-weight:700;padding:1px 5px;border-radius:3px;margin-left:3px;cursor:pointer;line-height:1.4;background:var(--ko-bg);color:var(--ko);border:1px solid rgba(185,28,28,.3)">✕</span>`:'';
     return`<div class="chip pending" onclick="sel('${c}')" title="Da verificare">
-      <div class="chip-dot"></div><span>${c}</span>${_flagBtn(c,'non_reperibile','NR',false)}${_flagBtn(c,'non_eseguita','NE',false)}
+      <div class="chip-dot"></div><span>${c}</span>${_flagBtn(c,'non_reperibile','NR',false)}${_flagBtn(c,'non_eseguita','NE',false)}${rmBtn}
     </div>`;
   }).join('');
-  chips.innerHTML=savedChips+pendingChips;
+  const addBar=currentSessionId&&_canEdit?`<div style="display:flex;gap:6px;margin-top:8px;padding-top:8px;border-top:1px solid var(--border);flex-basis:100%">
+    <input type="text" id="inline-attesi-input" placeholder="Codice dispositivo..." autocomplete="off"
+      style="flex:1;padding:5px 8px;border:1px solid var(--border2);border-radius:var(--rad);font-size:12px;background:var(--bg);color:var(--text);min-width:0"
+      onkeydown="if(event.key==='Enter')addAttesiInline()">
+    <button onclick="addAttesiInline()" style="padding:5px 12px;font-size:12px;border:none;border-radius:var(--rad);background:var(--info);color:#fff;cursor:pointer;white-space:nowrap;font-weight:600">+ Aggiungi</button>
+  </div>`:''
+  chips.innerHTML=savedChips+pendingChips+addBar;
   const totalAttesi=attesi.size||keys.length;
   const done=keys.filter(k=>saved[k].vse_saved&&saved[k].mp_saved).length;
   const vspCount=keys.filter(k=>saved[k].vsp_saved).length;
@@ -464,20 +482,55 @@ function renderSession(){
           ${!s.non_reperibile&&!s.non_eseguita&&s.vsp_saved?`<span class="badge info">${s.vsp_type} ✓</span>`:''}
           ${!s.non_reperibile&&!s.non_eseguita&&s.cq_saved?`<span class="badge info">${s.cq_type} ✓</span>`:''}
         </span>
-        <button onclick="removeFromSession('${k}')" style="padding:2px 8px;font-size:11px;border:1px solid var(--ko);border-radius:var(--rad);background:transparent;color:var(--ko);cursor:pointer;flex-shrink:0">✕</button>
+        ${_canEdit?`<button onclick="removeFromSession('${k}')" style="padding:2px 8px;font-size:11px;border:1px solid var(--ko);border-radius:var(--rad);background:transparent;color:var(--ko);cursor:pointer;flex-shrink:0">✕</button>`:''}
       </div>`;
     }).join('');
   } else {
     document.getElementById('export-preview').style.display='none';
   }
 }
- function removeFromSession(cod){
-  if(!confirm('Rimuovere '+cod+' dalla sessione?'))return;
+async function removeFromSession(cod) {
+  if (!canEditSession()) { toast('Non hai i permessi per modificare questa sessione', 'warn'); return; }
+  if (!confirm('Rimuovere ' + cod + ' dalla sessione?\nI dati salvati verranno eliminati.')) return;
+  const token = await supaToken();
+  await fetch(`${SUPA_URL}/rest/v1/sessione_schede?sessione_id=eq.${currentSessionId}&codice=eq.${encodeURIComponent(cod)}`, {
+    method: 'DELETE',
+    headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + token }
+  });
   delete saved[cod];
-  if(cur&&cur.c===cod){cur=null;curVerif=null;document.getElementById('form-area').style.display='none';}
+  attesi.delete(cod);
+  if (cur && cur.c === cod) { cur = null; curVerif = null; document.getElementById('form-area').style.display = 'none'; }
   renderSession();
-  toast('Rimosso: '+cod,'warn');
-}   
+  scheduleSync();
+  toast('Rimosso: ' + cod, 'warn');
+}
+
+function removeFromAttesi(cod) {
+  if (!canEditSession()) { toast('Non hai i permessi per modificare questa sessione', 'warn'); return; }
+  if (!confirm('Rimuovere ' + cod + ' dagli attesi?')) return;
+  attesi.delete(cod);
+  renderSession();
+  scheduleSync();
+  toast('Rimosso dagli attesi: ' + cod, 'warn');
+}
+
+function addAttesiInline() {
+  if (!currentSessionId || !canEditSession()) return;
+  const inp = document.getElementById('inline-attesi-input');
+  if (!inp) return;
+  const txt = inp.value.trim();
+  if (!txt) { toast('Inserisci almeno un codice', 'warn'); return; }
+  const codici = txt.split(/[\s,;]+/).map(c => c.replace(/\D/g,'').padStart(7,'0')).filter(c => c.length === 7);
+  const validi = codici.filter(c => DB[c]);
+  const nonTrovati = codici.filter(c => !DB[c]);
+  validi.forEach(c => attesi.add(c));
+  inp.value = '';
+  renderSession();
+  if (validi.length) scheduleSync();
+  const msg = (validi.length ? validi.length + ' aggiunto/i agli attesi' : '') +
+              (nonTrovati.length ? (validi.length ? ' · ' : '') + nonTrovati.length + ' non trovato/i' : '');
+  if (msg) toast(msg, validi.length ? 'ok' : 'warn');
+}
 
 function toast(msg,type){
   const t=document.getElementById('toast');
@@ -752,10 +805,18 @@ async function checkSession() {
 checkSession();
 // ── FINE AUTH ──────────────────────────────────────────────
 
-let currentSessionId    = null;   // UUID sessione attiva
-let currentSessionTitle = null;   // Titolo sessione attiva
-let currentSessionDate  = null;   // Data verifica della sessione attiva (YYYY-MM-DD)
+let currentSessionId        = null;   // UUID sessione attiva
+let currentSessionTitle     = null;   // Titolo sessione attiva
+let currentSessionDate      = null;   // Data verifica della sessione attiva (YYYY-MM-DD)
+let currentSessionCreatorId = null;   // utente_id di chi ha creato la sessione
 let attesi = new Set();         // codici dispositivi attesi nella sessione corrente
+
+// Può modificare la lista attesi: admin o chi ha creato la sessione
+function canEditSession() {
+  if (!currentSessionId) return false;
+  if (currentUser?.profile?.role === 'admin') return true;
+  return !!currentSessionCreatorId && currentSessionCreatorId === currentUser?.id;
+}
 let syncPending = false;        // ci sono modifiche da sincronizzare
 let syncTimer   = null;         // timer auto-save
 let useDataUltimaVerifica = false; // se true, usa data_ultima_vse di ogni dispositivo come data verifica
@@ -800,7 +861,7 @@ async function createSession() {
   document.getElementById('sess-new-attesi').value = '';
   document.getElementById('sess-new-date').value = '';
   // Attiva la sessione (imposta currentSessionId e attesi)
-  await activateSession(sess.id, sess.titolo, dataV);
+  await activateSession(sess.id, sess.titolo, dataV, currentUser.id);
   // Se ci sono attesi, aggiungili e sincronizza
   if (attesiList.length) {
     attesiList.forEach(c => attesi.add(c));
@@ -813,7 +874,7 @@ async function createSession() {
 }
 
 // ── Attiva una sessione (carica i dati in memoria) ────────────
-async function activateSession(id, titolo, dataVerifica) {
+async function activateSession(id, titolo, dataVerifica, utenteId = null) {
   // Salva sessione corrente prima di cambiare
   if (currentSessionId && Object.keys(saved).length > 0) {
     await syncSessionNow();
@@ -825,9 +886,10 @@ async function activateSession(id, titolo, dataVerifica) {
   useDataUltimaVerifica = false;
   _updateDataUltimaBtn();
   document.getElementById('form-area').style.display = 'none';
-  currentSessionId    = id;
-  currentSessionTitle = titolo || null;
-  currentSessionDate  = dataVerifica || null;
+  currentSessionId        = id;
+  currentSessionTitle     = titolo || null;
+  currentSessionDate      = dataVerifica || null;
+  currentSessionCreatorId = utenteId || null;
   // Carica schede (include la scheda speciale __attesi__ per i dispositivi attesi)
   const token = await supaToken();
   const schedeResp = await fetch(
@@ -1201,6 +1263,7 @@ function chiudiSessione() {
   if (!currentSessionId) return;
   currentSessionId = null;
   currentSessionTitle = null;
+  currentSessionCreatorId = null;
   attesi = new Set();
   Object.keys(saved).forEach(k => delete saved[k]);
   cur = null; curVerif = null;
@@ -1219,9 +1282,9 @@ async function loadSessList() {
   const asl   = currentUser?.profile?.asl || 'ASL Benevento';
   const role  = currentUser?.profile?.role;
   // Responsabile e admin vedono tutte le sessioni dell'ASL
-  let url = `${SUPA_URL}/rest/v1/sessioni?asl=eq.${encodeURIComponent(asl)}&order=data_aggiornamento.desc&limit=50`;
+  let url = `${SUPA_URL}/rest/v1/sessioni?asl=eq.${encodeURIComponent(asl)}&select=id,titolo,data_verifica,data_aggiornamento,utente_id&order=data_aggiornamento.desc&limit=50`;
   if (!can('sessioni_altrui')) {
-    url = `${SUPA_URL}/rest/v1/sessioni?utente_id=eq.${currentUser.id}&order=data_aggiornamento.desc&limit=50`;
+    url = `${SUPA_URL}/rest/v1/sessioni?utente_id=eq.${currentUser.id}&select=id,titolo,data_verifica,data_aggiornamento,utente_id&order=data_aggiornamento.desc&limit=50`;
   }
   const resp = await fetch(url, {
     headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + token }
@@ -1238,7 +1301,7 @@ async function loadSessList() {
     const data = s.data_aggiornamento
       ? new Date(s.data_aggiornamento).toLocaleDateString('it-IT', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})
       : '—';
-    return `<div class="sess-item${isActive?' active-sess':''}" data-sid="${esc(s.id)}" data-titolo="${esc(s.titolo)}" data-data="${esc(s.data_verifica||'')}">
+    return `<div class="sess-item${isActive?' active-sess':''}" data-sid="${esc(s.id)}" data-titolo="${esc(s.titolo)}" data-data="${esc(s.data_verifica||'')}" data-uid="${esc(s.utente_id||'')}">
       <div class="sess-item-info">
         <div class="sess-item-title">${esc(s.titolo)}</div>
         <div class="sess-item-meta">Aggiornata: ${data}</div>
@@ -1252,7 +1315,7 @@ async function loadSessList() {
     </div>`;
   }).join('');
   list.querySelectorAll('.sess-item').forEach(el => {
-    el.addEventListener('click', () => activateSession(el.dataset.sid, el.dataset.titolo, el.dataset.data||null));
+    el.addEventListener('click', () => activateSession(el.dataset.sid, el.dataset.titolo, el.dataset.data||null, el.dataset.uid||null));
     const chiudiBtn = el.querySelector('[data-chiudi]');
     if (chiudiBtn) chiudiBtn.addEventListener('click', e => { e.stopPropagation(); chiudiSessione(); closeSessModal(); });
     const expBtn = el.querySelector('[data-exp]');
@@ -1279,6 +1342,7 @@ async function deleteSession(id, titolo) {
   if (!delSess.ok) console.error('Eliminazione sessione fallita:', delSess.status, delSess.statusText);
   if (currentSessionId === id) {
     currentSessionId = null;
+    currentSessionCreatorId = null;
     attesi = new Set();
     Object.keys(saved).forEach(k => delete saved[k]);
     cur = null; curVerif = null;
