@@ -1848,12 +1848,14 @@ function toggleDevFlag(cod, flag) {
 async function syncProgrammazioneAnagrafica() {
   const codici = Object.keys(saved);
   if (!codici.length) { toast('Nessun dispositivo in sessione', 'warn'); return; }
-  const asl      = currentUser?.profile?.asl || 'ASL Benevento';
-  const aslKey   = asl.toLowerCase().replace('asl ', '');
-  const tabella  = 'dispositivi_' + aslKey;
-  const sessDate = currentSessionDate || new Date().toISOString().split('T')[0];
-  const token    = await supaToken();
+  const asl         = currentUser?.profile?.asl || 'ASL Benevento';
+  const aslKey      = asl.toLowerCase().replace('asl ', '');
+  const tabella     = 'dispositivi_' + aslKey;
+  const sessDate    = currentSessionDate || new Date().toISOString().split('T')[0];
+  const verificatore = currentUser?.profile?.full_name || '';
+  const token       = await supaToken();
   let ok = 0, skip = 0, err = 0;
+  const storRows = [];
 
   for (const cod of codici) {
     const rec = saved[cod];
@@ -1863,29 +1865,42 @@ async function syncProgrammazioneAnagrafica() {
     const ne  = !!rec.non_eseguita;
     const esitoFlag = nr ? 'Non reperibile' : ne ? 'Non eseguita' : null;
     const payload = {};
+    const base = { asl: aslKey, codice: cod, verificatore, categoria: 'programmazione', motivo: null };
 
     // VSE
     const vseDate  = nr||ne ? sessDate : (rec.vse_saved ? rec.data : null);
     const vseEsito = nr||ne ? esitoFlag : (rec.vse_saved ? (rec.giu==='POSITIVO'?'Positivo':'Negativa') : null);
-    if (vseDate) { payload.data_ultima_vse=vseDate; payload.esito_ultima_vse=vseEsito; payload.data_prossima_vse=_calcProssima(vseDate,dev.periodicita_vse)||null; }
+    if (vseDate) {
+      payload.data_ultima_vse=vseDate; payload.esito_ultima_vse=vseEsito; payload.data_prossima_vse=_calcProssima(vseDate,dev.periodicita_vse)||null;
+      storRows.push({ ...base, data: vseDate, tipo: 'VSE', esito: vseEsito });
+    }
 
     // MP
     const mpDate  = nr||ne ? sessDate : (rec.mp_saved ? rec.mp_data : null);
     const mpEsito = nr||ne ? esitoFlag : (rec.mp_saved ? 'Positivo' : null);
-    if (mpDate) { payload.data_ultima_mo=mpDate; payload.esito_ultima_mo=mpEsito; payload.data_prossima_mo=_calcProssima(mpDate,dev.periodicita_mo)||null; }
+    if (mpDate) {
+      payload.data_ultima_mo=mpDate; payload.esito_ultima_mo=mpEsito; payload.data_prossima_mo=_calcProssima(mpDate,dev.periodicita_mo)||null;
+      storRows.push({ ...base, data: mpDate, tipo: 'MO', esito: mpEsito });
+    }
 
     // VSP (solo se previsto per il dispositivo)
     if (vm?.vsp) {
       const vspDate  = nr||ne ? sessDate : (rec.vsp_saved ? rec.vsp_data : null);
       const vspEsito = nr||ne ? esitoFlag : (rec.vsp_saved ? 'Positivo' : null);
-      if (vspDate) { payload.data_ultima_vsp=vspDate; payload.esito_ultima_vsp=vspEsito; payload.data_prossima_vsp=_calcProssima(vspDate,dev.periodicita_vsp)||null; }
+      if (vspDate) {
+        payload.data_ultima_vsp=vspDate; payload.esito_ultima_vsp=vspEsito; payload.data_prossima_vsp=_calcProssima(vspDate,dev.periodicita_vsp)||null;
+        storRows.push({ ...base, data: vspDate, tipo: 'VSP', esito: vspEsito });
+      }
     }
 
     // CQ (solo se previsto per il dispositivo)
     if (vm?.cq) {
       const cqDate  = nr||ne ? sessDate : (rec.cq_saved ? rec.cq_data : null);
       const cqEsito = nr||ne ? esitoFlag : (rec.cq_saved ? 'Positivo' : null);
-      if (cqDate) { payload.data_ultima_cq=cqDate; payload.esito_ultima_cq=cqEsito; payload.data_prossima_cq=_calcProssima(cqDate,dev.periodicita_cq)||null; }
+      if (cqDate) {
+        payload.data_ultima_cq=cqDate; payload.esito_ultima_cq=cqEsito; payload.data_prossima_cq=_calcProssima(cqDate,dev.periodicita_cq)||null;
+        storRows.push({ ...base, data: cqDate, tipo: 'CQ', esito: cqEsito });
+      }
     }
 
     if (!Object.keys(payload).length) { skip++; continue; }
@@ -1897,6 +1912,20 @@ async function syncProgrammazioneAnagrafica() {
     });
     if (resp.ok) { ok++; if (DB[cod]) Object.assign(DB[cod], payload); }
     else { err++; console.error('syncProg fallita:', cod, resp.status); }
+  }
+
+  // Inserisce nello storico le righe della programmazione
+  if (storRows.length) {
+    const rStor = await fetch(`${SUPA_URL}/rest/v1/storico_verifiche`, {
+      method: 'POST',
+      headers: { ...supaHdrs(token), 'Prefer': 'return=minimal,resolution=ignore-duplicates' },
+      body: JSON.stringify(storRows)
+    });
+    if (!rStor.ok) {
+      const msg = await rStor.text().catch(()=>'');
+      console.error('Errore INSERT storico programmazione:', rStor.status, msg);
+      toast(`Errore registrazione storico (${rStor.status})`, 'err');
+    }
   }
 
   if (err===0) toast(`Anagrafica aggiornata: ${ok} dispositivi${skip?` (${skip} senza dati)`:''}`, 'ok');

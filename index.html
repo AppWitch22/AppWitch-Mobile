@@ -249,6 +249,45 @@
     </div>
   </div>
 
+  <!-- MODAL MODIFICA STORICO VERIFICA -->
+  <div id="modal-storico-edit">
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--rad-lg);padding:24px;width:100%;max-width:420px;box-shadow:0 4px 24px rgba(28,15,6,.18)">
+      <h3 style="margin:0 0 16px;font-size:15px;font-weight:600;color:var(--text)">Modifica verifica</h3>
+      <input type="hidden" id="sedit-id">
+      <input type="hidden" id="sedit-categoria">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+        <div>
+          <label style="font-size:12px;font-weight:600;color:var(--text3);display:block;margin-bottom:4px">Data</label>
+          <input type="date" id="sedit-data" style="width:100%;box-sizing:border-box;padding:7px 9px;border:1.5px solid var(--border2);border-radius:var(--rad);font-size:13px;background:var(--bg);color:var(--text)">
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:600;color:var(--text3);display:block;margin-bottom:4px">Tipo</label>
+          <select id="sedit-tipo" style="width:100%;box-sizing:border-box;padding:7px 9px;border:1.5px solid var(--border2);border-radius:var(--rad);font-size:13px;background:var(--bg);color:var(--text)">
+            <option>VSE</option><option>MO</option><option>VSP</option><option>CQ</option>
+          </select>
+        </div>
+      </div>
+      <div style="margin-bottom:10px">
+        <label style="font-size:12px;font-weight:600;color:var(--text3);display:block;margin-bottom:4px">Esito</label>
+        <select id="sedit-esito" style="width:100%;box-sizing:border-box;padding:7px 9px;border:1.5px solid var(--border2);border-radius:var(--rad);font-size:13px;background:var(--bg);color:var(--text)">
+          <option>Positivo</option><option>Negativa</option><option>Non reperibile</option><option>Non eseguita</option>
+        </select>
+      </div>
+      <div style="margin-bottom:10px">
+        <label style="font-size:12px;font-weight:600;color:var(--text3);display:block;margin-bottom:4px">Verificatore</label>
+        <input type="text" id="sedit-verificatore" maxlength="100" style="width:100%;box-sizing:border-box;padding:7px 9px;border:1.5px solid var(--border2);border-radius:var(--rad);font-size:13px;background:var(--bg);color:var(--text)">
+      </div>
+      <div id="sedit-motivo-row" style="margin-bottom:16px">
+        <label style="font-size:12px;font-weight:600;color:var(--text3);display:block;margin-bottom:4px">Motivo</label>
+        <input type="text" id="sedit-motivo" maxlength="200" style="width:100%;box-sizing:border-box;padding:7px 9px;border:1.5px solid var(--border2);border-radius:var(--rad);font-size:13px;background:var(--bg);color:var(--text)">
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button onclick="gbCloseEditStorico()" style="padding:7px 16px;font-size:13px;border:1px solid var(--border2);border-radius:var(--rad);background:transparent;color:var(--text2);cursor:pointer">Annulla</button>
+        <button onclick="gbSaveEditStorico()" style="padding:7px 16px;font-size:13px;border:none;border-radius:var(--rad);background:var(--info);color:#fff;cursor:pointer;font-weight:600">Salva</button>
+      </div>
+    </div>
+  </div>
+
   <!-- MODAL CREA SESSIONE DA TABELLA -->
   <div id="tbl-sess-modal">
     <div class="tbl-sess-box">

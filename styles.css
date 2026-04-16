@@ -158,6 +158,8 @@ body.logged-in h1,body.logged-in .subtitle{display:none}
 /* MODAL STRAORDINARIA */
 #modal-straord{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:11000;display:none;align-items:center;justify-content:center;padding:16px}
 #modal-straord.open{display:flex}
+#modal-storico-edit{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:11000;display:none;align-items:center;justify-content:center;padding:16px}
+#modal-storico-edit.open{display:flex}
 
 /* LOGIN */
 #login-screen{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center;padding:24px}

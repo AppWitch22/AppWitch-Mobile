@@ -523,90 +523,77 @@ async function gbLoadStorico() {
   const progRows  = storRows.filter(r => r.categoria !== 'straordinaria');
   const straordRows = storRows.filter(r => r.categoria === 'straordinaria');
 
-  // programmazione → raggruppa per (data, verificatore)
-  const storMap = {};
-  progRows.forEach(row => {
-    const key = `${row.data}||${row.verificatore||''}`;
-    if (!storMap[key]) storMap[key] = { _source:'storico', _date:row.data, data:_fmt(row.data), nome:row.verificatore||'—', VSE:null, MP:null, VSP:null, CQ:null };
-    const s = storMap[key];
-    const esito = row.esito || '✓';
-    const ok = row.esito?.toLowerCase()==='positivo' ? true : row.esito?.toLowerCase()==='negativo' ? false : null;
-    if (row.tipo==='VSE') s.VSE={esito,ok};
-    if (row.tipo==='VSP') s.VSP={esito,ok};
-    if (row.tipo==='MO')  s.MP ={esito,ok};
-    if (row.tipo==='CQ')  s.CQ ={esito,ok};
-  });
-
-  // data_ultima_* dal DB (gbFullDev) → righe sintetiche se la data non è già presente
-  const dbRows = [];
-  const dev = gbFullDev || {};
-  const tipiDB = [
-    { tipo:'VSE', kData:'data_ultima_vse', kEsito:'esito_ultima_vse' },
-    { tipo:'VSP', kData:'data_ultima_vsp', kEsito:'esito_ultima_vsp' },
-    { tipo:'MO',  kData:'data_ultima_mo',  kEsito:'esito_ultima_mo'  },
-    { tipo:'CQ',  kData:'data_ultima_cq',  kEsito:'esito_ultima_cq'  },
-  ];
-  // Raccogli tutte le date già presenti (storico + app)
-  const dateGiaPresenti = new Set();
-  [...Object.values(sessMap), ...Object.values(storMap)].forEach(r => { if (r._date) dateGiaPresenti.add(r._date); });
-  // Normalizza data in formato ISO YYYY-MM-DD (gestisce GG/MM/AAAA e ISO)
-  const _normDate = v => _toISODate(v);
-  // Raggruppa le date DB per data
-  const dbMap = {};
-  tipiDB.forEach(({ tipo, kData, kEsito }) => {
-    const d = _normDate(dev[kData]);
-    if (!d) return;
-    if (!dbMap[d]) dbMap[d] = { _source:'db', _date:d, data:_fmt(d), nome:'—', VSE:null, MP:null, VSP:null, CQ:null };
-    const esito = dev[kEsito] || '✓';
-    const ok = String(esito).toLowerCase()==='positivo' ? true : String(esito).toLowerCase()==='negativo' ? false : null;
-    const k = tipo === 'MO' ? 'MP' : tipo;
-    dbMap[d][k] = { esito, ok };
-  });
-  // Aggiungi solo le date che non compaiono già nello storico/app
-  Object.values(dbMap).forEach(row => {
-    if (!dateGiaPresenti.has(row._date)) dbRows.push(row);
-  });
-
-  // ── Sezione Programmazione Annuale ───────────────────────────
-  const allProg = [...Object.values(sessMap), ...Object.values(storMap), ...dbRows]
-    .sort((a,b) => (b._date||'').localeCompare(a._date||''));
-
-  const _b = t => t ? _badge(t.ok, t.esito) : '<span style="color:var(--text3);font-size:12px">—</span>';
-  const _fonte = src =>
-    src==='storico' ? '<span style="font-size:11px;color:var(--text3);background:var(--bg3);padding:1px 6px;border-radius:8px">storico</span>'
-    : src==='db'    ? '<span style="font-size:11px;color:var(--text2);background:var(--bg3);padding:1px 6px;border-radius:8px">anagrafica</span>'
-    :                 '<span style="font-size:11px;color:var(--info);background:var(--info-bg);padding:1px 6px;border-radius:8px">app</span>';
-
-  const progHtml = allProg.length ? `
-    <div style="overflow-x:auto">
-    <table style="width:100%;border-collapse:collapse;font-size:13px;min-width:480px">
-      <thead><tr style="border-bottom:2px solid var(--border)">
-        <th style="text-align:left;padding:6px 10px;color:var(--text3);font-weight:600;white-space:nowrap">Data</th>
-        <th style="text-align:left;padding:6px 10px;color:var(--text3);font-weight:600">Fonte</th>
-        <th style="text-align:left;padding:6px 10px;color:var(--text3);font-weight:600">Verificatore</th>
-        <th style="text-align:center;padding:6px 8px;color:var(--text3);font-weight:600">VSE</th>
-        <th style="text-align:center;padding:6px 8px;color:var(--text3);font-weight:600">MP</th>
-        <th style="text-align:center;padding:6px 8px;color:var(--text3);font-weight:600">VSP</th>
-        <th style="text-align:center;padding:6px 8px;color:var(--text3);font-weight:600">CQ</th>
-      </tr></thead>
-      <tbody>${allProg.map(row=>`<tr style="border-bottom:1px solid var(--border)">
-        <td style="padding:8px 10px;white-space:nowrap;color:var(--text)">${row.data}</td>
-        <td style="padding:8px 10px">${_fonte(row._source)}</td>
-        <td style="padding:8px 10px;color:var(--text2);font-size:12px;white-space:nowrap">${_esc(row.nome)}</td>
-        <td style="padding:8px;text-align:center">${_b(row.VSE)}</td>
-        <td style="padding:8px;text-align:center">${_b(row.MP)}</td>
-        <td style="padding:8px;text-align:center">${_b(row.VSP)}</td>
-        <td style="padding:8px;text-align:center">${_b(row.CQ)}</td>
-      </tr>`).join('')}</tbody>
-    </table></div>` : '<div style="padding:16px;font-size:13px;color:var(--text3)">Nessuna verifica programmata registrata</div>';
-
-  // ── Sezione Verifiche Straordinarie ──────────────────────────
+  // ── Colori esito ──────────────────────────────────────────────
   const _esitoColor = esito => {
     const e = (esito||'').toLowerCase();
     if (e==='positivo') return {c:'var(--ok)',bg:'var(--ok-bg)'};
     if (e==='negativa') return {c:'var(--ko)',bg:'var(--ko-bg)'};
     return {c:'var(--warn)',bg:'var(--warn-bg)'};
   };
+
+  // ── Programmazione Annuale: righe flat per tipo ───────────────
+  const allProgFlat = [];
+
+  // Da sessione_schede (app)
+  Object.values(sessMap).forEach(row => {
+    [['VSE','VSE'],['MP','MO'],['VSP','VSP'],['CQ','CQ']].forEach(([k, tipo]) => {
+      if (row[k]) allProgFlat.push({ _date: row._date, data: row.data, tipo, esito: row[k].esito, ok: row[k].ok, nome: row.nome });
+    });
+  });
+
+  // Da storico_verifiche programmazione
+  progRows.forEach(row => {
+    const esito = row.esito || '—';
+    const ok = esito.toLowerCase()==='positivo' ? true : esito.toLowerCase()==='negativo' ? false : null;
+    allProgFlat.push({ id: row.id, _date: row.data, data: _fmt(row.data), tipo: row.tipo, esito, ok, nome: row.verificatore||'—', motivo: row.motivo||'' });
+  });
+
+  // Da anagrafica — solo combo (data, tipo) non ancora presenti
+  const existingKeys = new Set(allProgFlat.map(r => `${r._date}|${r.tipo}`));
+  const dev = gbFullDev || {};
+  [
+    { tipo:'VSE', kData:'data_ultima_vse', kEsito:'esito_ultima_vse' },
+    { tipo:'VSP', kData:'data_ultima_vsp', kEsito:'esito_ultima_vsp' },
+    { tipo:'MO',  kData:'data_ultima_mo',  kEsito:'esito_ultima_mo'  },
+    { tipo:'CQ',  kData:'data_ultima_cq',  kEsito:'esito_ultima_cq'  },
+  ].forEach(({ tipo, kData, kEsito }) => {
+    const d = _toISODate(dev[kData]);
+    if (!d || existingKeys.has(`${d}|${tipo}`)) return;
+    const esito = dev[kEsito] || '—';
+    const ok = String(esito).toLowerCase()==='positivo' ? true : String(esito).toLowerCase()==='negativo' ? false : null;
+    allProgFlat.push({ _date: d, data: _fmt(d), tipo, esito, ok, nome: '—' });
+  });
+
+  allProgFlat.sort((a,b) => (b._date||'').localeCompare(a._date||''));
+
+  const progHtml = allProgFlat.length ? `
+    <div style="overflow-x:auto">
+    <table style="width:100%;border-collapse:collapse;font-size:13px;min-width:360px">
+      <thead><tr style="border-bottom:2px solid var(--border)">
+        <th style="text-align:left;padding:6px 10px;color:var(--text3);font-weight:600;white-space:nowrap">Data</th>
+        <th style="text-align:left;padding:6px 10px;color:var(--text3);font-weight:600">Tipo</th>
+        <th style="text-align:left;padding:6px 10px;color:var(--text3);font-weight:600">Esito</th>
+        <th style="text-align:left;padding:6px 10px;color:var(--text3);font-weight:600">Verificatore</th>
+        <th style="padding:6px 4px"></th>
+      </tr></thead>
+      <tbody>${allProgFlat.map(row => {
+        const {c,bg} = _esitoColor(row.esito);
+        const btns = row.id ? `
+          <button onclick="gbOpenEditStorico(${row.id},'programmazione',${JSON.stringify({data:row._date,tipo:row.tipo,esito:row.esito,verificatore:row.nome,motivo:row.motivo})})"
+            title="Modifica" style="background:none;border:none;cursor:pointer;padding:2px 5px;font-size:14px;color:var(--text3)">✎</button>
+          <button onclick="gbDeleteStorico(${row.id})"
+            title="Elimina" style="background:none;border:none;cursor:pointer;padding:2px 5px;font-size:14px;color:var(--ko)">✕</button>` : '';
+        return `<tr style="border-bottom:1px solid var(--border)">
+          <td style="padding:8px 10px;white-space:nowrap;color:var(--text)">${row.data}</td>
+          <td style="padding:8px 10px;font-weight:600;color:var(--info)">${_esc(row.tipo||'—')}</td>
+          <td style="padding:8px 10px"><span style="font-size:11px;font-weight:600;padding:1px 7px;border-radius:10px;color:${c};background:${bg}">${_esc(row.esito||'—')}</span></td>
+          <td style="padding:8px 10px;color:var(--text2);font-size:12px;white-space:nowrap">${_esc(row.nome)}</td>
+          <td style="padding:4px;white-space:nowrap">${btns}</td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table></div>` : '<div style="padding:16px;font-size:13px;color:var(--text3)">Nessuna verifica programmata registrata</div>';
+
+  // ── Verifiche Straordinarie ───────────────────────────────────
   const straordHtml = straordRows.length ? `
     <div style="overflow-x:auto">
     <table style="width:100%;border-collapse:collapse;font-size:13px;min-width:480px">
@@ -616,6 +603,7 @@ async function gbLoadStorico() {
         <th style="text-align:left;padding:6px 10px;color:var(--text3);font-weight:600">Esito</th>
         <th style="text-align:left;padding:6px 10px;color:var(--text3);font-weight:600">Motivo</th>
         <th style="text-align:left;padding:6px 10px;color:var(--text3);font-weight:600">Verificatore</th>
+        <th style="padding:6px 4px"></th>
       </tr></thead>
       <tbody>${straordRows.sort((a,b)=>(b.data||'').localeCompare(a.data||'')).map(row=>{
         const {c,bg} = _esitoColor(row.esito);
@@ -625,11 +613,17 @@ async function gbLoadStorico() {
           <td style="padding:8px 10px"><span style="font-size:11px;font-weight:600;padding:1px 7px;border-radius:10px;color:${c};background:${bg}">${_esc(row.esito||'—')}</span></td>
           <td style="padding:8px 10px;color:var(--text2);font-size:12px">${_esc(row.motivo||'—')}</td>
           <td style="padding:8px 10px;color:var(--text2);font-size:12px;white-space:nowrap">${_esc(row.verificatore||'—')}</td>
+          <td style="padding:4px;white-space:nowrap">
+            <button onclick="gbOpenEditStorico(${row.id},'straordinaria',${JSON.stringify({data:row.data,tipo:row.tipo,esito:row.esito,verificatore:row.verificatore||'',motivo:row.motivo||''})})"
+              title="Modifica" style="background:none;border:none;cursor:pointer;padding:2px 5px;font-size:14px;color:var(--text3)">✎</button>
+            <button onclick="gbDeleteStorico(${row.id})"
+              title="Elimina" style="background:none;border:none;cursor:pointer;padding:2px 5px;font-size:14px;color:var(--ko)">✕</button>
+          </td>
         </tr>`;
       }).join('')}</tbody>
     </table></div>` : '<div style="padding:16px;font-size:13px;color:var(--text3)">Nessuna verifica straordinaria registrata</div>';
 
-  const totProg = allProg.length;
+  const totProg = allProgFlat.length;
   const totStraord = straordRows.length;
 
   content.innerHTML = `
@@ -648,6 +642,58 @@ async function gbLoadStorico() {
       ${straordHtml}
     </details>`;
 }
+// ── Edit / Delete storico_verifiche ──────────────────────────
+function gbOpenEditStorico(id, categoria, row) {
+  document.getElementById('sedit-id').value = id;
+  document.getElementById('sedit-categoria').value = categoria || '';
+  document.getElementById('sedit-data').value = row.data || '';
+  const tipoSel = document.getElementById('sedit-tipo');
+  for (const opt of tipoSel.options) opt.selected = opt.value === row.tipo;
+  const esitoSel = document.getElementById('sedit-esito');
+  for (const opt of esitoSel.options) opt.selected = opt.value === row.esito;
+  document.getElementById('sedit-verificatore').value = row.verificatore || '';
+  document.getElementById('sedit-motivo').value = row.motivo || '';
+  const motivoRow = document.getElementById('sedit-motivo-row');
+  motivoRow.style.display = categoria === 'straordinaria' ? 'block' : 'none';
+  document.getElementById('modal-storico-edit').classList.add('open');
+}
+function gbCloseEditStorico() {
+  document.getElementById('modal-storico-edit').classList.remove('open');
+}
+async function gbSaveEditStorico() {
+  const id   = document.getElementById('sedit-id').value;
+  const cat  = document.getElementById('sedit-categoria').value;
+  if (!id) return;
+  const payload = {
+    data:         document.getElementById('sedit-data').value || null,
+    tipo:         document.getElementById('sedit-tipo').value,
+    esito:        document.getElementById('sedit-esito').value,
+    verificatore: document.getElementById('sedit-verificatore').value.trim() || null,
+  };
+  if (cat === 'straordinaria') {
+    payload.motivo = document.getElementById('sedit-motivo').value.trim() || null;
+  }
+  gbCloseEditStorico();
+  const token = await supaToken();
+  const resp = await fetch(`${SUPA_URL}/rest/v1/storico_verifiche?id=eq.${id}`, {
+    method: 'PATCH',
+    headers: { ...supaHdrs(token), 'Prefer': 'return=minimal' },
+    body: JSON.stringify(payload)
+  });
+  if (resp.ok) { toast('Verifica aggiornata', 'ok'); gbLoadStorico(); }
+  else toast('Errore salvataggio', 'err');
+}
+async function gbDeleteStorico(id) {
+  if (!confirm('Eliminare questa verifica dallo storico?')) return;
+  const token = await supaToken();
+  const resp = await fetch(`${SUPA_URL}/rest/v1/storico_verifiche?id=eq.${id}`, {
+    method: 'DELETE',
+    headers: supaHdrs(token)
+  });
+  if (resp.ok) { toast('Verifica eliminata', 'ok'); gbLoadStorico(); }
+  else toast('Errore eliminazione', 'err');
+}
+
 // ── Tab Scadenze ─────────────────────────────────────────────
 function gbRenderScadenze(dev) {
   if (!dev) return '<div style="padding:24px;text-align:center;color:var(--text3)">Nessun dato</div>';
