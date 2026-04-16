@@ -453,7 +453,7 @@ function renderSession(){
   const pendingChips=pending.map(c=>{
     const rmBtn=_canEdit?`<span onclick="event.stopPropagation();removeFromAttesi('${c}')" title="Rimuovi dagli attesi"
       style="font-size:10px;font-weight:700;padding:1px 5px;border-radius:3px;margin-left:3px;cursor:pointer;line-height:1.4;background:var(--ko-bg);color:var(--ko);border:1px solid rgba(185,28,28,.3)">✕</span>`:'';
-    return`<div class="chip pending" data-cod="${c}" onclick="sel('${c}')" title="Da verificare">
+    return`<div class="chip pending${cur&&cur.c===c?' active':''}" data-cod="${c}" onclick="sel('${c}')" title="Da verificare">
       <div class="chip-dot"></div><span>${c}</span>${_flagBtn(c,'non_reperibile','NR',false)}${_flagBtn(c,'non_eseguita','NE',false)}${rmBtn}
     </div>`;
   }).join('');
