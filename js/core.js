@@ -1282,6 +1282,8 @@ async function saveSessionEdits() {
   if (resp.ok) {
     currentSessionTitle = title;
     currentSessionDate  = date;
+    if (syncTimer) { clearTimeout(syncTimer); syncTimer = null; }
+    await syncSessionNow();
     updateSyncBar(title, true);
     toast('Sessione aggiornata', 'ok');
   } else {
