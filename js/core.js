@@ -670,11 +670,11 @@ function buildCPGrid(role) {
 }
 
 function showHome() {
-  ['verifica','sessione','anagrafica','tabella','archivio'].forEach(k => {
+  ['verifica','sessione','anagrafica','tabella','archivio','storico'].forEach(k => {
     const sb = document.getElementById('sb-nav-' + k); if (sb) sb.classList.remove('active');
     const bn = document.getElementById('bnav-' + k);   if (bn) bn.classList.remove('active');
   });
-  ['verifica-section','anag-section','tabella-section'].forEach(id => {
+  ['verifica-section','anag-section','tabella-section','storico-section'].forEach(id => {
     const el = document.getElementById(id); if (el) el.style.display = 'none';
   });
   const home = document.getElementById('home-section');
@@ -754,6 +754,8 @@ async function showApp() {
   sbShow('bnav-verifica',     can('verifica'));
   sbShow('sb-nav-anagrafica', can('anagrafica_read'));
   sbShow('sb-nav-tabella',    can('anagrafica_read'));
+  sbShow('sb-nav-storico',    can('anagrafica_read'));
+  sbShow('bnav-storico',      can('anagrafica_read'));
   sbShow('sb-nav-archivio',   can('archivio_cloud'));
   sbShow('bnav-archivio',     can('archivio_cloud'));
   sbShow('btn-data-ultima',   can('data_ultima_verifica'));

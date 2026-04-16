@@ -883,7 +883,7 @@ async function _svLoad(reset) {
   if (wrap && reset) wrap.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text3);font-size:13px">Caricamento...</div>';
 
   const aslKey = (currentUser?.profile?.asl || 'ASL Benevento').toLowerCase().replace('asl ', '');
-  let url = `${SUPA_URL}/rest/v1/storico_verifiche?asl=eq.${encodeURIComponent(aslKey)}&order=data.desc&limit=${_SV_PAGE}&offset=${_svOffset}`;
+  let url = `${SUPA_URL}/rest/v1/storico_verifiche?asl=ilike.*${encodeURIComponent(aslKey)}*&order=data.desc&limit=${_SV_PAGE}&offset=${_svOffset}`;
 
   const da    = document.getElementById('sv-data-da')?.value;
   const a     = document.getElementById('sv-data-a')?.value;
