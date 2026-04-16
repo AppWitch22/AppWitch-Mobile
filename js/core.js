@@ -407,6 +407,11 @@ function sel(cod){
     if(curVerif&&curVerif.cq)  setTimeout(()=>fillCQPreset(cur.c,curVerif.cq),50);
   }
   document.getElementById('form-area').scrollIntoView({behavior:'smooth',block:'start'});
+  // Aggiorna classe active sui chip senza ri-renderizzare tutto
+  document.querySelectorAll('#chips .chip[data-cod]').forEach(el=>{
+    if(el.dataset.cod===cod) el.classList.add('active');
+    else el.classList.remove('active');
+  });
 }
 
 function renderSession(){
@@ -440,7 +445,7 @@ function renderSession(){
     const isNR=!!s.non_reperibile;const isNE=!!s.non_eseguita;
     const both=s.vse_saved&&s.mp_saved;
     const cls=isNR||isNE?'part':both?'done':'part';
-    return`<div class="chip ${cls}${act?' active':''}" onclick="sel('${k}')">
+    return`<div class="chip ${cls}${act?' active':''}" data-cod="${k}" onclick="sel('${k}')">
       <div class="chip-dot"></div><span>${k}</span>${_flagBtn(k,'non_reperibile','NR',isNR)}${_flagBtn(k,'non_eseguita','NE',isNE)}
     </div>`;
   }).join('');
@@ -448,7 +453,7 @@ function renderSession(){
   const pendingChips=pending.map(c=>{
     const rmBtn=_canEdit?`<span onclick="event.stopPropagation();removeFromAttesi('${c}')" title="Rimuovi dagli attesi"
       style="font-size:10px;font-weight:700;padding:1px 5px;border-radius:3px;margin-left:3px;cursor:pointer;line-height:1.4;background:var(--ko-bg);color:var(--ko);border:1px solid rgba(185,28,28,.3)">✕</span>`:'';
-    return`<div class="chip pending" onclick="sel('${c}')" title="Da verificare">
+    return`<div class="chip pending" data-cod="${c}" onclick="sel('${c}')" title="Da verificare">
       <div class="chip-dot"></div><span>${c}</span>${_flagBtn(c,'non_reperibile','NR',false)}${_flagBtn(c,'non_eseguita','NE',false)}${rmBtn}
     </div>`;
   }).join('');
