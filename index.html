@@ -633,11 +633,26 @@
       <h2>Sessioni</h2>
       <button onclick="closeSessModal()" style="padding:4px 10px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text);cursor:pointer">✕</button>
     </div>
-    <!-- Aggiungi dispositivi attesi alla sessione attiva -->
-    <div id="sess-attesi-section" style="display:none;margin-bottom:16px;padding:12px;background:var(--bg2);border-radius:var(--rad);border:1px solid var(--border)">
-      <div style="font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px">Dispositivi attesi (sessione attiva)</div>
-      <textarea id="sess-attesi-input" placeholder="Inserisci i codici separati da virgola, spazio o invio" style="width:100%;height:70px;font-size:13px;padding:8px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text);resize:vertical;outline:none;display:block"></textarea>
-      <button onclick="addAttesiToSession()" style="margin-top:6px;padding:7px 14px;font-size:13px;font-weight:600;background:var(--info);color:#fff;border:none;border-radius:var(--rad);cursor:pointer">+ Aggiungi dispositivi</button>
+    <!-- Modifica sessione attiva -->
+    <div id="sess-edit-section" style="display:none;margin-bottom:16px;padding:12px;background:var(--bg2);border-radius:var(--rad);border:1px solid var(--border)">
+      <div style="font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px">Modifica sessione attiva</div>
+      <div style="margin-bottom:8px">
+        <label style="font-size:12px;color:var(--text3);display:block;margin-bottom:4px">Nome sessione</label>
+        <input type="text" id="sess-edit-title" maxlength="80"
+          style="width:100%;box-sizing:border-box;padding:7px 10px;border:1.5px solid var(--border2);border-radius:var(--rad);font-size:13px;background:var(--bg);color:var(--text);outline:none">
+      </div>
+      <div style="margin-bottom:10px">
+        <label style="font-size:12px;color:var(--text3);display:block;margin-bottom:4px">Data verifica</label>
+        <input type="date" id="sess-edit-date"
+          style="font-size:13px;padding:7px 10px;border:1.5px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text);outline:none">
+      </div>
+      <div style="margin-bottom:10px">
+        <label style="font-size:12px;color:var(--text3);display:block;margin-bottom:4px">Aggiungi dispositivi attesi</label>
+        <textarea id="sess-attesi-input" placeholder="Codici separati da virgola, spazio o invio"
+          style="width:100%;box-sizing:border-box;height:58px;font-size:13px;padding:8px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text);resize:vertical;outline:none;display:block"></textarea>
+        <button onclick="addAttesiToSession()" style="margin-top:4px;padding:5px 12px;font-size:12px;font-weight:600;background:var(--bg3);color:var(--text2);border:1px solid var(--border2);border-radius:var(--rad);cursor:pointer">+ Aggiungi</button>
+      </div>
+      <button onclick="saveSessionEdits()" style="width:100%;padding:9px;font-size:13px;font-weight:600;background:var(--info);color:#fff;border:none;border-radius:var(--rad);cursor:pointer">Salva modifiche</button>
     </div>
     <!-- Nuova sessione -->
     <div style="margin-bottom:16px">

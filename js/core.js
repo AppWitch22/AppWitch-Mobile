@@ -1249,10 +1249,40 @@ async function addAttesiToSession() {
 // ── Modal sessioni ───────────────────────────────────────────
 async function openSessModal() {
   document.getElementById('sess-modal').classList.add('open');
-  document.getElementById('sess-attesi-section').style.display = currentSessionId ? 'block' : 'none';
+  const editSec = document.getElementById('sess-edit-section');
+  if (editSec) {
+    const showEdit = !!(currentSessionId && canEditSession());
+    editSec.style.display = showEdit ? 'block' : 'none';
+    if (showEdit) {
+      document.getElementById('sess-edit-title').value = currentSessionTitle || '';
+      document.getElementById('sess-edit-date').value  = currentSessionDate  || '';
+    }
+  }
   const dateEl = document.getElementById('sess-new-date');
-  if(dateEl && !dateEl.value) dateEl.value = new Date().toISOString().split('T')[0];
+  if (dateEl && !dateEl.value) dateEl.value = new Date().toISOString().split('T')[0];
   await loadSessList();
+}
+
+async function saveSessionEdits() {
+  if (!currentSessionId || !canEditSession()) return;
+  const title = document.getElementById('sess-edit-title').value.trim();
+  const date  = document.getElementById('sess-edit-date').value || null;
+  if (!title) { toast('Il nome della sessione non può essere vuoto', 'warn'); return; }
+  const token = await supaToken();
+  const resp = await fetch(`${SUPA_URL}/rest/v1/sessioni?id=eq.${currentSessionId}`, {
+    method: 'PATCH',
+    headers: { ...supaHdrs(token), 'Prefer': 'return=minimal' },
+    body: JSON.stringify({ titolo: title, data_verifica: date })
+  });
+  if (resp.ok) {
+    currentSessionTitle = title;
+    currentSessionDate  = date;
+    updateSyncBar(title, true);
+    await loadSessList();
+    toast('Sessione aggiornata', 'ok');
+  } else {
+    toast('Errore salvataggio sessione', 'err');
+  }
 }
 function closeSessModal() {
   document.getElementById('sess-modal').classList.remove('open');
