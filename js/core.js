@@ -889,6 +889,11 @@ async function activateSession(id, titolo, dataVerifica, utenteId = null) {
   currentSessionTitle     = titolo || null;
   currentSessionDate      = dataVerifica || null;
   currentSessionCreatorId = utenteId || null;
+  // Popola campi inline edit
+  const _inlT = document.getElementById('sess-inline-title');
+  const _inlD = document.getElementById('sess-inline-date');
+  if (_inlT) _inlT.value = titolo || '';
+  if (_inlD) _inlD.value = dataVerifica || '';
   // Carica schede (include la scheda speciale __attesi__ per i dispositivi attesi)
   const token = await supaToken();
   const schedeResp = await fetch(
@@ -1125,7 +1130,7 @@ function updateSyncBar(titolo, synced) {
   const dotM  = document.getElementById('sync-dot-mobile');
   const label = document.getElementById('sync-label');
   if (!bar) return;
-  bar.style.display = 'flex';
+  bar.style.display = 'block';
   let cls;
   if (!currentSessionId) {
     cls = 'sess-sync-dot offline';
@@ -1135,18 +1140,25 @@ function updateSyncBar(titolo, synced) {
     if (label) label.textContent = 'Sincronizzazione...';
   } else if (synced === true) {
     cls = 'sess-sync-dot synced';
-    if (label) label.textContent = (titolo || 'Sessione attiva') + ' · Sincronizzato';
+    const t = titolo || currentSessionTitle || 'Sessione attiva';
+    if (label) label.textContent = canEditSession() ? 'Sincronizzato' : t + ' · Sincronizzato';
   } else {
     cls = 'sess-sync-dot pending';
-    if (label) label.textContent = (titolo || 'Sessione attiva') + ' · Modifiche in attesa';
+    const t = titolo || currentSessionTitle || 'Sessione attiva';
+    if (label) label.textContent = canEditSession() ? 'Modifiche in attesa' : t + ' · Modifiche in attesa';
   }
   if (dot) dot.className = cls;
   if (dotM) dotM.className = cls;
+  // Inline edit row
+  const inlineEdit = document.getElementById('sess-inline-edit');
+  const canEdit = canEditSession();
+  if (inlineEdit) inlineEdit.style.display = canEdit ? 'flex' : 'none';
+  // Bottone Salva
+  ['btn-salva-sess','btn-salva-sess-m'].forEach(id => { const el=document.getElementById(id); if(el) el.style.display=canEdit?'':'none'; });
+  // Bottone Chiudi
   const hasSession = !!currentSessionId;
-  const bc = document.getElementById('btn-chiudi-sess');
-  const bcm = document.getElementById('btn-chiudi-sess-m');
-  if (bc)  bc.style.display  = hasSession ? '' : 'none';
-  if (bcm) bcm.style.display = hasSession ? '' : 'none';
+  ['btn-chiudi-sess','btn-chiudi-sess-m'].forEach(id => { const el=document.getElementById(id); if(el) el.style.display=hasSession?'':'none'; });
+  // Bottoni Aggiorna Anagrafica / Straordinaria
   const hasSaved = hasSession && Object.keys(saved).length > 0;
   ['btn-sync-prog','btn-sync-straord'].forEach(id => { const el=document.getElementById(id); if(el) el.style.display=hasSaved?'':'none'; });
   ['btn-sync-prog-m','btn-sync-straord-m'].forEach(id => { const el=document.getElementById(id); if(el) el.style.display=hasSaved?'':'none'; });
@@ -1250,14 +1262,7 @@ async function addAttesiToSession() {
 async function openSessModal() {
   document.getElementById('sess-modal').classList.add('open');
   const editSec = document.getElementById('sess-edit-section');
-  if (editSec) {
-    const showEdit = !!(currentSessionId && canEditSession());
-    editSec.style.display = showEdit ? 'block' : 'none';
-    if (showEdit) {
-      document.getElementById('sess-edit-title').value = currentSessionTitle || '';
-      document.getElementById('sess-edit-date').value  = currentSessionDate  || '';
-    }
-  }
+  if (editSec) editSec.style.display = (currentSessionId && canEditSession()) ? 'block' : 'none';
   const dateEl = document.getElementById('sess-new-date');
   if (dateEl && !dateEl.value) dateEl.value = new Date().toISOString().split('T')[0];
   await loadSessList();
@@ -1265,8 +1270,8 @@ async function openSessModal() {
 
 async function saveSessionEdits() {
   if (!currentSessionId || !canEditSession()) return;
-  const title = document.getElementById('sess-edit-title').value.trim();
-  const date  = document.getElementById('sess-edit-date').value || null;
+  const title = (document.getElementById('sess-inline-title')?.value || '').trim();
+  const date  = document.getElementById('sess-inline-date')?.value || null;
   if (!title) { toast('Il nome della sessione non può essere vuoto', 'warn'); return; }
   const token = await supaToken();
   const resp = await fetch(`${SUPA_URL}/rest/v1/sessioni?id=eq.${currentSessionId}`, {
@@ -1278,7 +1283,6 @@ async function saveSessionEdits() {
     currentSessionTitle = title;
     currentSessionDate  = date;
     updateSyncBar(title, true);
-    await loadSessList();
     toast('Sessione aggiornata', 'ok');
   } else {
     toast('Errore salvataggio sessione', 'err');
