@@ -24,14 +24,14 @@
 <!-- SIDEBAR (desktop: sempre visibile; mobile: a scomparsa) -->
 <div id="sidebar">
   <div class="sb-logo" style="display:flex;align-items:center;justify-content:space-between;gap:6px" onclick="showHome()" title="Home" role="button" tabindex="0" style="cursor:pointer">
-    <svg style="flex:1;min-width:0;cursor:pointer" viewBox="0 0 420 82" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <svg style="flex:1;min-width:0;cursor:pointer" viewBox="0 0 420 92" fill="none" xmlns="http://www.w3.org/2000/svg">
       <line x1="0" y1="8" x2="420" y2="8" stroke="#C8A96E" stroke-width="0.8"/>
-      <text x="0" y="54" font-family="'Playfair Display',serif" font-size="42" font-weight="700" fill="#E8EEF8" letter-spacing="-1">App</text>
-      <text x="98" y="54" font-family="'Playfair Display',serif" font-size="42" font-weight="700" fill="#C8A96E" letter-spacing="-1">Witch</text>
-      <line x1="0" y1="64" x2="58" y2="64" stroke="#C8A96E" stroke-width="1" opacity="0.35"/>
-      <polyline points="58,64 64,64 67,55 70,73 73,60 76,68 79,64 230,64" stroke="#C8A96E" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity="0.7"/>
-      <line x1="230" y1="64" x2="420" y2="64" stroke="#C8A96E" stroke-width="1" opacity="0.35"/>
-      <text x="0" y="78" font-family="'IBM Plex Sans',sans-serif" font-size="9.5" font-weight="500" fill="#4A6090" letter-spacing="3">VERIFICHE · DISPOSITIVI MEDICI</text>
+      <text x="0" y="57" font-family="'Playfair Display',serif" font-size="46" font-weight="700" fill="#8B0000" letter-spacing="-1">App</text>
+      <text x="107" y="57" font-family="'Playfair Display',serif" font-size="46" font-weight="700" fill="#C8A96E" letter-spacing="-1">Witch</text>
+      <line x1="0" y1="68" x2="58" y2="68" stroke="#C8A96E" stroke-width="1" opacity="0.35"/>
+      <polyline points="58,68 64,68 67,59 70,77 73,64 76,72 79,68 230,68" stroke="#C8A96E" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity="0.7"/>
+      <line x1="230" y1="68" x2="420" y2="68" stroke="#C8A96E" stroke-width="1" opacity="0.35"/>
+      <text x="0" y="84" font-family="'IBM Plex Sans',sans-serif" font-size="12" font-weight="500" fill="#87CEEB" letter-spacing="3">GESTIONALE · DISPOSITIVI MEDICI</text>
     </svg>
     <button class="hamburger" onclick="toggleSidebar()" style="display:none;flex-shrink:0" id="sb-close-btn" title="Chiudi menu">✕</button>
   </div>
@@ -114,14 +114,23 @@
     <button class="hamburger" onclick="toggleSidebar()" title="Apri menu">☰</button>
     <span class="mobile-logo-txt">
       <svg height="26" viewBox="0 0 180 28" fill="none" style="overflow:visible;display:block">
-        <text x="0" y="22" font-family="'Cormorant Garamond',serif" font-size="24" font-weight="600" fill="#0d1b2a">App</text>
-        <text x="47" y="22" font-family="'Cormorant Garamond',serif" font-size="24" font-weight="700" fill="#1a3a6b" font-style="italic">Witch</text>
+        <text x="0" y="22" font-family="'Playfair Display',serif" font-size="24" font-weight="700" fill="#8B0000" letter-spacing="-0.5">App</text>
+        <text x="50" y="22" font-family="'Playfair Display',serif" font-size="24" font-weight="700" fill="#C8A96E" letter-spacing="-0.5">Witch</text>
       </svg>
     </span>
     <div id="sync-dot-mobile" class="sess-sync-dot offline" style="margin-left:auto" title="Stato sync"></div>
   </div>
-  <h1>AppWitch</h1>
-  <div class="subtitle">Verifiche Dispositivi Medici</div>
+  <div style="padding:8px 0 4px">
+    <svg width="50%" viewBox="0 0 420 92" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <line x1="0" y1="8" x2="420" y2="8" stroke="#C8A96E" stroke-width="0.8"/>
+      <text x="0" y="57" font-family="'Playfair Display',serif" font-size="46" font-weight="700" fill="#8B0000" letter-spacing="-1">App</text>
+      <text x="107" y="57" font-family="'Playfair Display',serif" font-size="46" font-weight="700" fill="#C8A96E" letter-spacing="-1">Witch</text>
+      <line x1="0" y1="68" x2="58" y2="68" stroke="#C8A96E" stroke-width="1" opacity="0.35"/>
+      <polyline points="58,68 64,68 67,59 70,77 73,64 76,72 79,68 230,68" stroke="#C8A96E" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity="0.7"/>
+      <line x1="230" y1="68" x2="420" y2="68" stroke="#C8A96E" stroke-width="1" opacity="0.35"/>
+      <text x="0" y="84" font-family="'IBM Plex Sans',sans-serif" font-size="12" font-weight="500" fill="#1A3A6B" letter-spacing="3">GESTIONALE · DISPOSITIVI MEDICI</text>
+    </svg>
+  </div>
 
   <!-- PANNELLO DI CONTROLLO (visibile subito dopo login) -->
   <div id="home-section" style="display:none">

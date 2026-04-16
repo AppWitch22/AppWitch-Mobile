@@ -566,17 +566,14 @@ document.body.insertAdjacentHTML('afterbegin', `
 <div id="login-screen">
   <div class="login-box">
     <div class="login-logo">
-      <svg width="100%" viewBox="0 0 420 90" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <line x1="0" y1="6" x2="420" y2="6" stroke="#0D1B3E" stroke-width="2"/>
-        <line x1="0" y1="10" x2="420" y2="10" stroke="#C8A96E" stroke-width="0.7"/>
-        <text x="0" y="55" font-family="'Cormorant Garamond',serif" font-size="46" font-weight="600" fill="#0D1B3E">App</text>
-        <text x="103" y="55" font-family="'Cormorant Garamond',serif" font-size="46" font-weight="700" fill="#1A3A7A" font-style="italic">Witch</text>
-        <line x1="0" y1="63" x2="50" y2="63" stroke="#C8A96E" stroke-width="0.8" opacity="0.5"/>
-        <polyline points="50,63 55,63 57.5,56 60,70 62.5,59 65,66 67.5,63 220,63" stroke="#C8A96E" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-        <line x1="220" y1="63" x2="420" y2="63" stroke="#C8A96E" stroke-width="0.8" opacity="0.5"/>
-        <line x1="0" y1="70" x2="420" y2="70" stroke="#C8A96E" stroke-width="0.7"/>
-        <line x1="0" y1="74" x2="420" y2="74" stroke="#0D1B3E" stroke-width="2"/>
-        <text x="210" y="87" font-family="'IBM Plex Sans',sans-serif" font-size="9" font-weight="500" fill="#4A6090" letter-spacing="3" text-anchor="middle">VERIFICHE · DISPOSITIVI MEDICI</text>
+      <svg width="100%" viewBox="0 0 420 92" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <line x1="0" y1="8" x2="420" y2="8" stroke="#C8A96E" stroke-width="0.8"/>
+        <text x="0" y="57" font-family="'Playfair Display',serif" font-size="46" font-weight="700" fill="#8B0000" letter-spacing="-1">App</text>
+        <text x="107" y="57" font-family="'Playfair Display',serif" font-size="46" font-weight="700" fill="#C8A96E" letter-spacing="-1">Witch</text>
+        <line x1="0" y1="68" x2="58" y2="68" stroke="#C8A96E" stroke-width="1" opacity="0.35"/>
+        <polyline points="58,68 64,68 67,59 70,77 73,64 76,72 79,68 230,68" stroke="#C8A96E" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity="0.7"/>
+        <line x1="230" y1="68" x2="420" y2="68" stroke="#C8A96E" stroke-width="1" opacity="0.35"/>
+        <text x="0" y="84" font-family="'IBM Plex Sans',sans-serif" font-size="12" font-weight="500" fill="#1A3A6B" letter-spacing="3">GESTIONALE · DISPOSITIVI MEDICI</text>
       </svg>
     </div>
     <div class="login-field">
