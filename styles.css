@@ -32,6 +32,8 @@ body{font-family:'IBM Plex Sans',-apple-system,BlinkMacSystemFont,"Segoe UI",Rob
 .sb-btn:disabled{opacity:.4;cursor:not-allowed}
 .sb-section{padding:8px 8px 4px;border-top:1px solid #1a2e44}
 .sb-section-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#6b85a6;padding:6px 12px 4px}
+.sb-sub-area{margin:4px 0}
+.sb-sub-title{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#3d5a7a;padding:6px 12px 2px;margin-top:2px;border-top:1px solid #162330}
 /* Azioni sessione visibili solo su mobile (sidebar nascosta) */
 .sess-mobile-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)}
 @media(min-width:768px){.sess-mobile-actions{display:none}}
