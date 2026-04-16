@@ -498,11 +498,10 @@ async function removeFromSession(cod) {
     headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + token }
   });
   delete saved[cod];
-  attesi.delete(cod);
   if (cur && cur.c === cod) { cur = null; curVerif = null; document.getElementById('form-area').style.display = 'none'; }
   renderSession();
   scheduleSync();
-  toast('Rimosso: ' + cod, 'warn');
+  toast('Dati rimossi: ' + cod + (attesi.has(cod) ? ' (tornato in attesa)' : ''), 'warn');
 }
 
 function removeFromAttesi(cod) {
