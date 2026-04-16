@@ -133,6 +133,8 @@
         <div class="card-title" style="margin-bottom:0">Sessione</div>
         <div class="sess-btns">
           <button class="btn-sm" id="btn-sess-open" onclick="openSessModal()">📋 Sessioni</button>
+          <button class="btn-sm" id="btn-sync-prog" onclick="syncProgrammazioneAnagrafica()" style="display:none" title="Aggiorna data/esito ultima verifica su ogni dispositivo">📅 Aggiorna Anagrafica</button>
+          <button class="btn-sm" id="btn-sync-straord" onclick="openStraordinariaModal()" style="display:none" title="Registra questa sessione come verifica straordinaria">⚡ Straordinaria</button>
           <button class="btn-sm danger" id="btn-chiudi-sess" onclick="chiudiSessione()" style="display:none">✕ Chiudi</button>
         </div>
         <div class="sess-mobile-actions">
@@ -145,6 +147,8 @@
           <button class="btn-sm" onclick="downloadMacroPDF()">📄 Macro PDF</button>
           <button class="btn-sm" id="btn-compila-odl-m" onclick="compilaODL()" disabled>📋 ODL</button>
           <button class="btn-sm" id="btn-data-ultima-m" onclick="toggleDataUltimaVerifica()" title="Imposta date ultime verifiche" style="display:none">📅 Date ultime</button>
+          <button class="btn-sm" id="btn-sync-prog-m" onclick="syncProgrammazioneAnagrafica()" style="display:none">📅 Aggiorna Anagrafica</button>
+          <button class="btn-sm" id="btn-sync-straord-m" onclick="openStraordinariaModal()" style="display:none">⚡ Straordinaria</button>
           <button class="btn-sm danger" id="btn-chiudi-sess-m" onclick="chiudiSessione()" style="display:none">✕ Chiudi Sessione</button>
         </div>
       </div>
@@ -229,6 +233,21 @@
   </div>
 
   <!-- SEZIONE GESTIONE BENE -->
+
+  <!-- MODAL VERIFICA STRAORDINARIA -->
+  <div id="modal-straord">
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--rad-lg);padding:24px;width:100%;max-width:400px;box-shadow:0 4px 24px rgba(28,15,6,.18)">
+      <h3 style="margin:0 0 6px;font-size:15px;font-weight:600;color:var(--text)">Registra verifica straordinaria</h3>
+      <p id="straord-desc" style="margin:0 0 16px;font-size:13px;color:var(--text2)"></p>
+      <label style="font-size:12px;font-weight:600;color:var(--text3);display:block;margin-bottom:4px">Motivo <span style="color:var(--ko)">*</span></label>
+      <input type="text" id="straord-motivo" placeholder="es. Guasto riparato, richiesta del reparto..." maxlength="200"
+             style="width:100%;box-sizing:border-box;padding:8px 10px;border:1.5px solid var(--border2);border-radius:var(--rad);font-size:13px;background:var(--bg);color:var(--text);margin-bottom:16px">
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button onclick="closeStraordinariaModal()" style="padding:7px 16px;font-size:13px;border:1px solid var(--border2);border-radius:var(--rad);background:transparent;color:var(--text2);cursor:pointer">Annulla</button>
+        <button onclick="confirmStraordinaria()" style="padding:7px 16px;font-size:13px;border:none;border-radius:var(--rad);background:var(--info);color:#fff;cursor:pointer;font-weight:600">Conferma</button>
+      </div>
+    </div>
+  </div>
 
   <!-- MODAL CREA SESSIONE DA TABELLA -->
   <div id="tbl-sess-modal">

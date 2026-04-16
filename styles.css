@@ -153,6 +153,11 @@ body.logged-in h1,body.logged-in .subtitle{display:none}
 .badge.pos{background:var(--ok-bg);color:var(--ok)}
 .badge.neg{background:var(--ko-bg);color:var(--ko)}
 .badge.info{background:var(--info-bg);color:var(--info)}
+.badge.warn{background:var(--warn-bg);color:var(--warn)}
+
+/* MODAL STRAORDINARIA */
+#modal-straord{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:11000;display:none;align-items:center;justify-content:center;padding:16px}
+#modal-straord.open{display:flex}
 
 /* LOGIN */
 #login-screen{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center;padding:24px}

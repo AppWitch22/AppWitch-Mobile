@@ -519,9 +519,13 @@ async function gbLoadStorico() {
     if (row.dati_cq)  { const t=(row.cq_type||'').replace('CQ_','');  s.CQ ={esito:t||'✓', ok:null}; }
   });
 
-  // storico_verifiche → raggruppa per (data, verificatore)
+  // storico_verifiche → separa programmazione da straordinarie
+  const progRows  = storRows.filter(r => r.categoria !== 'straordinaria');
+  const straordRows = storRows.filter(r => r.categoria === 'straordinaria');
+
+  // programmazione → raggruppa per (data, verificatore)
   const storMap = {};
-  storRows.forEach(row => {
+  progRows.forEach(row => {
     const key = `${row.data}||${row.verificatore||''}`;
     if (!storMap[key]) storMap[key] = { _source:'storico', _date:row.data, data:_fmt(row.data), nome:row.verificatore||'—', VSE:null, MP:null, VSP:null, CQ:null };
     const s = storMap[key];
@@ -563,33 +567,17 @@ async function gbLoadStorico() {
     if (!dateGiaPresenti.has(row._date)) dbRows.push(row);
   });
 
-  const all = [...Object.values(sessMap), ...Object.values(storMap), ...dbRows]
+  // ── Sezione Programmazione Annuale ───────────────────────────
+  const allProg = [...Object.values(sessMap), ...Object.values(storMap), ...dbRows]
     .sort((a,b) => (b._date||'').localeCompare(a._date||''));
 
-  if (!all.length) {
-    content.innerHTML = '<div style="padding:32px;text-align:center;color:var(--text3);font-size:13px">Nessuna verifica registrata per questo dispositivo</div>';
-    return;
-  }
-
   const _b = t => t ? _badge(t.ok, t.esito) : '<span style="color:var(--text3);font-size:12px">—</span>';
-  const rows_html = all.map(row => {
-    const fonte = row._source === 'storico'
-      ? '<span style="font-size:11px;color:var(--text3);background:var(--bg3);padding:1px 6px;border-radius:8px">storico</span>'
-      : row._source === 'db'
-      ? '<span style="font-size:11px;color:var(--text2);background:var(--bg3);padding:1px 6px;border-radius:8px">anagrafica</span>'
-      : '<span style="font-size:11px;color:var(--info);background:var(--info-bg);padding:1px 6px;border-radius:8px">app</span>';
-    return `<tr style="border-bottom:1px solid var(--border)">
-      <td style="padding:8px 10px;white-space:nowrap;color:var(--text)">${row.data}</td>
-      <td style="padding:8px 10px">${fonte}</td>
-      <td style="padding:8px 10px;color:var(--text2);font-size:12px;white-space:nowrap">${_esc(row.nome)}</td>
-      <td style="padding:8px;text-align:center">${_b(row.VSE)}</td>
-      <td style="padding:8px;text-align:center">${_b(row.MP)}</td>
-      <td style="padding:8px;text-align:center">${_b(row.VSP)}</td>
-      <td style="padding:8px;text-align:center">${_b(row.CQ)}</td>
-    </tr>`;
-  }).join('');
+  const _fonte = src =>
+    src==='storico' ? '<span style="font-size:11px;color:var(--text3);background:var(--bg3);padding:1px 6px;border-radius:8px">storico</span>'
+    : src==='db'    ? '<span style="font-size:11px;color:var(--text2);background:var(--bg3);padding:1px 6px;border-radius:8px">anagrafica</span>'
+    :                 '<span style="font-size:11px;color:var(--info);background:var(--info-bg);padding:1px 6px;border-radius:8px">app</span>';
 
-  content.innerHTML = `
+  const progHtml = allProg.length ? `
     <div style="overflow-x:auto">
     <table style="width:100%;border-collapse:collapse;font-size:13px;min-width:480px">
       <thead><tr style="border-bottom:2px solid var(--border)">
@@ -601,8 +589,64 @@ async function gbLoadStorico() {
         <th style="text-align:center;padding:6px 8px;color:var(--text3);font-weight:600">VSP</th>
         <th style="text-align:center;padding:6px 8px;color:var(--text3);font-weight:600">CQ</th>
       </tr></thead>
-      <tbody>${rows_html}</tbody>
-    </table></div>`;
+      <tbody>${allProg.map(row=>`<tr style="border-bottom:1px solid var(--border)">
+        <td style="padding:8px 10px;white-space:nowrap;color:var(--text)">${row.data}</td>
+        <td style="padding:8px 10px">${_fonte(row._source)}</td>
+        <td style="padding:8px 10px;color:var(--text2);font-size:12px;white-space:nowrap">${_esc(row.nome)}</td>
+        <td style="padding:8px;text-align:center">${_b(row.VSE)}</td>
+        <td style="padding:8px;text-align:center">${_b(row.MP)}</td>
+        <td style="padding:8px;text-align:center">${_b(row.VSP)}</td>
+        <td style="padding:8px;text-align:center">${_b(row.CQ)}</td>
+      </tr>`).join('')}</tbody>
+    </table></div>` : '<div style="padding:16px;font-size:13px;color:var(--text3)">Nessuna verifica programmata registrata</div>';
+
+  // ── Sezione Verifiche Straordinarie ──────────────────────────
+  const _esitoColor = esito => {
+    const e = (esito||'').toLowerCase();
+    if (e==='positivo') return {c:'var(--ok)',bg:'var(--ok-bg)'};
+    if (e==='negativa') return {c:'var(--ko)',bg:'var(--ko-bg)'};
+    return {c:'var(--warn)',bg:'var(--warn-bg)'};
+  };
+  const straordHtml = straordRows.length ? `
+    <div style="overflow-x:auto">
+    <table style="width:100%;border-collapse:collapse;font-size:13px;min-width:480px">
+      <thead><tr style="border-bottom:2px solid var(--border)">
+        <th style="text-align:left;padding:6px 10px;color:var(--text3);font-weight:600;white-space:nowrap">Data</th>
+        <th style="text-align:left;padding:6px 10px;color:var(--text3);font-weight:600">Tipo</th>
+        <th style="text-align:left;padding:6px 10px;color:var(--text3);font-weight:600">Esito</th>
+        <th style="text-align:left;padding:6px 10px;color:var(--text3);font-weight:600">Motivo</th>
+        <th style="text-align:left;padding:6px 10px;color:var(--text3);font-weight:600">Verificatore</th>
+      </tr></thead>
+      <tbody>${straordRows.sort((a,b)=>(b.data||'').localeCompare(a.data||'')).map(row=>{
+        const {c,bg} = _esitoColor(row.esito);
+        return `<tr style="border-bottom:1px solid var(--border)">
+          <td style="padding:8px 10px;white-space:nowrap;color:var(--text)">${_fmt(row.data)}</td>
+          <td style="padding:8px 10px;font-weight:600;color:var(--info)">${_esc(row.tipo||'—')}</td>
+          <td style="padding:8px 10px"><span style="font-size:11px;font-weight:600;padding:1px 7px;border-radius:10px;color:${c};background:${bg}">${_esc(row.esito||'—')}</span></td>
+          <td style="padding:8px 10px;color:var(--text2);font-size:12px">${_esc(row.motivo||'—')}</td>
+          <td style="padding:8px 10px;color:var(--text2);font-size:12px;white-space:nowrap">${_esc(row.verificatore||'—')}</td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table></div>` : '<div style="padding:16px;font-size:13px;color:var(--text3)">Nessuna verifica straordinaria registrata</div>';
+
+  const totProg = allProg.length;
+  const totStraord = straordRows.length;
+
+  content.innerHTML = `
+    <details open style="border-bottom:1px solid var(--border)">
+      <summary style="padding:10px 14px;font-size:13px;font-weight:600;color:var(--text);cursor:pointer;list-style:none;display:flex;align-items:center;gap:6px;user-select:none">
+        <span>▶</span><span>Programmazione Annuale</span>
+        <span style="margin-left:auto;font-size:11px;font-weight:400;color:var(--text3)">${totProg} record</span>
+      </summary>
+      ${progHtml}
+    </details>
+    <details style="border-bottom:1px solid var(--border)">
+      <summary style="padding:10px 14px;font-size:13px;font-weight:600;color:var(--text);cursor:pointer;list-style:none;display:flex;align-items:center;gap:6px;user-select:none">
+        <span>▶</span><span>Verifiche Straordinarie</span>
+        <span style="margin-left:auto;font-size:11px;font-weight:400;color:var(--text3)">${totStraord} record</span>
+      </summary>
+      ${straordHtml}
+    </details>`;
 }
 // ── Tab Scadenze ─────────────────────────────────────────────
 function gbRenderScadenze(dev) {

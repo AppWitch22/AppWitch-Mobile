@@ -421,16 +421,23 @@ function renderSession(){
   const chips=document.getElementById('chips');
   const stats=document.getElementById('sess-stats');
   if(!keys.length&&!pending.length){chips.innerHTML='<span class="sess-empty">Nessun apparecchio compilato</span>';stats.style.display='none';document.getElementById('export-preview').style.display='none';return;}
+  const _flagBtn=(cod,flag,label,active)=>
+    `<span onclick="event.stopPropagation();toggleDevFlag('${cod}','${flag}')" title="${flag==='non_reperibile'?'Non reperibile':'Non eseguita'}"
+      style="font-size:10px;font-weight:700;padding:1px 5px;border-radius:3px;margin-left:3px;cursor:pointer;line-height:1.4;${
+        active?'background:var(--ko-bg);color:var(--ko);border:1px solid rgba(185,28,28,.3)':'background:var(--bg3);color:var(--text3);border:1px solid var(--border)'
+      }">${label}</span>`;
   const savedChips=keys.map(k=>{
     const s=saved[k];const act=cur&&cur.c===k;
+    const isNR=!!s.non_reperibile;const isNE=!!s.non_eseguita;
     const both=s.vse_saved&&s.mp_saved;
-    return`<div class="chip ${both?'done':'part'}${act?' active':''}" onclick="sel('${k}')">
-      <div class="chip-dot"></div>${k}
+    const cls=isNR||isNE?'part':both?'done':'part';
+    return`<div class="chip ${cls}${act?' active':''}" onclick="sel('${k}')">
+      <div class="chip-dot"></div><span>${k}</span>${_flagBtn(k,'non_reperibile','NR',isNR)}${_flagBtn(k,'non_eseguita','NE',isNE)}
     </div>`;
   }).join('');
   const pendingChips=pending.map(c=>{
     return`<div class="chip pending" onclick="sel('${c}')" title="Da verificare">
-      <div class="chip-dot"></div>${c}
+      <div class="chip-dot"></div><span>${c}</span>${_flagBtn(c,'non_reperibile','NR',false)}${_flagBtn(c,'non_eseguita','NE',false)}
     </div>`;
   }).join('');
   chips.innerHTML=savedChips+pendingChips;
@@ -451,10 +458,11 @@ function renderSession(){
         <span class="ex-cod">${k}</span>
         <span class="ex-nome">${(d.n||'').toLowerCase()}</span>
         <span class="ex-tags">
-          ${s.vse_saved?`<span class="badge ${s.giu==='POSITIVO'?'pos':'neg'}">VSE ${s.giu==='POSITIVO'?'✓':'✗'}</span>`:''}
-          ${s.mp_saved?`<span class="badge info">MP ✓</span>`:''}
-          ${s.vsp_saved?`<span class="badge info">${s.vsp_type} ✓</span>`:''}
-          ${s.cq_saved?`<span class="badge info">${s.cq_type} ✓</span>`:''}
+          ${s.non_reperibile?`<span class="badge warn">Non reperibile</span>`:s.non_eseguita?`<span class="badge warn">Non eseguita</span>`:''}
+          ${!s.non_reperibile&&!s.non_eseguita&&s.vse_saved?`<span class="badge ${s.giu==='POSITIVO'?'pos':'neg'}">VSE ${s.giu==='POSITIVO'?'✓':'✗'}</span>`:''}
+          ${!s.non_reperibile&&!s.non_eseguita&&s.mp_saved?`<span class="badge info">MP ✓</span>`:''}
+          ${!s.non_reperibile&&!s.non_eseguita&&s.vsp_saved?`<span class="badge info">${s.vsp_type} ✓</span>`:''}
+          ${!s.non_reperibile&&!s.non_eseguita&&s.cq_saved?`<span class="badge info">${s.cq_type} ✓</span>`:''}
         </span>
         <button onclick="removeFromSession('${k}')" style="padding:2px 8px;font-size:11px;border:1px solid var(--ko);border-radius:var(--rad);background:transparent;color:var(--ko);cursor:pointer;flex-shrink:0">✕</button>
       </div>`;
@@ -1078,6 +1086,9 @@ function updateSyncBar(titolo, synced) {
   const bcm = document.getElementById('btn-chiudi-sess-m');
   if (bc)  bc.style.display  = hasSession ? '' : 'none';
   if (bcm) bcm.style.display = hasSession ? '' : 'none';
+  const hasSaved = hasSession && Object.keys(saved).length > 0;
+  ['btn-sync-prog','btn-sync-straord'].forEach(id => { const el=document.getElementById(id); if(el) el.style.display=hasSaved?'':'none'; });
+  ['btn-sync-prog-m','btn-sync-straord-m'].forEach(id => { const el=document.getElementById(id); if(el) el.style.display=hasSaved?'':'none'; });
 }
 
 // ── Auto-save: schedula sync 3s dopo l'ultima modifica ────────
@@ -1820,4 +1831,148 @@ async function exportPresetsToExcel() {
   XLSX.writeFile(wb, 'AppWitch_Preset_'+date+'.xlsx');
   const tot = Object.values(PRESETS).reduce((s,p)=>s+Object.keys(p).length, 0);
   toast(`Preset esportati: ${tot} dispositivi in ${sheets} fogli`, 'ok');
+}
+
+// ── Toggle Non reperibile / Non eseguita per dispositivo ──────
+function toggleDevFlag(cod, flag) {
+  if (!saved[cod]) saved[cod] = { codice: cod };
+  const other = flag === 'non_reperibile' ? 'non_eseguita' : 'non_reperibile';
+  saved[cod][flag] = !saved[cod][flag];
+  if (saved[cod][flag]) saved[cod][other] = false; // mutually exclusive
+  renderSession();
+  updateSyncBar(null, null);
+  if (currentSessionId) scheduleSync();
+}
+
+// ── Aggiorna Anagrafica (Programmazione) ─────────────────────
+async function syncProgrammazioneAnagrafica() {
+  const codici = Object.keys(saved);
+  if (!codici.length) { toast('Nessun dispositivo in sessione', 'warn'); return; }
+  const asl      = currentUser?.profile?.asl || 'ASL Benevento';
+  const aslKey   = asl.toLowerCase().replace('asl ', '');
+  const tabella  = 'dispositivi_' + aslKey;
+  const sessDate = currentSessionDate || new Date().toISOString().split('T')[0];
+  const token    = await supaToken();
+  let ok = 0, skip = 0, err = 0;
+
+  for (const cod of codici) {
+    const rec = saved[cod];
+    const vm  = VERIF_MAP[cod];
+    const dev = DB[cod] || {};
+    const nr  = !!rec.non_reperibile;
+    const ne  = !!rec.non_eseguita;
+    const esitoFlag = nr ? 'Non reperibile' : ne ? 'Non eseguita' : null;
+    const payload = {};
+
+    // VSE
+    const vseDate  = nr||ne ? sessDate : (rec.vse_saved ? rec.data : null);
+    const vseEsito = nr||ne ? esitoFlag : (rec.vse_saved ? (rec.giu==='POSITIVO'?'Positivo':'Negativa') : null);
+    if (vseDate) { payload.data_ultima_vse=vseDate; payload.esito_ultima_vse=vseEsito; payload.data_prossima_vse=_calcProssima(vseDate,dev.periodicita_vse)||null; }
+
+    // MP
+    const mpDate  = nr||ne ? sessDate : (rec.mp_saved ? rec.mp_data : null);
+    const mpEsito = nr||ne ? esitoFlag : (rec.mp_saved ? 'Positivo' : null);
+    if (mpDate) { payload.data_ultima_mo=mpDate; payload.esito_ultima_mo=mpEsito; payload.data_prossima_mo=_calcProssima(mpDate,dev.periodicita_mo)||null; }
+
+    // VSP (solo se previsto per il dispositivo)
+    if (vm?.vsp) {
+      const vspDate  = nr||ne ? sessDate : (rec.vsp_saved ? rec.vsp_data : null);
+      const vspEsito = nr||ne ? esitoFlag : (rec.vsp_saved ? 'Positivo' : null);
+      if (vspDate) { payload.data_ultima_vsp=vspDate; payload.esito_ultima_vsp=vspEsito; payload.data_prossima_vsp=_calcProssima(vspDate,dev.periodicita_vsp)||null; }
+    }
+
+    // CQ (solo se previsto per il dispositivo)
+    if (vm?.cq) {
+      const cqDate  = nr||ne ? sessDate : (rec.cq_saved ? rec.cq_data : null);
+      const cqEsito = nr||ne ? esitoFlag : (rec.cq_saved ? 'Positivo' : null);
+      if (cqDate) { payload.data_ultima_cq=cqDate; payload.esito_ultima_cq=cqEsito; payload.data_prossima_cq=_calcProssima(cqDate,dev.periodicita_cq)||null; }
+    }
+
+    if (!Object.keys(payload).length) { skip++; continue; }
+
+    const resp = await fetch(`${SUPA_URL}/rest/v1/${tabella}?codice=eq.${encodeURIComponent(cod)}`, {
+      method: 'PATCH',
+      headers: { ...supaHdrs(token), 'Prefer': 'return=minimal' },
+      body: JSON.stringify(payload)
+    });
+    if (resp.ok) { ok++; if (DB[cod]) Object.assign(DB[cod], payload); }
+    else { err++; console.error('syncProg fallita:', cod, resp.status); }
+  }
+
+  if (err===0) toast(`Anagrafica aggiornata: ${ok} dispositivi${skip?` (${skip} senza dati)`:''}`, 'ok');
+  else toast(`Completato con ${err} errori (${ok} OK)`, 'warn');
+}
+
+// ── Modal Verifica Straordinaria ──────────────────────────────
+function openStraordinariaModal() {
+  const codici = Object.keys(saved);
+  if (!codici.length) { toast('Nessun dispositivo in sessione', 'warn'); return; }
+  const el = document.getElementById('straord-desc');
+  if (el) el.textContent = `${codici.length} dispositivo${codici.length>1?'i':''} verranno registrati come verifica straordinaria.`;
+  const inp = document.getElementById('straord-motivo');
+  if (inp) inp.value = '';
+  document.getElementById('modal-straord').classList.add('open');
+}
+function closeStraordinariaModal() {
+  document.getElementById('modal-straord').classList.remove('open');
+}
+function confirmStraordinaria() {
+  const motivo = (document.getElementById('straord-motivo')?.value || '').trim();
+  if (!motivo) { document.getElementById('straord-motivo').focus(); toast('Inserire il motivo della verifica straordinaria', 'warn'); return; }
+  closeStraordinariaModal();
+  syncStraordinariaStorico(motivo);
+}
+
+// ── Inserisce verifiche straordinarie in storico_verifiche ───
+async function syncStraordinariaStorico(motivo) {
+  const codici = Object.keys(saved);
+  if (!codici.length) return;
+  const aslKey     = (currentUser?.profile?.asl || 'ASL Benevento').toLowerCase().replace('asl ', '');
+  const verificatore = currentUser?.profile?.full_name || '';
+  const sessDate   = currentSessionDate || new Date().toISOString().split('T')[0];
+  const token      = await supaToken();
+  const rows = [];
+
+  for (const cod of codici) {
+    const rec = saved[cod];
+    const vm  = VERIF_MAP[cod];
+    const nr  = !!rec.non_reperibile;
+    const ne  = !!rec.non_eseguita;
+    const esitoFlag = nr ? 'Non reperibile' : ne ? 'Non eseguita' : null;
+    const base = { asl: aslKey, codice: cod, verificatore, categoria: 'straordinaria', motivo };
+
+    // VSE
+    const vseDate  = nr||ne ? sessDate : (rec.vse_saved ? rec.data : null);
+    const vseEsito = nr||ne ? esitoFlag : (rec.vse_saved ? (rec.giu==='POSITIVO'?'Positivo':'Negativa') : null);
+    if (vseDate) rows.push({ ...base, data: vseDate, tipo: 'VSE', esito: vseEsito });
+
+    // MP
+    const mpDate  = nr||ne ? sessDate : (rec.mp_saved ? rec.mp_data : null);
+    const mpEsito = nr||ne ? esitoFlag : (rec.mp_saved ? 'Positivo' : null);
+    if (mpDate) rows.push({ ...base, data: mpDate, tipo: 'MO', esito: mpEsito });
+
+    // VSP
+    if (vm?.vsp) {
+      const vspDate  = nr||ne ? sessDate : (rec.vsp_saved ? rec.vsp_data : null);
+      const vspEsito = nr||ne ? esitoFlag : (rec.vsp_saved ? 'Positivo' : null);
+      if (vspDate) rows.push({ ...base, data: vspDate, tipo: 'VSP', esito: vspEsito });
+    }
+
+    // CQ
+    if (vm?.cq) {
+      const cqDate  = nr||ne ? sessDate : (rec.cq_saved ? rec.cq_data : null);
+      const cqEsito = nr||ne ? esitoFlag : (rec.cq_saved ? 'Positivo' : null);
+      if (cqDate) rows.push({ ...base, data: cqDate, tipo: 'CQ', esito: cqEsito });
+    }
+  }
+
+  if (!rows.length) { toast('Nessun dato da registrare', 'warn'); return; }
+
+  const resp = await fetch(`${SUPA_URL}/rest/v1/storico_verifiche`, {
+    method: 'POST',
+    headers: { ...supaHdrs(token), 'Prefer': 'return=minimal' },
+    body: JSON.stringify(rows)
+  });
+  if (resp.ok) toast(`Verifiche straordinarie registrate: ${rows.length} righe`, 'ok');
+  else toast('Errore registrazione straordinaria', 'warn');
 }
