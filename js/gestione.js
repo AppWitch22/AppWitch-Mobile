@@ -836,3 +836,149 @@ function gbMsg(text, ok) {
   msg.style.color      = ok ? 'var(--ok)'    : 'var(--ko)';
   setTimeout(() => { if (msg) msg.style.display = 'none'; }, 4000);
 }
+
+// ── STORICO VERIFICHE: tabella globale ────────────────────────
+
+let _svRows  = [];
+let _svOffset = 0;
+let _svTotal  = 0;
+const _SV_PAGE = 150;
+
+async function openStoricoTable() {
+  const sec = document.getElementById('storico-section');
+  if (!sec) return;
+  sec.style.display = 'block';
+  sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  _svInitFilters();
+  await _svLoad(true);
+}
+
+function closeStoricoTable() {
+  const sec = document.getElementById('storico-section');
+  if (sec) sec.style.display = 'none';
+}
+
+function _svInitFilters() {
+  // Tipi unici da VERIF_MAP + tipi base
+  const tipiSet = new Set(['VSE','MP']);
+  for (const vm of Object.values(VERIF_MAP || {})) {
+    if (vm.vsp) tipiSet.add(vm.vsp);
+    if (vm.cq)  tipiSet.add(vm.cq);
+  }
+  const tipoSel = document.getElementById('sv-tipo');
+  if (tipoSel) {
+    tipoSel.innerHTML = '<option value="">Tutti i tipi</option>' +
+      [...tipiSet].sort().map(t => `<option value="${t}">${t}</option>`).join('');
+  }
+  // Presidio datalist
+  const dl = document.getElementById('sv-dl-presidio');
+  if (dl && window._lookupSets?.presidio) {
+    dl.innerHTML = [...window._lookupSets.presidio].sort().map(v => `<option value="${v}">`).join('');
+  }
+}
+
+async function _svLoad(reset) {
+  if (reset) { _svRows = []; _svOffset = 0; _svTotal = 0; }
+  const wrap = document.getElementById('sv-table-wrap');
+  if (wrap && reset) wrap.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text3);font-size:13px">Caricamento...</div>';
+
+  const aslKey = (currentUser?.profile?.asl || 'ASL Benevento').toLowerCase().replace('asl ', '');
+  let url = `${SUPA_URL}/rest/v1/storico_verifiche?asl=eq.${encodeURIComponent(aslKey)}&order=data.desc&limit=${_SV_PAGE}&offset=${_svOffset}`;
+
+  const da    = document.getElementById('sv-data-da')?.value;
+  const a     = document.getElementById('sv-data-a')?.value;
+  const tipo  = document.getElementById('sv-tipo')?.value;
+  const esito = document.getElementById('sv-esito')?.value;
+  const cat   = document.getElementById('sv-categoria')?.value;
+
+  if (da)    url += `&data=gte.${da}`;
+  if (a)     url += `&data=lte.${a}`;
+  if (tipo)  url += `&tipo=eq.${encodeURIComponent(tipo)}`;
+  if (esito) url += `&esito=eq.${encodeURIComponent(esito)}`;
+  if (cat)   url += `&categoria=eq.${encodeURIComponent(cat)}`;
+
+  try {
+    const token = await supaToken();
+    const r = await fetch(url, {
+      headers: {
+        'apikey': SUPA_KEY,
+        'Authorization': 'Bearer ' + token,
+        'Range-Unit': 'items',
+        'Range': `${_svOffset}-${_svOffset + _SV_PAGE - 1}`,
+        'Prefer': 'count=exact'
+      }
+    });
+    if (!r.ok) {
+      if (wrap) wrap.innerHTML = '<div style="padding:20px;text-align:center;color:var(--ko);font-size:13px">Errore caricamento dati</div>';
+      return;
+    }
+    const rows = await r.json();
+    const cr = r.headers.get('Content-Range') || '';
+    _svTotal = parseInt(cr.split('/')[1] || '0') || 0;
+    _svRows  = reset ? rows : [..._svRows, ...rows];
+    _svOffset += rows.length;
+    _svRender();
+  } catch(e) {
+    if (wrap) wrap.innerHTML = `<div style="padding:20px;text-align:center;color:var(--ko);font-size:13px">Errore: ${e.message}</div>`;
+  }
+}
+
+function _svRender() {
+  const presidioQ = (document.getElementById('sv-presidio')?.value || '').toLowerCase().trim();
+  const rows = presidioQ
+    ? _svRows.filter(r => { const d = DB[r.codice]; return (d?.loc||'').toLowerCase().includes(presidioQ) || (d?.rep||'').toLowerCase().includes(presidioQ); })
+    : _svRows;
+
+  const wrap     = document.getElementById('sv-table-wrap');
+  const loadMore = document.getElementById('sv-load-more');
+  const counter  = document.getElementById('sv-counter');
+  if (!wrap) return;
+
+  const _ec = e => {
+    if (!e) return 'color:var(--text3)';
+    const el = e.toLowerCase();
+    if (el.includes('positiv')) return 'color:#166534;font-weight:600';
+    if (el.includes('negativ')) return 'color:#991b1b;font-weight:600';
+    return 'color:var(--text3)';
+  };
+
+  if (rows.length === 0) {
+    wrap.innerHTML = '<div style="padding:30px;text-align:center;color:var(--text3);font-size:13px">Nessuna verifica trovata con i filtri applicati</div>';
+  } else {
+    const th = k => `<th style="padding:7px 10px;text-align:left;font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;white-space:nowrap;border-bottom:1px solid var(--border)">${k}</th>`;
+    const thead = `<tr style="position:sticky;top:0;background:var(--bg3);z-index:1">${['Data','Codice','Descrizione','Presidio','Reparto','Tipo','Esito','Verificatore'].map(th).join('')}</tr>`;
+    const tbody = rows.map(r => {
+      const d = DB[r.codice] || {};
+      return `<tr style="border-bottom:1px solid var(--border)" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">
+        <td style="padding:6px 10px;font-size:12px;color:var(--text2);white-space:nowrap">${r.data||'—'}</td>
+        <td style="padding:6px 10px;font-size:12px;font-family:'IBM Plex Mono',monospace;color:var(--info);cursor:pointer;white-space:nowrap" onclick="openGestioneBene('${r.codice}')" title="Apri scheda">${r.codice}</td>
+        <td style="padding:6px 10px;font-size:12px;color:var(--text);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${(d.n||'').replace(/"/g,"&quot;")}">${d.n||'—'}</td>
+        <td style="padding:6px 10px;font-size:12px;color:var(--text2);white-space:nowrap">${d.loc||'—'}</td>
+        <td style="padding:6px 10px;font-size:12px;color:var(--text2);white-space:nowrap">${d.rep||'—'}</td>
+        <td style="padding:6px 10px;font-size:12px;color:var(--text2);white-space:nowrap">${r.tipo||'—'}</td>
+        <td style="padding:6px 10px;font-size:12px;white-space:nowrap;${_ec(r.esito)}">${r.esito||'—'}</td>
+        <td style="padding:6px 10px;font-size:12px;color:var(--text3);white-space:nowrap">${r.verificatore||'—'}</td>
+      </tr>`;
+    }).join('');
+    wrap.innerHTML = `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse"><thead>${thead}</thead><tbody>${tbody}</tbody></table></div>`;
+  }
+
+  const hasMore = _svOffset < _svTotal;
+  if (loadMore) {
+    loadMore.style.display = hasMore ? 'block' : 'none';
+    if (hasMore) loadMore.textContent = `Carica altri (${_svOffset} di ${_svTotal} caricati)`;
+  }
+  if (counter) {
+    counter.textContent = presidioQ
+      ? `${rows.length} visualizzati / ${_svOffset} caricati / ${_svTotal} totali`
+      : `${_svOffset} di ${_svTotal}`;
+  }
+}
+
+async function svApplyFilters() { await _svLoad(true); }
+async function svLoadMore()     { await _svLoad(false); }
+function svResetFilters() {
+  ['sv-data-da','sv-data-a','sv-presidio'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  ['sv-tipo','sv-esito','sv-categoria'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  _svLoad(true);
+}

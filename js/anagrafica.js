@@ -57,7 +57,7 @@ function toggleSidebar() {
 }
 
 function sbNav(key) {
-  ['verifica','sessione','anagrafica','tabella','archivio'].forEach(k => {
+  ['verifica','sessione','anagrafica','tabella','archivio','storico'].forEach(k => {
     const sb = document.getElementById('sb-nav-' + k);
     if (sb) sb.classList.toggle('active', k === key);
     const bn = document.getElementById('bnav-' + k);
@@ -70,6 +70,7 @@ function sbNav(key) {
   if (verifSec) verifSec.style.display = key === 'verifica' ? '' : 'none';
   if (key !== 'anagrafica') document.getElementById('anag-section').style.display = 'none';
   if (key !== 'tabella')    document.getElementById('tabella-section').style.display = 'none';
+  if (key !== 'storico')    { const s = document.getElementById('storico-section'); if (s) s.style.display = 'none'; }
   // chiudi sidebar su mobile dopo la navigazione
   if (window.innerWidth < 768 && document.body.classList.contains('sidebar-open')) {
     toggleSidebar();

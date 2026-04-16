@@ -656,6 +656,7 @@ function buildCPGrid(role) {
   if (can('sessioni'))        cards.push({ key:'sessioni',   color:'',      title:'Sessioni',            desc:'Crea o riprendi una sessione di lavoro',  action:"openSessModal()" });
   if (can('anagrafica_read')) cards.push({ key:'anagrafica', color:'green', title:'Anagrafica',          desc:'Consulta l\'elenco dispositivi',          action:"sbNav('anagrafica');toggleAnagrafica()" });
   if (can('anagrafica_read')) cards.push({ key:'tabella',    color:'green', title:'Tabella',             desc:'Vista tabellare con filtri avanzati',     action:"sbNav('tabella');toggleTabella()" });
+  if (can('anagrafica_read')) cards.push({ key:'storico',    color:'green', title:'Storico Verifiche',   desc:'Tabella storica verifiche con filtri',    action:"sbNav('storico');openStoricoTable()" });
   if (can('archivio_cloud'))  cards.push({ key:'archivio',   color:'slate', title:'Archivio cloud',      desc:'Sessioni salvate e report Excel',         action:"sbNav('archivio');openArchivioModal()" });
   if (currentUser?.profile?.role === 'admin') {
     cards.push({ key:'admin', color:'red', title:'Amministrazione', desc:'Utenti, ruoli e gestione database', action:"openAdmin()" });
