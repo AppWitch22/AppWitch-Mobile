@@ -256,22 +256,14 @@ function updateModelloDatalist(costruttore) {
 }
 
 async function loadLookupsFromDB() {
-  const aslKey = (currentUser?.profile?.asl || 'ASL Benevento').toLowerCase().replace('asl ', '');
   try {
-    const token = await supaToken();
-    const r = await fetch(
-      `${SUPA_URL}/rest/v1/lookup_asl?asl=eq.${encodeURIComponent(aslKey)}&select=campo,valore`,
-      { headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + token } }
-    );
-    if (r.ok) {
-      const rows = await r.json();
-      const stored = {};
-      for (const { campo, valore } of rows) {
-        if (!stored[campo]) stored[campo] = [];
-        stored[campo].push(valore);
-      }
-      window._storedLookups = stored;
+    const rows = await db.lookupAsl.listByAsl();
+    const stored = {};
+    for (const { campo, valore } of (rows || [])) {
+      if (!stored[campo]) stored[campo] = [];
+      stored[campo].push(valore);
     }
+    window._storedLookups = stored;
   } catch(e) {}
   buildLookups();
 }
@@ -304,14 +296,8 @@ async function saveLookupValue(campo, valore) {
       updateModelloDatalist(costr);
     }
   }
-  // Salva su Supabase
-  const aslKey = (currentUser?.profile?.asl || 'ASL Benevento').toLowerCase().replace('asl ', '');
-  const token = await supaToken();
-  fetch(`${SUPA_URL}/rest/v1/lookup_asl`, {
-    method: 'POST',
-    headers: { ...supaHdrs(token), 'Prefer': 'resolution=ignore-duplicates' },
-    body: JSON.stringify({ asl: aslKey, campo, valore })
-  }).catch(e => console.warn('[saveLookupValue]', e));
+  // Salva su Supabase (fire-and-forget)
+  db.lookupAsl.insert(campo, valore).catch(e => console.warn('[saveLookupValue]', e));
 }
 
 async function deleteLookupValue(campo, valore) {
@@ -329,13 +315,8 @@ async function deleteLookupValue(campo, valore) {
     const dl = document.getElementById(dlId);
     if (dl) { const opt = [...dl.options].find(o => o.value === valore); if (opt) opt.remove(); }
   }
-  // Elimina da Supabase
-  const aslKey = (currentUser?.profile?.asl || 'ASL Benevento').toLowerCase().replace('asl ', '');
-  const token = await supaToken();
-  fetch(`${SUPA_URL}/rest/v1/lookup_asl?asl=eq.${encodeURIComponent(aslKey)}&campo=eq.${encodeURIComponent(campo)}&valore=eq.${encodeURIComponent(valore)}`, {
-    method: 'DELETE',
-    headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + token }
-  }).catch(e => console.warn('[deleteLookupValue]', e));
+  // Elimina da Supabase (fire-and-forget)
+  db.lookupAsl.delete_(campo, valore).catch(e => console.warn('[deleteLookupValue]', e));
 }
 
 function isValidLookup(campo, valore) {

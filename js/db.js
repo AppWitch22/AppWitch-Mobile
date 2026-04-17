@@ -301,6 +301,30 @@ const _storico = {
   },
 };
 
+// ── db.lookupAsl ─────────────────────────────────────────────
+
+const _lookupAsl = {
+  // Ritorna array di { campo, valore } per l'ASL dell'utente corrente
+  async listByAsl() {
+    return await _req(`lookup_asl?asl=eq.${encodeURIComponent(_aslKey())}&select=campo,valore`);
+  },
+
+  async insert(campo, valore) {
+    return await _req('lookup_asl', {
+      method: 'POST',
+      body: { asl: _aslKey(), campo, valore },
+      headers: { 'Prefer': 'resolution=ignore-duplicates' }
+    });
+  },
+
+  async delete_(campo, valore) {
+    return await _req(
+      `lookup_asl?asl=eq.${encodeURIComponent(_aslKey())}&campo=eq.${encodeURIComponent(campo)}&valore=eq.${encodeURIComponent(valore)}`,
+      { method: 'DELETE' }
+    );
+  },
+};
+
 // ── Export globale ───────────────────────────────────────────
 
 window.db = {
@@ -309,6 +333,7 @@ window.db = {
   sessioni:    _sessioni,
   schede:      _schede,
   storico:     _storico,
+  lookupAsl:   _lookupAsl,
   DbError,
   _aslKey,
 };
