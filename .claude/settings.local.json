@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git -C \"C:/Users/NikRed/progetti/AppWitch-Mobile/.claude/worktrees/goofy-dijkstra-e4fdf8\" status)",
+      "Bash(git -C \"C:/Users/NikRed/progetti/AppWitch-Mobile/.claude/worktrees/goofy-dijkstra-e4fdf8\" diff --stat)",
+      "Bash(node --check js/db.js)",
+      "Bash(node --check js/anagrafica.js)",
+      "Bash(node --check js/gestione.js)",
+      "Bash(node --check js/core.js)",
+      "Bash(node --check js/export.js)"
+    ]
+  }
+}
