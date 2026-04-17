@@ -1297,11 +1297,11 @@ function openAggiornamentoMassivo() {
     </div>`;
   const _sec = t => `<div style="grid-column:1/-1;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);border-bottom:1px solid var(--border);padding-bottom:4px;margin-top:6px">${t}</div>`;
 
-  // Jolly configurate
+  // Jolly configurate (label personalizzata, non default "Jolly N")
   let jollyHtml = '';
   try {
     getJollyMeta().forEach((m, i) => {
-      if (!m.label) return;
+      if (!m.label || m.label === `Jolly ${i+1}`) return;
       const k = `jolly_${i+1}`;
       const dl = m.type === 'bloccata' ? `dl-${k}` : '';
       jollyHtml += _inp(k, m.label, dl);
@@ -1399,7 +1399,7 @@ async function amApplica() {
     'data_fine_garanzia','fine_service_comodato','data_collaudo',
     'proposta_dismissione','dismissione_effettiva',
     'note_programmate','note_inventario',
-    ...(Array.from({length:10},(_,i)=>`jolly_${i+1}`)),
+    ...(Array.from({length:22},(_,i)=>`jolly_${i+1}`)),
   ];
 
   // Raccoglie solo i campi valorizzati
@@ -1504,7 +1504,8 @@ function openSostMassiva() {
   const fields = [...SM_FIELDS];
   try {
     getJollyMeta().forEach((m, i) => {
-      if (m.label) fields.push({ k: `jolly_${i+1}`, l: m.label });
+      if (!m.label || m.label === `Jolly ${i+1}`) return;
+      fields.push({ k: `jolly_${i+1}`, l: m.label });
     });
   } catch(e) {}
 
