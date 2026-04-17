@@ -712,7 +712,7 @@ function glLoadCampo() {
   lista.innerHTML = vals.map(v => `
     <div style="display:flex;align-items:center;justify-content:space-between;padding:7px 12px;border-bottom:1px solid var(--border);font-size:13px">
       <span style="color:var(--text)">${_esc(v)}</span>
-      <button onclick="glElimina(${JSON.stringify(campo)}, ${JSON.stringify(v)})"
+      <button onclick="glElimina(${_esc(JSON.stringify(campo))}, ${_esc(JSON.stringify(v))})"
         style="padding:2px 8px;font-size:11px;border:1px solid var(--ko);border-radius:var(--rad);background:var(--bg);color:var(--ko);cursor:pointer">
         Elimina
       </button>
