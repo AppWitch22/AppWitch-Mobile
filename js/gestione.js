@@ -69,16 +69,11 @@ function _gbModalHTML(codice, nome) {
 async function _gbLoadDevice(codice) {
   const content = document.getElementById('gb-tab-content');
   if (!content) return;
-  const aslKey = (currentUser?.profile?.asl || 'ASL Benevento').toLowerCase().replace('asl ', '');
-  const token  = await supaToken();
-  const r = await fetch(
-    `${SUPA_URL}/rest/v1/dispositivi_${aslKey}?codice=eq.${encodeURIComponent(codice)}&limit=1`,
-    { headers: supaHdrs(token) }
-  );
-  if (!r.ok) { content.innerHTML = '<div style="padding:32px;text-align:center;color:var(--ko)">Errore caricamento dispositivo</div>'; return; }
-  const rows = await r.json();
-  if (!rows.length) { content.innerHTML = '<div style="padding:32px;text-align:center;color:var(--text3)">Dispositivo non trovato</div>'; return; }
-  gbFullDev = rows[0];
+  let dev;
+  try { dev = await db.dispositivi.get(codice); }
+  catch(e) { content.innerHTML = '<div style="padding:32px;text-align:center;color:var(--ko)">Errore caricamento dispositivo</div>'; return; }
+  if (!dev) { content.innerHTML = '<div style="padding:32px;text-align:center;color:var(--text3)">Dispositivo non trovato</div>'; return; }
+  gbFullDev = dev;
   content.innerHTML = gbRenderDati(gbFullDev, false);
 }
 
@@ -311,20 +306,16 @@ async function gbSave() {
   if (missing.length) { gbMsg('Campi obbligatori mancanti: ' + missing.join(', '), false); return; }
 
   try {
-    const aslKey = (currentUser?.profile?.asl || 'ASL Benevento').toLowerCase().replace('asl ', '');
-    const token  = await supaToken();
-    const r = await fetch(`${SUPA_URL}/rest/v1/dispositivi_${aslKey}?codice=eq.${encodeURIComponent(gestioneCodice)}`, {
-      method: 'PATCH',
-      headers: { ...supaHdrs(token), 'Prefer': 'return=minimal' },
-      body: JSON.stringify(data)
-    });
-    if (!r.ok) { gbMsg('Errore salvataggio: ' + r.status, false); return; }
+    await db.dispositivi.update(gestioneCodice, data);
     Object.assign(gbFullDev, data);
     _gbUpdateCache(gestioneCodice, data);
     _gbRefreshViews();
     gbCancelEdit();
     gbMsg('Modifiche salvate.', true);
-  } catch(e) { gbMsg('Errore di rete: ' + e.message, false); }
+  } catch(e) {
+    if (e instanceof db.DbError) gbMsg('Errore salvataggio: ' + e.status, false);
+    else gbMsg('Errore di rete: ' + e.message, false);
+  }
 }
 
 async function _gbSaveNew() {
@@ -342,35 +333,26 @@ async function _gbSaveNew() {
   if (missing.length) { gbMsg('Campi obbligatori: ' + missing.join(', '), false); return; }
 
   data.cliente = (currentUser?.profile?.asl || 'ASL BENEVENTO').toUpperCase();
-  Object.keys(data).forEach(k => { if (data[k] == null) delete data[k]; });
 
   try {
-    const aslKey = (currentUser?.profile?.asl || 'ASL Benevento').toLowerCase().replace('asl ', '');
-    const token  = await supaToken();
-    const r = await fetch(`${SUPA_URL}/rest/v1/dispositivi_${aslKey}`, {
-      method: 'POST',
-      headers: { ...supaHdrs(token), 'Prefer': 'return=minimal' },
-      body: JSON.stringify(data)
-    });
-    if (!r.ok) {
-      const txt = await r.text();
-      gbMsg(txt.includes('duplicate') || txt.includes('unique') || txt.includes('23505')
-        ? 'Codice già esistente nel DB' : 'Errore inserimento: ' + r.status, false);
-      return;
-    }
-    const cod = data.codice;
-    DB[cod] = { c: cod, n: data.descrizione_classe||'', b: data.costruttore||'', m: data.modello||'',
-      mat: data.matricola||'', loc: data.presidio||'', rep: data.reparto||'',
-      ss: data.sede_struttura||'', cp: data.codice_padre||'', na: data.nuova_area||'',
-      pe: data.presenze_effettive||'', ds: data.dettagli_stato||'', fp: data.forma_presenza||'',
-      man: data.manutentore||'', ver: data.verifiche||'', civ: data.civab||'' };
-    gestioneCodice = cod;
-    gbIsNew   = false;
-    gbFullDev = { ...data };
-    _gbRefreshViews();
-    gbCancelEdit();
-    gbMsg('Dispositivo inserito con successo!', true);
-  } catch(e) { gbMsg('Errore di rete: ' + e.message, false); }
+    await db.dispositivi.insert(data);
+  } catch(e) {
+    if (e instanceof db.DbError && e.isDuplicate()) gbMsg('Codice già esistente nel DB', false);
+    else gbMsg('Errore inserimento: ' + (e.status || e.message), false);
+    return;
+  }
+  const cod = data.codice;
+  DB[cod] = { c: cod, n: data.descrizione_classe||'', b: data.costruttore||'', m: data.modello||'',
+    mat: data.matricola||'', loc: data.presidio||'', rep: data.reparto||'',
+    ss: data.sede_struttura||'', cp: data.codice_padre||'', na: data.nuova_area||'',
+    pe: data.presenze_effettive||'', ds: data.dettagli_stato||'', fp: data.forma_presenza||'',
+    man: data.manutentore||'', ver: data.verifiche||'', civ: data.civab||'' };
+  gestioneCodice = cod;
+  gbIsNew   = false;
+  gbFullDev = { ...data };
+  _gbRefreshViews();
+  gbCancelEdit();
+  gbMsg('Dispositivo inserito con successo!', true);
 }
 
 function _gbReadFields() {
@@ -445,38 +427,27 @@ function gbElimina() {
 
 async function gbDoSoftDelete() {
   document.getElementById('gb-del-modal')?.remove();
-  const aslKey = (currentUser?.profile?.asl || 'ASL Benevento').toLowerCase().replace('asl ', '');
-  const token  = await supaToken();
-  const today  = new Date().toISOString().split('T')[0];
-  const r = await fetch(`${SUPA_URL}/rest/v1/dispositivi_${aslKey}?codice=eq.${encodeURIComponent(gestioneCodice)}`, {
-    method: 'PATCH',
-    headers: { ...supaHdrs(token), 'Prefer': 'return=minimal' },
-    body: JSON.stringify({ proposta_dismissione: today })
-  });
-  if (r.ok) {
+  const today = new Date().toISOString().split('T')[0];
+  try {
+    await db.dispositivi.update(gestioneCodice, { proposta_dismissione: today });
     gbFullDev.proposta_dismissione = today;
     if (gbCurrentTab === 'dati') document.getElementById('gb-tab-content').innerHTML = gbRenderDati(gbFullDev, false);
     gbMsg('Proposta di dismissione registrata.', true);
-  } else {
-    gbMsg('Errore: ' + r.status, false);
+  } catch(e) {
+    gbMsg('Errore: ' + (e.status || e.message), false);
   }
 }
 
 async function gbDoHardDelete() {
   if (!confirm(`Eliminare definitivamente "${gestioneCodice}"? Questa operazione non può essere annullata.`)) return;
   document.getElementById('gb-del-modal')?.remove();
-  const aslKey = (currentUser?.profile?.asl || 'ASL Benevento').toLowerCase().replace('asl ', '');
-  const token  = await supaToken();
-  const r = await fetch(`${SUPA_URL}/rest/v1/dispositivi_${aslKey}?codice=eq.${encodeURIComponent(gestioneCodice)}`, {
-    method: 'DELETE',
-    headers: supaHdrs(token)
-  });
-  if (r.ok) {
+  try {
+    await db.dispositivi.delete_(gestioneCodice);
     delete DB[gestioneCodice];
     document.getElementById('gb-modal')?.remove();
     toast('Dispositivo eliminato.', 'ok');
-  } else {
-    gbMsg('Errore eliminazione: ' + r.status, false);
+  } catch(e) {
+    gbMsg('Errore eliminazione: ' + (e.status || e.message), false);
   }
 }
 

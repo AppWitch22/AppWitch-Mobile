@@ -326,28 +326,15 @@ function getJollyMeta() {
   return _defaults();
 }
 function saveJollyMeta(meta) {
-  const aslKey = (currentUser?.profile?.asl||'ASL Benevento').toLowerCase().replace('asl ','');
+  const aslKey = db._aslKey();
   localStorage.setItem('jolly_meta_'+aslKey, JSON.stringify(meta));
-  // Salva su Supabase in background (sync tra dispositivi)
-  supaToken().then(token => {
-    fetch(`${SUPA_URL}/rest/v1/config_asl`, {
-      method: 'POST',
-      headers: {...supaHdrs(token), 'Prefer': 'resolution=merge-duplicates'},
-      body: JSON.stringify({asl: aslKey, jolly_labels: meta})
-    }).catch(() => {});
-  });
+  db.configAsl.saveJolly(meta).catch(() => {});
 }
 async function loadJollyMetaFromDB() {
-  const aslKey = (currentUser?.profile?.asl||'ASL Benevento').toLowerCase().replace('asl ','');
+  const aslKey = db._aslKey();
   try {
-    const token = await supaToken();
-    const r = await fetch(`${SUPA_URL}/rest/v1/config_asl?asl=eq.${encodeURIComponent(aslKey)}&limit=1`,
-      {headers: {'apikey': SUPA_KEY, 'Authorization': 'Bearer '+token}});
-    if (!r.ok) return;
-    const rows = await r.json();
-    if (rows.length && rows[0].jolly_labels) {
-      localStorage.setItem('jolly_meta_'+aslKey, JSON.stringify(rows[0].jolly_labels));
-    }
+    const labels = await db.configAsl.getJolly();
+    if (labels) localStorage.setItem('jolly_meta_'+aslKey, JSON.stringify(labels));
   } catch(e) {}
 }
 function getJollyLabels() { return getJollyMeta().map(m=>m.label); }
@@ -544,23 +531,13 @@ async function saveAnagDetail() {
     return;
   }
 
-  const aslKey = (currentUser?.profile?.asl||'ASL Benevento').toLowerCase().replace('asl ','');
-  const token = await supaToken();
-
   if (anagIsNew) {
-    // Unisci con i dati di default (es. cliente)
     const body = Object.assign({}, anagCurDev, data);
-    // Rimuovi chiavi null/undefined per la INSERT
-    Object.keys(body).forEach(k => { if (body[k]==null) delete body[k]; });
-    const r = await fetch(`${SUPA_URL}/rest/v1/dispositivi_${aslKey}`, {
-      method:'POST',
-      headers:{...supaHdrs(token),'Prefer':'return=minimal'},
-      body:JSON.stringify(body)
-    });
-    if (!r.ok) {
-      const txt = await r.text();
-      if (txt.includes('duplicate') || txt.includes('unique')) toast('Codice già esistente nel DB','warn');
-      else toast('Errore inserimento: ' + r.status, 'warn');
+    try {
+      await db.dispositivi.insert(body);
+    } catch(e) {
+      if (e instanceof db.DbError && e.isDuplicate()) toast('Codice già esistente nel DB','warn');
+      else toast('Errore inserimento: ' + (e.status || e.message), 'warn');
       return;
     }
     // Aggiorna cache DB
@@ -583,10 +560,9 @@ async function saveAnagDetail() {
     closeAnagModal();
     searchAnagrafica();
   } else {
-    const r = await fetch(`${SUPA_URL}/rest/v1/dispositivi_${aslKey}?codice=eq.${anagCurDev.codice}`, {
-      method:'PATCH', headers:{...supaHdrs(token),'Prefer':'return=minimal'}, body:JSON.stringify(data)
-    });
-    if (!r.ok) { toast('Errore salvataggio','warn'); return; }
+    try {
+      await db.dispositivi.update(anagCurDev.codice, data);
+    } catch(e) { toast('Errore salvataggio','warn'); return; }
     const cod = anagCurDev.codice;
     Object.assign(anagCurDev, data);
     if (DB[cod]) {
@@ -1417,49 +1393,35 @@ async function amApplica() {
   const codici = window._amTargetCodici || [];
   if (!codici.length) return;
 
-  const aslKey = (currentUser?.profile?.asl || 'ASL Benevento').toLowerCase().replace('asl ', '');
-  const token  = await supaToken();
-  const hdrs   = { ...supaHdrs(token), 'Prefer': 'return=minimal' };
+  const { errors } = await db.dispositivi.bulkPatch(codici, patch);
+  errors.forEach(e => console.error('amApplica batch error:', e.error));
 
-  // PATCH a batch di 100 codici
-  const BATCH = 100;
-  let errors = 0;
-  for (let i = 0; i < codici.length; i += BATCH) {
-    const slice = codici.slice(i, i + BATCH);
-    const filter = `codice=in.(${slice.map(c => encodeURIComponent(c)).join(',')})`;
-    const res = await fetch(`${SUPA_URL}/rest/v1/dispositivi_${aslKey}?${filter}`, {
-      method: 'PATCH',
-      headers: hdrs,
-      body: JSON.stringify(patch)
-    });
-    if (!res.ok) { errors++; console.error('amApplica batch error:', await res.text()); }
-    else {
-      const sliceSet = new Set(slice);
-      // Aggiorna tableData (full column names)
-      if (tableData) {
-        for (const row of tableData) {
-          if (!sliceSet.has(row.codice)) continue;
-          for (const [k, v] of Object.entries(patch)) row[k] = v;
-        }
-      }
-      // Aggiorna cache DB (short keys)
-      const KEY_MAP = {
-        presidio:'loc', reparto:'rep', nuova_area:'na', sede_struttura:'ss',
-        manutentore:'man', dettagli_stato:'ds', presenze_effettive:'pe',
-        forma_presenza:'fp', cliente:'cli', proprieta:'pro',
-      };
-      for (const cod of slice) {
-        if (!DB[cod]) continue;
-        for (const [k, v] of Object.entries(patch)) {
-          const short = KEY_MAP[k];
-          if (short) DB[cod][short] = v;
-        }
-      }
+  // Aggiorna cache locale per i batch andati a buon fine
+  const failedSet = new Set(errors.flatMap(e => e.slice));
+  const applicati = codici.filter(c => !failedSet.has(c));
+  const applicatiSet = new Set(applicati);
+
+  if (tableData) {
+    for (const row of tableData) {
+      if (!applicatiSet.has(row.codice)) continue;
+      for (const [k, v] of Object.entries(patch)) row[k] = v;
+    }
+  }
+  const KEY_MAP = {
+    presidio:'loc', reparto:'rep', nuova_area:'na', sede_struttura:'ss',
+    manutentore:'man', dettagli_stato:'ds', presenze_effettive:'pe',
+    forma_presenza:'fp', cliente:'cli', proprieta:'pro',
+  };
+  for (const cod of applicati) {
+    if (!DB[cod]) continue;
+    for (const [k, v] of Object.entries(patch)) {
+      const short = KEY_MAP[k];
+      if (short) DB[cod][short] = v;
     }
   }
 
   document.getElementById('am-modal')?.remove();
-  if (errors) toast(`Aggiornamento completato con ${errors} errori`, 'warn');
+  if (errors.length) toast(`Aggiornamento completato con ${errors.length} errori`, 'warn');
   else toast(`${codici.length} dispositivi aggiornati`, 'ok');
   renderTableView();
 }
