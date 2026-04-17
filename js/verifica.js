@@ -391,8 +391,8 @@ function saveAll(){
   const vspRec=_cv&&_cv.vsp?collectVSP():null;
   const cqRec=_cv&&_cv.cq?collectCQ():null;
   saved[cod]={...existing,...vseRec,...mpRec,
-    ...(vspRec?{...vspRec,vsp_saved:true,vsp_type:vspType}:{}),
-    ...(cqRec?{...cqRec,cq_saved:true,cq_type:cqType}:{}),
+    ...(vspRec?{...vspRec,vsp_saved:true,vsp_type:vspTypeGet()}:{}),
+    ...(cqRec?{...cqRec,cq_saved:true,cq_type:cqTypeGet()}:{}),
     vse_saved:true,mp_saved:true};
    
   dirty=false;
@@ -422,8 +422,9 @@ function updateTabIndicators(){
 }
 
 
-let vspState = {};
-let vspType  = null;
+// vspState/vspType vivono in store.form.* — helper read-only per brevità
+function vspStateGet(){return store.get('form.vsp');}
+function vspTypeGet(){return store.get('form.vspType');}
 
 const VSP_POINTS = {
   'VSP_CEN': [
@@ -569,8 +570,8 @@ const VSP_EXTRA = {
 };
 
 function buildVSPPoints(type){
-  vspType=type;
-  vspState={};
+  store.set('form.vspType', type);
+  store.set('form.vsp', {});
   const points=VSP_POINTS[type]||[];
   document.getElementById('vsp-sec-title').textContent='Controllo visivo — '+type.replace('VSP_','');
   document.getElementById('vsp-total').textContent=points.length;
@@ -775,7 +776,7 @@ function toggleVSP(l){
 }
 
 function setVSP(l,val){
-  vspState[l]=val;
+  const vsp=vspStateGet(); vsp[l]=val;
   const stato=document.getElementById('vsp-stato-'+l);
   stato.textContent=val;
   stato.className='mp-stato '+(val==='OK'?'ok':val==='KO'?'ko':'na');
@@ -783,7 +784,7 @@ function setVSP(l,val){
   if(hdr) hdr.style.background=val==='OK'?'var(--info-bg)':val==='KO'?'var(--ko-bg)':'var(--bg2)';
   document.querySelectorAll('#vsp-btns-'+l+' .mp-btn').forEach(b=>b.classList.toggle('sel',b.textContent===val));
   document.getElementById('vsp-btns-'+l).style.display='none';
-  document.getElementById('vsp-count').textContent=Object.keys(vspState).length;
+  document.getElementById('vsp-count').textContent=Object.keys(vsp).length;
   uP();
 }
 
@@ -794,7 +795,7 @@ function fillVSPHeader(d){
 }
 
 function resetVSP(){
-  vspState={}; vspType=null;
+  store.set('form.vsp', {}); store.set('form.vspType', null);
   const c=document.getElementById('vsp-count'); if(c) c.textContent='0';
   document.querySelectorAll('[id^="vsp-p-"]').forEach(el=>{
     const l=el.id.replace('vsp-p-','');
@@ -806,7 +807,8 @@ function resetVSP(){
 }
 
 function collectVSP(){
-  if(!vspType) return null;
+  const vspType=vspTypeGet(); if(!vspType) return null;
+  const vspState=vspStateGet();
   const t=new Date().toISOString().split('T')[0];
   const rec={vsp_type:vspType,vsp_codice:gv('vsp-codice'),vsp_data:gv('vsp-data')||t,
     vsp_note:gv('vsp-note'),vsp_tecnico:gv('vsp-tecnico'),vsp_data2:gv('vsp-data2')||t};
@@ -829,7 +831,9 @@ function loadVSPSaved(rec){
 
 
 // ===================== CQ =====================
-let cqState={}, cqType=null;
+// cqState/cqType vivono in store.form.* — helper read-only
+function cqStateGet(){return store.get('form.cq');}
+function cqTypeGet(){return store.get('form.cqType');}
 
 const CQ_VIS={
   'CQ_DEF':['1.1','1.2','1.3','1.4','1.5','1.6','1.7'],
@@ -1058,7 +1062,7 @@ const CQ_PROVA={
 };
 
 function buildCQPoints(type){
-  cqType=type; cqState={};
+  store.set('form.cqType', type); store.set('form.cq', {});
   const pts=CQ_VIS[type]||[];
   if(!pts.length){
     // Tipo non gestito — mostra messaggio
@@ -1287,14 +1291,14 @@ function fillCQPreset(cod,type){
 function toggleCQ(pid){const b=document.getElementById('cq-btns-'+pid);if(b)b.style.display=b.style.display==='none'?'flex':'none';}
 
 function setCQ(pid,val){
-  cqState[pid]=val;
+  const cq=cqStateGet(); cq[pid]=val;
   const s=document.getElementById('cq-stato-'+pid);
   s.textContent=val; s.className='mp-stato '+(val==='OK'?'ok':val==='KO'?'ko':'na');
   const h=document.querySelector('#cq-p-'+pid+' .mp-point-hdr');
   if(h) h.style.background=val==='OK'?'var(--info-bg)':val==='KO'?'var(--ko-bg)':'var(--bg2)';
   document.querySelectorAll('#cq-btns-'+pid+' .mp-btn').forEach(b=>b.classList.toggle('sel',b.textContent===val));
   document.getElementById('cq-btns-'+pid).style.display='none';
-  document.getElementById('cq-count').textContent=Object.keys(cqState).length;
+  document.getElementById('cq-count').textContent=Object.keys(cq).length;
   uP();
 }
 
@@ -1305,7 +1309,7 @@ function fillCQHeader(d){
 }
 
 function resetCQ(){
-  cqState={}; cqType=null;
+  store.set('form.cq', {}); store.set('form.cqType', null);
   const c=document.getElementById('cq-count'); if(c) c.textContent='0';
   document.querySelectorAll('[id^="cq-p-"]').forEach(el=>{
     const pid=el.id.replace('cq-p-','');
@@ -1317,7 +1321,8 @@ function resetCQ(){
 }
 
 function collectCQ(){
-  if(!cqType) return null;
+  const cqType=cqTypeGet(); if(!cqType) return null;
+  const cqState=cqStateGet();
   const t=new Date().toISOString().split('T')[0];
   const rec={cq_type:cqType,cq_codice:gv('cq-codice'),cq_data:gv('cq-data')||t,
     cq_note:gv('cq-note'),cq_tecnico:gv('cq-tecnico'),cq_data2:gv('cq-data2')||t,

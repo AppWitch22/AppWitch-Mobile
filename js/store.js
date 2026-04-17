@@ -110,5 +110,12 @@ window.store = createStore({
     curVerif: null,     // {vsp, cq} tipi verifica per il device selezionato
     cur: null,          // device corrente selezionato {c, ...} (oggetto DB[cod])
     saved: {}           // schede compilate nella sessione: { [codice]: record }
+  },
+  // Stato form VSP/CQ del device corrente (valori input + tipo form)
+  form: {
+    vsp: {},            // { [label]: valore }
+    cq: {},             // { [pid]: valore }
+    vspType: null,      // 'VSP_ECG' | 'VSP_DEF' | ...
+    cqType: null        // 'CQ_ECG' | 'CQ_DEF' | ...
   }
 });

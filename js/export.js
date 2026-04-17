@@ -993,7 +993,7 @@ async function exportCQ(cod){
   if(!cod){toast('Seleziona un dispositivo','warn');return;}
   // Usa variabile locale per non mutare saved[cod] — evita di creare entry parziali
   let rec=saved[cod]||{};
-  if(curGet()?.c===cod&&cqType){const cqRec=collectCQ();if(cqRec)rec={...rec,...cqRec};}
+  if(curGet()?.c===cod&&cqTypeGet()){const cqRec=collectCQ();if(cqRec)rec={...rec,...cqRec};}
   if(!rec?.cq_type){toast('Scheda CQ non compilata','warn');return;}
   if(!DB[cod]){toast('Dispositivo non trovato','warn');return;}
   const tipo=rec.cq_type; // es. CQ_DEF
@@ -1014,8 +1014,8 @@ async function exportTutti(cod){
   // Usa variabile locale per non mutare saved[cod] — evita di creare entry parziali
   let rec={...saved[cod]};
   if(curGet()?.c===cod){
-    if(cqType){const cqRec=collectCQ();if(cqRec)rec={...rec,...cqRec};}
-    if(vspType){const vspRec=collectVSP();if(vspRec)rec={...rec,...vspRec};}
+    if(cqTypeGet()){const cqRec=collectCQ();if(cqRec)rec={...rec,...cqRec};}
+    if(vspTypeGet()){const vspRec=collectVSP();if(vspRec)rec={...rec,...vspRec};}
   }
   const dev=DB[cod];
   const asl=currentUser?.profile?.asl||'ASL Benevento';
