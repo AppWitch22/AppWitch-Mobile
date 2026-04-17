@@ -1975,15 +1975,10 @@ async function syncProgrammazioneAnagrafica() {
 
   // Inserisce nello storico le righe della programmazione
   if (storRows.length) {
-    const rStor = await fetch(`${SUPA_URL}/rest/v1/storico_verifiche`, {
-      method: 'POST',
-      headers: { ...supaHdrs(token), 'Prefer': 'return=minimal,resolution=ignore-duplicates' },
-      body: JSON.stringify(storRows)
-    });
-    if (!rStor.ok) {
-      const msg = await rStor.text().catch(()=>'');
-      console.error('Errore INSERT storico programmazione:', rStor.status, msg);
-      toast(`Errore registrazione storico (${rStor.status})`, 'err');
+    try { await db.storico.insertMany(storRows, { ignoreDuplicates: true }); }
+    catch (e) {
+      console.error('Errore INSERT storico programmazione:', e);
+      toast(`Errore registrazione storico (${e.status || '?'})`, 'err');
     }
   }
 
@@ -2018,7 +2013,6 @@ async function syncStraordinariaStorico(motivo) {
   const aslKey     = (currentUser?.profile?.asl || 'ASL Benevento').toLowerCase().replace('asl ', '');
   const verificatore = currentUser?.profile?.full_name || '';
   const sessDate   = currentSessionDate || new Date().toISOString().split('T')[0];
-  const token      = await supaToken();
   const rows = [];
 
   for (const cod of codici) {
@@ -2056,11 +2050,6 @@ async function syncStraordinariaStorico(motivo) {
 
   if (!rows.length) { toast('Nessun dato da registrare', 'warn'); return; }
 
-  const resp = await fetch(`${SUPA_URL}/rest/v1/storico_verifiche`, {
-    method: 'POST',
-    headers: { ...supaHdrs(token), 'Prefer': 'return=minimal' },
-    body: JSON.stringify(rows)
-  });
-  if (resp.ok) toast(`Verifiche straordinarie registrate: ${rows.length} righe`, 'ok');
-  else toast('Errore registrazione straordinaria', 'warn');
+  try { await db.storico.insertMany(rows); toast(`Verifiche straordinarie registrate: ${rows.length} righe`, 'ok'); }
+  catch (e) { console.error(e); toast('Errore registrazione straordinaria', 'warn'); }
 }

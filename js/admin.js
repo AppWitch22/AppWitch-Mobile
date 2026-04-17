@@ -578,9 +578,7 @@ async function importStorico(input) {
     const ws   = wb.Sheets[wb.SheetNames[0]];
     const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
 
-    const asl     = currentUser?.profile?.asl || 'ASL Benevento';
-    const token   = await supaToken();
-    const headers = supaHdrs(token);
+    const asl = currentUser?.profile?.asl || 'ASL Benevento';
 
     // Normalizzatori
     const normTipo = t => {
@@ -643,13 +641,8 @@ async function importStorico(input) {
       const batch = clean.slice(i, i + BATCH);
       const pct   = Math.round(15 + (i / total) * 83);
       setProgress(pct, 'Inserimento...', `${Math.min(i + BATCH, total)} / ${total} record`);
-      const resp = await fetch(`${SUPA_URL}/rest/v1/storico_verifiche`, {
-        method: 'POST',
-        headers: { ...headers, 'Prefer': 'return=minimal,resolution=ignore-duplicates' },
-        body: JSON.stringify(batch),
-      });
-      if (!resp.ok) { console.error('Batch error', i, await resp.text()); errors += batch.length; }
-      else inserted += batch.length;
+      try { await db.storico.insertMany(batch, { ignoreDuplicates: true }); inserted += batch.length; }
+      catch(e) { console.error('Batch error', i, e); errors += batch.length; }
     }
 
     setProgress(100, 'Completato', `${inserted} record inseriti, ${skipped} righe saltate, ${errors} errori`);

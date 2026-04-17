@@ -245,6 +245,62 @@ const _schede = {
   },
 };
 
+// ── db.storico ───────────────────────────────────────────────
+
+const _storico = {
+  async listByCodice(codice, { limit = 200, order = 'data.desc' } = {}) {
+    return await _req(`storico_verifiche?codice=eq.${encodeURIComponent(codice)}&order=${order}&limit=${limit}`);
+  },
+
+  // List paginata con count totale (usa Content-Range).
+  // Ritorna { rows, total }.
+  async listByAsl({ aslKey, filtri = {}, offset = 0, pageSize = 50, order = 'data.desc' } = {}) {
+    const parts = [
+      `asl=ilike.*${encodeURIComponent(aslKey)}*`,
+      `order=${order}`,
+      `limit=${pageSize}`,
+      `offset=${offset}`
+    ];
+    if (filtri.da)        parts.push(`data=gte.${filtri.da}`);
+    if (filtri.a)         parts.push(`data=lte.${filtri.a}`);
+    if (filtri.tipo)      parts.push(`tipo=eq.${encodeURIComponent(filtri.tipo)}`);
+    if (filtri.esito)     parts.push(`esito=eq.${encodeURIComponent(filtri.esito)}`);
+    if (filtri.categoria) parts.push(`categoria=eq.${encodeURIComponent(filtri.categoria)}`);
+    const res = await _req(`storico_verifiche?${parts.join('&')}`, {
+      headers: { 'Range-Unit': 'items', 'Range': `${offset}-${offset + pageSize - 1}`, 'Prefer': 'count=exact' },
+      raw: true
+    });
+    const rows  = await res.json();
+    const cr    = res.headers.get('Content-Range') || '';
+    const total = parseInt(cr.split('/')[1] || '0') || 0;
+    return { rows, total };
+  },
+
+  async update(id, patch) {
+    return await _req(`storico_verifiche?id=eq.${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      body: patch,
+      headers: { 'Prefer': 'return=minimal' }
+    });
+  },
+
+  async delete_(id) {
+    return await _req(`storico_verifiche?id=eq.${encodeURIComponent(id)}`, { method: 'DELETE' });
+  },
+
+  async insertMany(rows, { ignoreDuplicates = false } = {}) {
+    if (!rows?.length) return null;
+    const prefer = ignoreDuplicates
+      ? 'return=minimal,resolution=ignore-duplicates'
+      : 'return=minimal';
+    return await _req('storico_verifiche', {
+      method: 'POST',
+      body: rows,
+      headers: { 'Prefer': prefer }
+    });
+  },
+};
+
 // ── Export globale ───────────────────────────────────────────
 
 window.db = {
@@ -252,6 +308,7 @@ window.db = {
   configAsl:   _configAsl,
   sessioni:    _sessioni,
   schede:      _schede,
+  storico:     _storico,
   DbError,
   _aslKey,
 };

@@ -455,17 +455,15 @@ async function gbDoHardDelete() {
 async function gbLoadStorico() {
   const content = document.getElementById('gb-tab-content');
   if (!content) return;
-  const token = await supaToken();
-  const hdrs  = supaHdrs(token);
 
   const schedeSelect = 'sessione_id,dati_vse,dati_mp,dati_vsp,dati_cq,vsp_type,cq_type,sessioni(titolo,data_verifica,profiles(full_name))';
-  const [appRowsR, rStor] = await Promise.allSettled([
+  const [appRowsR, storRowsR] = await Promise.allSettled([
     db.schede.listByCodice(gestioneCodice, { select: schedeSelect, limit: 200 }),
-    fetch(`${SUPA_URL}/rest/v1/storico_verifiche?codice=eq.${encodeURIComponent(gestioneCodice)}&order=data.desc&limit=200`, { headers: hdrs }),
+    db.storico.listByCodice(gestioneCodice, { limit: 200 }),
   ]);
-  const appRows = appRowsR.status === 'fulfilled' ? (appRowsR.value || []) : [];
-  const storRows = rStor.status === 'fulfilled' && rStor.value.ok ? await rStor.value.json() : [];
-  if (appRowsR.status === 'rejected' && (rStor.status === 'rejected' || !rStor.value.ok)) {
+  const appRows  = appRowsR.status === 'fulfilled' ? (appRowsR.value || []) : [];
+  const storRows = storRowsR.status === 'fulfilled' ? (storRowsR.value || []) : [];
+  if (appRowsR.status === 'rejected' && storRowsR.status === 'rejected') {
     content.innerHTML = '<div style="padding:24px;text-align:center;color:var(--ko)">Errore caricamento storico</div>'; return;
   }
 
@@ -647,24 +645,13 @@ async function gbSaveEditStorico() {
     payload.motivo = document.getElementById('sedit-motivo').value.trim() || null;
   }
   gbCloseEditStorico();
-  const token = await supaToken();
-  const resp = await fetch(`${SUPA_URL}/rest/v1/storico_verifiche?id=eq.${id}`, {
-    method: 'PATCH',
-    headers: { ...supaHdrs(token), 'Prefer': 'return=minimal' },
-    body: JSON.stringify(payload)
-  });
-  if (resp.ok) { toast('Verifica aggiornata', 'ok'); gbLoadStorico(); }
-  else toast('Errore salvataggio', 'err');
+  try { await db.storico.update(id, payload); toast('Verifica aggiornata', 'ok'); gbLoadStorico(); }
+  catch(e) { console.error(e); toast('Errore salvataggio', 'err'); }
 }
 async function gbDeleteStorico(id) {
   if (!confirm('Eliminare questa verifica dallo storico?')) return;
-  const token = await supaToken();
-  const resp = await fetch(`${SUPA_URL}/rest/v1/storico_verifiche?id=eq.${id}`, {
-    method: 'DELETE',
-    headers: supaHdrs(token)
-  });
-  if (resp.ok) { toast('Verifica eliminata', 'ok'); gbLoadStorico(); }
-  else toast('Errore eliminazione', 'err');
+  try { await db.storico.delete_(id); toast('Verifica eliminata', 'ok'); gbLoadStorico(); }
+  catch(e) { console.error(e); toast('Errore eliminazione', 'err'); }
 }
 
 // ── Tab Scadenze ─────────────────────────────────────────────
@@ -855,39 +842,19 @@ async function _svLoad(reset) {
   const wrap = document.getElementById('sv-table-wrap');
   if (wrap && reset) wrap.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text3);font-size:13px">Caricamento...</div>';
 
-  const aslKey = (currentUser?.profile?.asl || 'ASL Benevento').toLowerCase().replace('asl ', '');
-  let url = `${SUPA_URL}/rest/v1/storico_verifiche?asl=ilike.*${encodeURIComponent(aslKey)}*&order=data.desc&limit=${_SV_PAGE}&offset=${_svOffset}`;
-
-  const da    = document.getElementById('sv-data-da')?.value;
-  const a     = document.getElementById('sv-data-a')?.value;
-  const tipo  = document.getElementById('sv-tipo')?.value;
-  const esito = document.getElementById('sv-esito')?.value;
-  const cat   = document.getElementById('sv-categoria')?.value;
-
-  if (da)    url += `&data=gte.${da}`;
-  if (a)     url += `&data=lte.${a}`;
-  if (tipo)  url += `&tipo=eq.${encodeURIComponent(tipo)}`;
-  if (esito) url += `&esito=eq.${encodeURIComponent(esito)}`;
-  if (cat)   url += `&categoria=eq.${encodeURIComponent(cat)}`;
+  const filtri = {
+    da:        document.getElementById('sv-data-da')?.value,
+    a:         document.getElementById('sv-data-a')?.value,
+    tipo:      document.getElementById('sv-tipo')?.value,
+    esito:     document.getElementById('sv-esito')?.value,
+    categoria: document.getElementById('sv-categoria')?.value,
+  };
 
   try {
-    const token = await supaToken();
-    const r = await fetch(url, {
-      headers: {
-        'apikey': SUPA_KEY,
-        'Authorization': 'Bearer ' + token,
-        'Range-Unit': 'items',
-        'Range': `${_svOffset}-${_svOffset + _SV_PAGE - 1}`,
-        'Prefer': 'count=exact'
-      }
+    const { rows, total } = await db.storico.listByAsl({
+      aslKey: db._aslKey(), filtri, offset: _svOffset, pageSize: _SV_PAGE
     });
-    if (!r.ok) {
-      if (wrap) wrap.innerHTML = '<div style="padding:20px;text-align:center;color:var(--ko);font-size:13px">Errore caricamento dati</div>';
-      return;
-    }
-    const rows = await r.json();
-    const cr = r.headers.get('Content-Range') || '';
-    _svTotal = parseInt(cr.split('/')[1] || '0') || 0;
+    _svTotal = total;
     _svRows  = reset ? rows : [..._svRows, ...rows];
     _svOffset += rows.length;
     _svRender();
