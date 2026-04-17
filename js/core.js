@@ -281,22 +281,34 @@ async function saveLookupValue(campo, valore) {
 }
 
 async function deleteLookupValue(campo, valore) {
-  if (!campo || !valore) return;
-  // Rimuovi da memoria locale
+  if (!campo || !valore) return false;
+  // Prima tenta la DELETE remota — non toccare lo stato locale finché non è confermata.
+  let rows;
+  try {
+    rows = await db.lookupAsl.delete_(campo, valore);
+  } catch (e) {
+    console.warn('[deleteLookupValue] errore rete/HTTP', e);
+    if (typeof toast === 'function') toast(`Errore eliminazione: ${e?.message || e}`, false);
+    return false;
+  }
+  if (!Array.isArray(rows) || rows.length === 0) {
+    console.warn('[deleteLookupValue] 0 righe cancellate (possibile RLS mancante o filtro non corrispondente)', { campo, valore, asl: db._aslKey() });
+    if (typeof toast === 'function') toast('Eliminazione non riuscita: verifica permessi RLS su lookup_asl.', false);
+    return false;
+  }
+  // Solo ora aggiorna stato locale
   if (window._storedLookups?.[campo]) {
     window._storedLookups[campo] = window._storedLookups[campo].filter(v => v !== valore);
   }
   if (window._lookupSets?.[campo]) {
     window._lookupSets[campo].delete(valore);
   }
-  // Aggiorna datalist
   const dlId = FIELD_DL[campo] || (campo.startsWith('jolly_') ? `dl-${campo}` : null);
   if (dlId) {
     const dl = document.getElementById(dlId);
     if (dl) { const opt = [...dl.options].find(o => o.value === valore); if (opt) opt.remove(); }
   }
-  // Elimina da Supabase (fire-and-forget)
-  db.lookupAsl.delete_(campo, valore).catch(e => console.warn('[deleteLookupValue]', e));
+  return true;
 }
 
 function isValidLookup(campo, valore) {

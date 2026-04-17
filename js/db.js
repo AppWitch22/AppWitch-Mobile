@@ -313,15 +313,18 @@ const _lookupAsl = {
     return await _req('lookup_asl', {
       method: 'POST',
       body: { asl: _aslKey(), campo, valore },
-      headers: { 'Prefer': 'resolution=ignore-duplicates' }
+      headers: { 'Prefer': 'resolution=ignore-duplicates,return=representation' }
     });
   },
 
+  // Ritorna l'array delle righe effettivamente cancellate (può essere vuoto se RLS blocca)
   async delete_(campo, valore) {
-    return await _req(
+    const res = await _req(
       `lookup_asl?asl=eq.${encodeURIComponent(_aslKey())}&campo=eq.${encodeURIComponent(campo)}&valore=eq.${encodeURIComponent(valore)}`,
-      { method: 'DELETE' }
+      { method: 'DELETE', headers: { 'Prefer': 'return=representation' }, raw: true }
     );
+    const txt = await res.text().catch(() => '');
+    try { return txt ? JSON.parse(txt) : []; } catch (e) { return []; }
   },
 };
 

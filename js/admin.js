@@ -736,9 +736,10 @@ async function glAggiungi() {
 
 async function glElimina(campo, valore) {
   if (!confirm(`Eliminare "${valore}" dalla lista "${campo}"?`)) return;
-  await deleteLookupValue(campo, valore);
+  const ok = await deleteLookupValue(campo, valore);
   glLoadCampo();
-  glMsg('Valore eliminato.', true);
+  if (ok) glMsg('Valore eliminato.', true);
+  else glMsg('Eliminazione non riuscita — verifica policy RLS su lookup_asl.', false);
 }
 
 async function glSincronizzaDaDB() {
