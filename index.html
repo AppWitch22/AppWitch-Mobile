@@ -403,14 +403,14 @@
         <div class="form-actions-row">
           <button onclick="resetCur()">↺</button>
           <button class="btn-salva" onclick="saveAll()">Salva</button>
-          <button class="btn-sm" id="btn-gestione-bene-scheda" style="display:none" onclick="openGestioneBene(cur&&cur.c)">Scheda →</button>
+          <button class="btn-sm" id="btn-gestione-bene-scheda" style="display:none" onclick="openGestioneBene(curGet()?.c)">Scheda →</button>
         </div>
         <div class="form-actions-row">
-          <button class="btn-sm" onclick="exportVS(cur&&cur.c)" title="Esporta scheda VSE in Excel">📥 VS</button>
-          <button class="btn-sm" onclick="exportMP(cur&&cur.c)" title="Esporta scheda MP in Excel">📥 MP</button>
-          <button class="btn-sm" id="btn-exp-vsp" onclick="exportVSP(cur&&cur.c)" title="Esporta scheda VSP in Excel" style="display:none" disabled>📥 VSP</button>
-          <button class="btn-sm" id="btn-exp-cq" onclick="exportCQ(cur&&cur.c)" title="Esporta scheda CQ in Excel" style="display:none" disabled>📥 CQ</button>
-          <button class="btn-sm" id="btn-exp-tutti" onclick="exportTutti(cur&&cur.c)" title="Esporta tutte le schede in Excel">📥 Tutti</button>
+          <button class="btn-sm" onclick="exportVS(curGet()?.c)" title="Esporta scheda VSE in Excel">📥 VS</button>
+          <button class="btn-sm" onclick="exportMP(curGet()?.c)" title="Esporta scheda MP in Excel">📥 MP</button>
+          <button class="btn-sm" id="btn-exp-vsp" onclick="exportVSP(curGet()?.c)" title="Esporta scheda VSP in Excel" style="display:none" disabled>📥 VSP</button>
+          <button class="btn-sm" id="btn-exp-cq" onclick="exportCQ(curGet()?.c)" title="Esporta scheda CQ in Excel" style="display:none" disabled>📥 CQ</button>
+          <button class="btn-sm" id="btn-exp-tutti" onclick="exportTutti(curGet()?.c)" title="Esporta tutte le schede in Excel">📥 Tutti</button>
         </div>
       </div>
     </div>

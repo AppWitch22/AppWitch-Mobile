@@ -993,7 +993,7 @@ async function exportCQ(cod){
   if(!cod){toast('Seleziona un dispositivo','warn');return;}
   // Usa variabile locale per non mutare saved[cod] — evita di creare entry parziali
   let rec=saved[cod]||{};
-  if(cur?.c===cod&&cqType){const cqRec=collectCQ();if(cqRec)rec={...rec,...cqRec};}
+  if(curGet()?.c===cod&&cqType){const cqRec=collectCQ();if(cqRec)rec={...rec,...cqRec};}
   if(!rec?.cq_type){toast('Scheda CQ non compilata','warn');return;}
   if(!DB[cod]){toast('Dispositivo non trovato','warn');return;}
   const tipo=rec.cq_type; // es. CQ_DEF
@@ -1013,7 +1013,7 @@ async function exportTutti(cod){
   if(!_exportGuard(cod,'Tutti'))return;
   // Usa variabile locale per non mutare saved[cod] — evita di creare entry parziali
   let rec={...saved[cod]};
-  if(cur?.c===cod){
+  if(curGet()?.c===cod){
     if(cqType){const cqRec=collectCQ();if(cqRec)rec={...rec,...cqRec};}
     if(vspType){const vspRec=collectVSP();if(vspRec)rec={...rec,...vspRec};}
   }

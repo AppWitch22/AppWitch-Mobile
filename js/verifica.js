@@ -97,7 +97,7 @@ function loadMPSaved(rec){
     if(val)setMP(p.n,val);
   });
   const e=document.getElementById('mp-tecnico');if(e)e.value=rec.mp_tecnico||'';
-  const _dMo=(useDataUltimaVerifica&&cur&&DB[cur.c]?.data_ultima_mo)||null;
+  const _cMo=curGet();const _dMo=(useDataUltimaVerifica&&_cMo&&DB[_cMo.c]?.data_ultima_mo)||null;
   const d=document.getElementById('mp-data');if(d)d.value=_dMo||currentSessionDate||rec.mp_data||'';
   const d2=document.getElementById('mp-data2');if(d2)d2.value=rec.mp_data2||'';
   const n=document.getElementById('mp-note');if(n)n.value=rec.mp_note||'-';
@@ -196,7 +196,7 @@ function fillVSE(d){
 }
 
 function restoreVSE(rec){
-  const _dUlt=useDataUltimaVerifica&&cur&&DB[cur.c]?.data_ultima_vse;
+  const _cVse=curGet();const _dUlt=useDataUltimaVerifica&&_cVse&&DB[_cVse.c]?.data_ultima_vse;
   sv('f-data',_dUlt||currentSessionDate||rec.data);sv('f-note',rec.note);
   sv('f-ten',rec.ten);sr('rg-tdp',rec.tdp);sv('f-frq',rec.frq);sr('rg-fdp',rec.fdp);
   sv('f-pot',rec.pot);sr('rg-pdp',rec.pdp);sv('f-mar',rec.mar);sv('f-fud',rec.fud);sv('f-fur',rec.fur);
@@ -348,7 +348,7 @@ function aG(){
   sG(neg?'NEGATIVO':'POSITIVO');
 }
 
-function resetCur(){if(cur){fillVSE(cur);resetMPPoints();fillMPHeader(cur);}dirty=false;}
+function resetCur(){const _c=curGet();if(_c){fillVSE(_c);resetMPPoints();fillMPHeader(_c);}dirty=false;}
 
 function uP(){
   const fs=['f-codice','f-ten','f-mar','f-str','f-ver'];
@@ -381,6 +381,7 @@ function collectVSE(){
 }
 
 function saveAll(){
+  const cur=curGet();
   if(!cur){toast('Seleziona un dispositivo','warn');return;}
   const cod=cur.c;
   const existing=saved[cod]||{codice:cod};
@@ -409,6 +410,7 @@ function saveAll(){
 }
 
 function updateTabIndicators(){
+  const cur=curGet();
   if(!cur)return;
   const s=saved[cur.c];
   const tVse=document.getElementById('tab-vse');
@@ -817,7 +819,7 @@ function collectVSP(){
 function loadVSPSaved(rec){
   if(!rec||!rec.vsp_type) return;
   buildVSPPoints(rec.vsp_type);
-  const _dVsp=(useDataUltimaVerifica&&cur&&DB[cur.c]?.data_ultima_vsp)||null;
+  const _cVsp=curGet();const _dVsp=(useDataUltimaVerifica&&_cVsp&&DB[_cVsp.c]?.data_ultima_vsp)||null;
   sv('vsp-data',_dVsp||currentSessionDate||rec.vsp_data||''); sv('vsp-note',rec.vsp_note||'-');
   sv('vsp-tecnico',rec.vsp_tecnico||''); sv('vsp-data2',rec.vsp_data2||'');
   (VSP_POINTS[rec.vsp_type]||[]).forEach(p=>{if(rec['vsp_'+p.l]) setVSP(p.l,rec['vsp_'+p.l]);});
@@ -1329,7 +1331,7 @@ function collectCQ(){
 function loadCQSaved(rec){
   if(!rec||!rec.cq_type) return;
   buildCQPoints(rec.cq_type);
-  const _dCq=(useDataUltimaVerifica&&cur&&DB[cur.c]?.data_ultima_cq)||null;
+  const _cCq=curGet();const _dCq=(useDataUltimaVerifica&&_cCq&&DB[_cCq.c]?.data_ultima_cq)||null;
   sv('cq-data',_dCq||currentSessionDate||rec.cq_data||''); sv('cq-note',rec.cq_note||'-');
   sv('cq-tecnico',rec.cq_tecnico||''); sv('cq-data2',rec.cq_data2||'');
   sv('cq-strum',rec.cq_strum||''); sv('cq-strum-mod',rec.cq_strum_mod||'');

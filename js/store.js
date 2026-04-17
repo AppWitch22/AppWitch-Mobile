@@ -107,6 +107,7 @@ window.store = createStore({
     title: null,
     creatorId: null,
     attesi: new Set(),  // codici dispositivi attesi nella sessione corrente
-    curVerif: null      // {vsp, cq} tipi verifica per il device selezionato
+    curVerif: null,     // {vsp, cq} tipi verifica per il device selezionato
+    cur: null           // device corrente selezionato {c, ...} (oggetto DB[cod])
   }
 });
