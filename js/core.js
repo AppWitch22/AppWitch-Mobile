@@ -497,11 +497,7 @@ function renderSession(){
 async function removeFromSession(cod) {
   if (!canEditSession()) { toast('Non hai i permessi per modificare questa sessione', 'warn'); return; }
   if (!confirm('Rimuovere ' + cod + ' dalla sessione?\nI dati salvati verranno eliminati.')) return;
-  const token = await supaToken();
-  await fetch(`${SUPA_URL}/rest/v1/sessione_schede?sessione_id=eq.${currentSessionId}&codice=eq.${encodeURIComponent(cod)}`, {
-    method: 'DELETE',
-    headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + token }
-  });
+  try { await db.schede.deleteOne(currentSessionId, cod); } catch(e) { console.error('removeFromSession:', e); }
   delete saved[cod];
   if (cur && cur.c === cod) { cur = null; curVerif = null; document.getElementById('form-area').style.display = 'none'; }
   renderSession();
@@ -845,8 +841,7 @@ function supaHdrs(token) {
 async function createSession() {
   const title = document.getElementById('sess-new-title').value.trim();
   if (!title) { toast('Inserisci un nome per la sessione', 'warn'); return; }
-  const token = await supaToken();
-  const asl   = currentUser?.profile?.asl || 'ASL Benevento';
+  const asl = currentUser?.profile?.asl || 'ASL Benevento';
   // Parse lista dispositivi attesi (se inserita)
   const attesiTxt = document.getElementById('sess-new-attesi').value.trim();
   const attesiList = attesiTxt
@@ -854,14 +849,10 @@ async function createSession() {
     : [];
   const today = new Date().toISOString().split('T')[0];
   const dataV = document.getElementById('sess-new-date').value || today;
-  const resp  = await fetch(`${SUPA_URL}/rest/v1/sessioni`, {
-    method: 'POST',
-    headers: supaHdrs(token),
-    body: JSON.stringify({ titolo: title, utente_id: currentUser.id, asl: asl, data_verifica: dataV })
-  });
-  if (!resp.ok) { toast('Errore creazione sessione', 'warn'); return; }
-  const rows = await resp.json();
-  const sess = Array.isArray(rows) ? rows[0] : rows;
+  let sess;
+  try {
+    sess = await db.sessioni.create({ titolo: title, utente_id: currentUser.id, asl, data_verifica: dataV });
+  } catch(e) { toast('Errore creazione sessione', 'warn'); return; }
   document.getElementById('sess-new-title').value = '';
   document.getElementById('sess-new-attesi').value = '';
   document.getElementById('sess-new-date').value = '';
@@ -901,13 +892,9 @@ async function activateSession(id, titolo, dataVerifica, utenteId = null) {
   if (_inlT) _inlT.value = titolo || '';
   if (_inlD) _inlD.value = dataVerifica || '';
   // Carica schede (include la scheda speciale __attesi__ per i dispositivi attesi)
-  const token = await supaToken();
-  const schedeResp = await fetch(
-    `${SUPA_URL}/rest/v1/sessione_schede?sessione_id=eq.${id}&select=*`,
-    { headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + token } }
-  );
-  if (schedeResp.ok) {
-    const schede = await schedeResp.json();
+  let schede = null;
+  try { schede = await db.schede.listBySessione(id); } catch(e) { console.error('activateSession load:', e); }
+  if (schede) {
     schede.forEach(s => {
       if (s.codice === '__attesi__') {
         // Scheda speciale: contiene la lista dispositivi attesi
@@ -941,46 +928,21 @@ async function activateSession(id, titolo, dataVerifica, utenteId = null) {
 // ── Sync una scheda su Supabase ───────────────────────────────
 async function syncScheda(codice) {
   if (!currentSessionId) return;
-  const rec   = saved[codice];
-  if (!rec)   return;
-  const token = await supaToken();
-
-  // Separa i dati per tipo
-  const dati_vse = rec.vse_saved ? collectVSEFromRec(rec) : null;
-  const dati_mp  = rec.mp_saved  ? collectMPFromRec(rec)  : null;
-  const dati_vsp = rec.vsp_saved ? collectVSPFromRec(rec) : null;
-  const dati_cq  = rec.cq_saved  ? collectCQFromRec(rec)  : null;
+  const rec = saved[codice];
+  if (!rec) return;
 
   const payload = {
     sessione_id: currentSessionId,
     codice:      codice,
-    dati_vse:    dati_vse,
-    dati_mp:     dati_mp,
-    dati_vsp:    dati_vsp,
-    dati_cq:     dati_cq,
+    dati_vse:    rec.vse_saved ? collectVSEFromRec(rec) : null,
+    dati_mp:     rec.mp_saved  ? collectMPFromRec(rec)  : null,
+    dati_vsp:    rec.vsp_saved ? collectVSPFromRec(rec) : null,
+    dati_cq:     rec.cq_saved  ? collectCQFromRec(rec)  : null,
     vsp_type:    rec.vsp_type || null,
     cq_type:     rec.cq_type  || null,
   };
-
-  // Controlla se il record esiste già
-  const hdrs = {'apikey':SUPA_KEY,'Authorization':'Bearer '+token};
-  const check = await fetch(`${SUPA_URL}/rest/v1/sessione_schede?sessione_id=eq.${currentSessionId}&codice=eq.${codice}&select=codice`, {headers:hdrs});
-  const rows = check.ok ? await check.json() : [];
-  let resp;
-  if (rows.length) {
-    resp = await fetch(`${SUPA_URL}/rest/v1/sessione_schede?sessione_id=eq.${currentSessionId}&codice=eq.${codice}`, {
-      method: 'PATCH',
-      headers: { ...supaHdrs(token), 'Prefer': 'return=minimal' },
-      body: JSON.stringify(payload)
-    });
-  } else {
-    resp = await fetch(`${SUPA_URL}/rest/v1/sessione_schede`, {
-      method: 'POST',
-      headers: { ...supaHdrs(token), 'Prefer': 'return=minimal' },
-      body: JSON.stringify(payload)
-    });
-  }
-  if (!resp.ok) console.error('syncScheda fallita:', resp.status, resp.statusText);
+  try { await db.schede.upsert(payload); }
+  catch(e) { console.error('syncScheda fallita:', e); }
 }
 
 // ── Sync completa della sessione ─────────────────────────────
@@ -993,26 +955,12 @@ async function syncSessionNow() {
     await syncScheda(cod);
   }
   // Aggiorna data_aggiornamento della sessione
-  const token = await supaToken();
-  const patchResp = await fetch(`${SUPA_URL}/rest/v1/sessioni?id=eq.${currentSessionId}`, {
-    method: 'PATCH',
-    headers: { ...supaHdrs(token), 'Prefer': 'return=minimal' },
-    body: JSON.stringify({ data_aggiornamento: new Date().toISOString() })
-  });
+  try { await db.sessioni.touchAggiornamento(currentSessionId); } catch(e) { console.error('touchAggiornamento:', e); }
   // Salva lista attesi come scheda speciale __attesi__
   if (attesi.size > 0) {
-    await fetch(`${SUPA_URL}/rest/v1/sessione_schede`, {
-      method: 'POST',
-      headers: { ...supaHdrs(token), 'Prefer': 'resolution=merge-duplicates,return=minimal' },
-      body: JSON.stringify({
-        sessione_id: currentSessionId,
-        codice: '__attesi__',
-        dati_vse: { lista: [...attesi] },
-        dati_mp: null, dati_vsp: null, dati_cq: null
-      })
-    });
+    try { await db.schede.upsertAttesi(currentSessionId, [...attesi]); }
+    catch(e) { console.error('upsertAttesi:', e); }
   }
-  if (!patchResp.ok) console.error('syncSessionNow PATCH fallita:', patchResp.status, patchResp.statusText);
   updateSyncBar(null, true);
 }
 
@@ -1279,20 +1227,15 @@ async function saveSessionEdits() {
   const title = (document.getElementById('sess-inline-title')?.value || '').trim();
   const date  = document.getElementById('sess-inline-date')?.value || null;
   if (!title) { toast('Il nome della sessione non può essere vuoto', 'warn'); return; }
-  const token = await supaToken();
-  const resp = await fetch(`${SUPA_URL}/rest/v1/sessioni?id=eq.${currentSessionId}`, {
-    method: 'PATCH',
-    headers: { ...supaHdrs(token), 'Prefer': 'return=minimal' },
-    body: JSON.stringify({ titolo: title, data_verifica: date })
-  });
-  if (resp.ok) {
+  try {
+    await db.sessioni.update(currentSessionId, { titolo: title, data_verifica: date });
     currentSessionTitle = title;
     currentSessionDate  = date;
     if (syncTimer) { clearTimeout(syncTimer); syncTimer = null; }
     await syncSessionNow();
     updateSyncBar(title, true);
     toast('Sessione aggiornata', 'ok');
-  } else {
+  } catch(e) {
     toast('Errore salvataggio sessione', 'err');
   }
 }
@@ -1317,21 +1260,14 @@ function chiudiSessione() {
 }
 
 async function loadSessList() {
-  const list  = document.getElementById('sess-list');
+  const list = document.getElementById('sess-list');
   list.innerHTML = '<div style="font-size:13px;color:var(--text3);padding:8px">Caricamento...</div>';
-  const token = await supaToken();
-  const asl   = currentUser?.profile?.asl || 'ASL Benevento';
-  const role  = currentUser?.profile?.role;
-  // Responsabile e admin vedono tutte le sessioni dell'ASL
-  let url = `${SUPA_URL}/rest/v1/sessioni?asl=eq.${encodeURIComponent(asl)}&select=id,titolo,data_verifica,data_aggiornamento,utente_id&order=data_aggiornamento.desc&limit=50`;
-  if (!can('sessioni_altrui')) {
-    url = `${SUPA_URL}/rest/v1/sessioni?utente_id=eq.${currentUser.id}&select=id,titolo,data_verifica,data_aggiornamento,utente_id&order=data_aggiornamento.desc&limit=50`;
-  }
-  const resp = await fetch(url, {
-    headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + token }
-  });
-  if (!resp.ok) { list.innerHTML = '<div style="color:var(--ko);padding:8px">Errore caricamento</div>'; return; }
-  const sessioni = await resp.json();
+  const asl = currentUser?.profile?.asl || 'ASL Benevento';
+  // Responsabile e admin vedono tutte le sessioni dell'ASL; verificatore solo le proprie
+  const query = can('sessioni_altrui') ? { asl } : { utenteId: currentUser.id };
+  let sessioni;
+  try { sessioni = await db.sessioni.list(query); }
+  catch(e) { list.innerHTML = '<div style="color:var(--ko);padding:8px">Errore caricamento</div>'; return; }
   if (!sessioni.length) {
     list.innerHTML = '<div style="font-size:13px;color:var(--text3);padding:8px">Nessuna sessione. Creane una nuova.</div>';
     return;
@@ -1368,19 +1304,8 @@ async function loadSessList() {
 
 async function deleteSession(id, titolo) {
   if (!confirm(`Eliminare la sessione "${titolo}"?\nTutti i dati verranno persi.`)) return;
-  const token = await supaToken();
-  // Elimina prima le schede
-  const delSchede = await fetch(`${SUPA_URL}/rest/v1/sessione_schede?sessione_id=eq.${id}`, {
-    method: 'DELETE',
-    headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + token }
-  });
-  if (!delSchede.ok) console.error('Eliminazione schede fallita:', delSchede.status, delSchede.statusText);
-  // Poi la sessione
-  const delSess = await fetch(`${SUPA_URL}/rest/v1/sessioni?id=eq.${id}`, {
-    method: 'DELETE',
-    headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + token }
-  });
-  if (!delSess.ok) console.error('Eliminazione sessione fallita:', delSess.status, delSess.statusText);
+  try { await db.schede.deleteBySessione(id); } catch(e) { console.error('Eliminazione schede fallita:', e); }
+  try { await db.sessioni.delete_(id); } catch(e) { console.error('Eliminazione sessione fallita:', e); }
   if (currentSessionId === id) {
     currentSessionId = null;
     currentSessionCreatorId = null;

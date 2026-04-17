@@ -140,11 +140,118 @@ const _configAsl = {
   },
 };
 
+// ── db.sessioni ──────────────────────────────────────────────
+
+const _sessioni = {
+  async create({ titolo, utente_id, asl, data_verifica }) {
+    const rows = await _req('sessioni', {
+      method: 'POST',
+      body: { titolo, utente_id, asl, data_verifica }
+    });
+    return Array.isArray(rows) ? rows[0] : rows;
+  },
+
+  async list({ asl, utenteId, select = 'id,titolo,data_verifica,data_aggiornamento,utente_id', limit = 50, order = 'data_aggiornamento.desc' } = {}) {
+    const parts = [`select=${select}`, `limit=${limit}`, `order=${order}`];
+    if (utenteId) parts.push(`utente_id=eq.${encodeURIComponent(utenteId)}`);
+    else if (asl) parts.push(`asl=eq.${encodeURIComponent(asl)}`);
+    return await _req(`sessioni?${parts.join('&')}`);
+  },
+
+  async update(id, patch) {
+    return await _req(`sessioni?id=eq.${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      body: patch,
+      headers: { 'Prefer': 'return=minimal' }
+    });
+  },
+
+  async delete_(id) {
+    return await _req(`sessioni?id=eq.${encodeURIComponent(id)}`, { method: 'DELETE' });
+  },
+
+  touchAggiornamento(id) {
+    return this.update(id, { data_aggiornamento: new Date().toISOString() });
+  },
+};
+
+// ── db.schede ────────────────────────────────────────────────
+
+const _schede = {
+  async listBySessione(sessioneId, { select = '*' } = {}) {
+    return await _req(`sessione_schede?sessione_id=eq.${encodeURIComponent(sessioneId)}&select=${select}`);
+  },
+
+  async listByCodice(codice, { select = '*', limit = 200, order = 'sessione_id.desc' } = {}) {
+    return await _req(`sessione_schede?codice=eq.${encodeURIComponent(codice)}&select=${select}&order=${order}&limit=${limit}`);
+  },
+
+  async exists(sessioneId, codice) {
+    const rows = await _req(`sessione_schede?sessione_id=eq.${encodeURIComponent(sessioneId)}&codice=eq.${encodeURIComponent(codice)}&select=codice`);
+    return rows?.length > 0;
+  },
+
+  async insert(payload) {
+    return await _req('sessione_schede', {
+      method: 'POST',
+      body: payload,
+      headers: { 'Prefer': 'return=minimal' }
+    });
+  },
+
+  async update(sessioneId, codice, patch) {
+    return await _req(`sessione_schede?sessione_id=eq.${encodeURIComponent(sessioneId)}&codice=eq.${encodeURIComponent(codice)}`, {
+      method: 'PATCH',
+      body: patch,
+      headers: { 'Prefer': 'return=minimal' }
+    });
+  },
+
+  // PATCH-first con Content-Range: PostgREST ritorna N righe modificate.
+  // Se 0 → INSERT. Elimina i 409 in console nello scenario comune.
+  async upsert(payload) {
+    const { sessione_id, codice } = payload;
+    const res = await _req(
+      `sessione_schede?sessione_id=eq.${encodeURIComponent(sessione_id)}&codice=eq.${encodeURIComponent(codice)}`,
+      {
+        method: 'PATCH',
+        body: payload,
+        headers: { 'Prefer': 'count=exact,return=minimal' },
+        raw: true
+      }
+    );
+    const cr = res.headers.get('Content-Range');
+    const modified = cr ? parseInt(cr.split('/').pop(), 10) : 0;
+    if (modified > 0) return null;
+    return await this.insert(payload);
+  },
+
+  // Upsert della scheda speciale __attesi__ (PATCH-first, come upsert)
+  async upsertAttesi(sessioneId, lista) {
+    return await this.upsert({
+      sessione_id: sessioneId,
+      codice: '__attesi__',
+      dati_vse: { lista },
+      dati_mp: null, dati_vsp: null, dati_cq: null
+    });
+  },
+
+  async deleteBySessione(sessioneId) {
+    return await _req(`sessione_schede?sessione_id=eq.${encodeURIComponent(sessioneId)}`, { method: 'DELETE' });
+  },
+
+  async deleteOne(sessioneId, codice) {
+    return await _req(`sessione_schede?sessione_id=eq.${encodeURIComponent(sessioneId)}&codice=eq.${encodeURIComponent(codice)}`, { method: 'DELETE' });
+  },
+};
+
 // ── Export globale ───────────────────────────────────────────
 
 window.db = {
   dispositivi: _dispositivi,
   configAsl:   _configAsl,
+  sessioni:    _sessioni,
+  schede:      _schede,
   DbError,
   _aslKey,
 };

@@ -458,14 +458,16 @@ async function gbLoadStorico() {
   const token = await supaToken();
   const hdrs  = supaHdrs(token);
 
-  const [rApp, rStor] = await Promise.all([
-    fetch(`${SUPA_URL}/rest/v1/sessione_schede?codice=eq.${encodeURIComponent(gestioneCodice)}&select=sessione_id,dati_vse,dati_mp,dati_vsp,dati_cq,vsp_type,cq_type,sessioni(titolo,data_verifica,profiles(full_name))&order=sessione_id.desc&limit=200`, { headers: hdrs }),
+  const schedeSelect = 'sessione_id,dati_vse,dati_mp,dati_vsp,dati_cq,vsp_type,cq_type,sessioni(titolo,data_verifica,profiles(full_name))';
+  const [appRowsR, rStor] = await Promise.allSettled([
+    db.schede.listByCodice(gestioneCodice, { select: schedeSelect, limit: 200 }),
     fetch(`${SUPA_URL}/rest/v1/storico_verifiche?codice=eq.${encodeURIComponent(gestioneCodice)}&order=data.desc&limit=200`, { headers: hdrs }),
   ]);
-  if (!rApp.ok && !rStor.ok) { content.innerHTML = '<div style="padding:24px;text-align:center;color:var(--ko)">Errore caricamento storico</div>'; return; }
-
-  const appRows  = rApp.ok  ? await rApp.json()  : [];
-  const storRows = rStor.ok ? await rStor.json() : [];
+  const appRows = appRowsR.status === 'fulfilled' ? (appRowsR.value || []) : [];
+  const storRows = rStor.status === 'fulfilled' && rStor.value.ok ? await rStor.value.json() : [];
+  if (appRowsR.status === 'rejected' && (rStor.status === 'rejected' || !rStor.value.ok)) {
+    content.innerHTML = '<div style="padding:24px;text-align:center;color:var(--ko)">Errore caricamento storico</div>'; return;
+  }
 
   const _fmt = v => _fmtDateIT(v) || '—';
   const _badge = (ok, label) => {

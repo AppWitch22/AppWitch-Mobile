@@ -1155,11 +1155,9 @@ async function exportSessioneMassiva() {
 
 async function exportSessioneByID(id, titolo) {
   toast(`Caricamento schede "${titolo}"...`, 'warn');
-  const token = await supaToken();
-  const r = await fetch(`${SUPA_URL}/rest/v1/sessione_schede?sessione_id=eq.${id}&select=*`,
-    {headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+token}});
-  if (!r.ok) { toast('Errore caricamento schede', 'warn'); return; }
-  const schede = await r.json();
+  let schede;
+  try { schede = await db.schede.listBySessione(id); }
+  catch(e) { toast('Errore caricamento schede', 'warn'); return; }
   const savedTmp = {};
   schede.forEach(s => {
     if (s.codice === '__attesi__') return;

@@ -1213,25 +1213,16 @@ async function confirmCreateSessionFromTable() {
   if (!title) { toast('Inserisci un nome per la sessione','warn'); return; }
   const dataV = document.getElementById('tbl-sess-date').value || new Date().toISOString().split('T')[0];
   const codici = _tblFilteredRows().filter(r => tableSelected.has(r.codice)).map(r => r.codice);
-
-  const token = await supaToken();
   const asl = currentUser?.profile?.asl || 'ASL Benevento';
 
   // 1. Crea sessione
-  const r = await fetch(`${SUPA_URL}/rest/v1/sessioni`, {
-    method:'POST', headers:supaHdrs(token),
-    body:JSON.stringify({titolo:title, utente_id:currentUser.id, asl, data_verifica:dataV})
-  });
-  if (!r.ok) { toast('Errore creazione sessione','warn'); return; }
-  const rows = await r.json();
-  const sess = Array.isArray(rows) ? rows[0] : rows;
+  let sess;
+  try {
+    sess = await db.sessioni.create({ titolo: title, utente_id: currentUser.id, asl, data_verifica: dataV });
+  } catch(e) { toast('Errore creazione sessione','warn'); return; }
 
   // 2. Record attesi
-  await fetch(`${SUPA_URL}/rest/v1/sessione_schede`, {
-    method:'POST',
-    headers:{...supaHdrs(token),'Prefer':'return=minimal'},
-    body:JSON.stringify({sessione_id:sess.id, codice:'__attesi__', dati_vse:{lista:codici}})
-  });
+  await db.schede.insert({ sessione_id: sess.id, codice: '__attesi__', dati_vse: { lista: codici } });
 
   closeTblSessModal();
 
