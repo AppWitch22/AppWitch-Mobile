@@ -111,6 +111,10 @@ window.store = createStore({
     cur: null,          // device corrente selezionato {c, ...} (oggetto DB[cod])
     saved: {}           // schede compilate nella sessione: { [codice]: record }
   },
+  // Utente autenticato: null quando non loggato, { ...auth, profile } altrimenti
+  user: {
+    current: null
+  },
   // Stato form VSP/CQ del device corrente (valori input + tipo form)
   form: {
     vsp: {},            // { [label]: valore }

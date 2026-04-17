@@ -550,7 +550,10 @@ const SUPA_URL = 'https://ttgvuoiznybjdyhlshpt.supabase.co';
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR0Z3Z1b2l6bnliamR5aGxzaHB0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxNDc2OTIsImV4cCI6MjA4OTcyMzY5Mn0.Igk1hjHa_yY70FfDay6oCQRYo5EhIoCh-8H2u9NAXxo';
 const supa = supabase.createClient(SUPA_URL, SUPA_KEY);
 
+// currentUser vive in store.user.current; manteniamo questo alias come mirror
+// automatico per non toccare i 57 consumer sparsi. Unica fonte di verità: store.
 let currentUser = null;
+store.subscribe('user.current', () => { currentUser = store.get('user.current'); });
 
 const ROLE_LABELS = {
   tecnico:        'Tecnico',
@@ -634,7 +637,7 @@ async function onLogin(user) {
     if (err) { err.textContent = 'Profilo utente non trovato. Contatta un amministratore.'; err.style.display = 'block'; }
     return;
   }
-  currentUser = { ...user, profile };
+  store.set('user.current', { ...user, profile });
   localStorage.setItem('aw_session', JSON.stringify({ user, profile }));
   await showApp();
 }
@@ -774,7 +777,7 @@ async function showApp() {
 async function doLogout() {
   await supa.auth.signOut();
   localStorage.removeItem('aw_session');
-  currentUser = null;
+  store.set('user.current', null);
   document.getElementById('login-screen').style.display = 'flex';
   document.getElementById('user-bar').style.display = 'none';
   document.body.classList.remove('logged-in');
@@ -803,7 +806,7 @@ async function checkSession() {
     try {
       const { user, profile } = JSON.parse(saved);
       if (user && profile) {
-        currentUser = { ...user, profile };
+        store.set('user.current', { ...user, profile });
         await showApp();
         return;
       }
