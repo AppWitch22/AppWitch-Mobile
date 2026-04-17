@@ -216,7 +216,7 @@ function restoreVSE(rec){
   uM();
 }
 
-function pick(el){const already=el.classList.contains('sel');el.closest('.rg').querySelectorAll('.rb').forEach(b=>b.classList.remove('sel'));if(!already)el.classList.add('sel');dirty=true;uP();}
+function pick(el){const already=el.classList.contains('sel');el.closest('.rg').querySelectorAll('.rb').forEach(b=>b.classList.remove('sel'));if(!already)el.classList.add('sel');uP();}
 
 function uM(){
   const cls   = gr('rg-cls');
@@ -348,7 +348,7 @@ function aG(){
   sG(neg?'NEGATIVO':'POSITIVO');
 }
 
-function resetCur(){const _c=curGet();if(_c){fillVSE(_c);resetMPPoints();fillMPHeader(_c);}dirty=false;}
+function resetCur(){const _c=curGet();if(_c){fillVSE(_c);resetMPPoints();fillMPHeader(_c);}}
 
 function uP(){
   const fs=['f-codice','f-ten','f-mar','f-str','f-ver'];
@@ -394,8 +394,7 @@ function saveAll(){
     ...(vspRec?{...vspRec,vsp_saved:true,vsp_type:vspTypeGet()}:{}),
     ...(cqRec?{...cqRec,cq_saved:true,cq_type:cqTypeGet()}:{}),
     vse_saved:true,mp_saved:true};
-   
-  dirty=false;
+
   updateTabIndicators();
   renderSession();
   const parts=['VSE','MP'];if(vspRec)parts.push(_cv.vsp);if(cqRec)parts.push(_cv.cq);
