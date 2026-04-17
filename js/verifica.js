@@ -123,10 +123,11 @@ function switchTab(tab){
 
 
 function updateTabs(){
-  const hasCQ=!!(curVerif&&curVerif.cq);
-  const hasVSP=!!(curVerif&&curVerif.vsp);
-  const cqFoglio=hasCQ?curVerif.cq:'';
-  const vspFoglio=hasVSP?curVerif.vsp:'';
+  const _cv=curVerifGet();
+  const hasCQ=!!(_cv&&_cv.cq);
+  const hasVSP=!!(_cv&&_cv.vsp);
+  const cqFoglio=hasCQ?_cv.cq:'';
+  const vspFoglio=hasVSP?_cv.vsp:'';
   // Rebuild tab bar
   const tabBar=document.querySelector('.tabs');
   tabBar.innerHTML=`
@@ -385,8 +386,9 @@ function saveAll(){
   const existing=saved[cod]||{codice:cod};
   const vseRec=collectVSE();
   const mpRec=collectMP();
-  const vspRec=curVerif&&curVerif.vsp?collectVSP():null;
-  const cqRec=curVerif&&curVerif.cq?collectCQ():null;
+  const _cv=curVerifGet();
+  const vspRec=_cv&&_cv.vsp?collectVSP():null;
+  const cqRec=_cv&&_cv.cq?collectCQ():null;
   saved[cod]={...existing,...vseRec,...mpRec,
     ...(vspRec?{...vspRec,vsp_saved:true,vsp_type:vspType}:{}),
     ...(cqRec?{...cqRec,cq_saved:true,cq_type:cqType}:{}),
@@ -395,7 +397,7 @@ function saveAll(){
   dirty=false;
   updateTabIndicators();
   renderSession();
-  const parts=['VSE','MP'];if(vspRec)parts.push(curVerif.vsp);if(cqRec)parts.push(curVerif.cq);
+  const parts=['VSE','MP'];if(vspRec)parts.push(_cv.vsp);if(cqRec)parts.push(_cv.cq);
   const label=parts.join(' + ');
   toast('Salvato: '+cod+' ('+label+')','ok');
   // Auto-save su Supabase
