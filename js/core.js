@@ -804,6 +804,8 @@ async function checkSession() {
 }
 
 checkSession();
+// Iscrive la sync bar allo store — qualunque cambio a ui.* re-renderizza
+store.subscribe('ui', () => updateSyncBar());
 // ── FINE AUTH ──────────────────────────────────────────────
 
 let currentSessionId        = null;   // UUID sessione attiva
@@ -917,7 +919,7 @@ async function activateSession(id, titolo, dataVerifica, utenteId = null) {
       saved[s.codice] = rec;
     });
   }
-  updateSyncBar(titolo, true);
+  store.patch('ui', { syncStatus: 'synced', sessionTitle: titolo });
   renderSession();
   closeSessModal();
   const home = document.getElementById('home-section');
@@ -949,7 +951,7 @@ async function syncScheda(codice) {
 async function syncSessionNow() {
   if (!currentSessionId) return;
   syncPending = false;
-  updateSyncBar(null, false); // mostra "sincronizzando..."
+  store.set('ui.syncStatus', 'syncing');
   const codici = Object.keys(saved);
   for (const cod of codici) {
     await syncScheda(cod);
@@ -961,7 +963,7 @@ async function syncSessionNow() {
     try { await db.schede.upsertAttesi(currentSessionId, [...attesi]); }
     catch(e) { console.error('upsertAttesi:', e); }
   }
-  updateSyncBar(null, true);
+  store.set('ui.syncStatus', 'synced');
 }
 
 // ── Helper formato data italiano ─────────────────────────────
@@ -1078,27 +1080,32 @@ function collectCQFromRec(rec) {
 }
 
 // ── Barra sync ───────────────────────────────────────────────
-function updateSyncBar(titolo, synced) {
+// Legge lo stato sync dallo store (ui.syncStatus, ui.sessionTitle).
+// Chi vuole cambiare lo stato sync usa store.patch('ui', {...}).
+function updateSyncBar() {
   const bar   = document.getElementById('sess-sync-bar');
   const dot   = document.getElementById('sync-dot');
   const dotM  = document.getElementById('sync-dot-mobile');
   const label = document.getElementById('sync-label');
   if (!bar) return;
   bar.style.display = 'block';
+  const syncStatus  = store.get('ui.syncStatus');
+  const storeTitolo = store.get('ui.sessionTitle');
   let cls;
   if (!currentSessionId) {
     cls = 'sess-sync-dot offline';
     if (label) label.textContent = 'Nessuna sessione attiva';
-  } else if (synced === false) {
+  } else if (syncStatus === 'syncing') {
     cls = 'sess-sync-dot pending';
     if (label) label.textContent = 'Sincronizzazione...';
-  } else if (synced === true) {
+  } else if (syncStatus === 'synced') {
     cls = 'sess-sync-dot synced';
-    const t = titolo || currentSessionTitle || 'Sessione attiva';
+    const t = storeTitolo || currentSessionTitle || 'Sessione attiva';
     if (label) label.textContent = canEditSession() ? 'Sincronizzato' : t + ' · Sincronizzato';
   } else {
+    // 'dirty' | 'idle' con sessione attiva
     cls = 'sess-sync-dot pending';
-    const t = titolo || currentSessionTitle || 'Sessione attiva';
+    const t = storeTitolo || currentSessionTitle || 'Sessione attiva';
     if (label) label.textContent = canEditSession() ? 'Modifiche in attesa' : t + ' · Modifiche in attesa';
   }
   if (dot) dot.className = cls;
@@ -1122,7 +1129,7 @@ function updateSyncBar(titolo, synced) {
 function scheduleSync() {
   if (!currentSessionId) return;
   syncPending = true;
-  updateSyncBar(null, null);
+  store.set('ui.syncStatus', 'dirty');
   if (syncTimer) clearTimeout(syncTimer);
   syncTimer = setTimeout(() => syncSessionNow(), 3000);
 }
@@ -1233,7 +1240,7 @@ async function saveSessionEdits() {
     currentSessionDate  = date;
     if (syncTimer) { clearTimeout(syncTimer); syncTimer = null; }
     await syncSessionNow();
-    updateSyncBar(title, true);
+    store.patch('ui', { syncStatus: 'synced', sessionTitle: title });
     toast('Sessione aggiornata', 'ok');
   } catch(e) {
     toast('Errore salvataggio sessione', 'err');
@@ -1252,7 +1259,7 @@ function chiudiSessione() {
   Object.keys(saved).forEach(k => delete saved[k]);
   cur = null; curVerif = null;
   document.getElementById('form-area').style.display = 'none';
-  updateSyncBar(null, null);
+  store.patch('ui', { syncStatus: 'idle', sessionTitle: null });
   renderSession();
   const home = document.getElementById('home-section');
   if (home && home.style.display !== 'none') renderHome();
@@ -1313,7 +1320,7 @@ async function deleteSession(id, titolo) {
     Object.keys(saved).forEach(k => delete saved[k]);
     cur = null; curVerif = null;
     document.getElementById('form-area').style.display = 'none';
-    updateSyncBar(null, null);
+    store.patch('ui', { syncStatus: 'idle', sessionTitle: null });
     renderSession();
   }
   await loadSessList();
@@ -1870,7 +1877,7 @@ function toggleDevFlag(cod, flag) {
   saved[cod][flag] = !saved[cod][flag];
   if (saved[cod][flag]) saved[cod][other] = false; // mutually exclusive
   renderSession();
-  updateSyncBar(null, null);
+  store.set('ui.syncStatus', 'dirty');
   if (currentSessionId) scheduleSync();
 }
 
