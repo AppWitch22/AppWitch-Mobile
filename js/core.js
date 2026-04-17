@@ -361,7 +361,7 @@ function doSearch(){
     const vm=VERIF_MAP[d.c];
     const extraTags=vm?[vm.vsp,vm.cq].filter(Boolean).map(t=>`<span class="r-tag part">${t}</span>`).join(''):'';
     const doneTags=s?`<span class="r-tag done">${[s.vse_saved?'VSE':'',s.mp_saved?'MP':''].filter(Boolean).join('+')}</span>`:'';
-    const attTag=attesi.has(d.c)&&!s?`<span class="r-tag pending">atteso</span>`:'';
+    const attTag=attesiSet().has(d.c)&&!s?`<span class="r-tag pending">atteso</span>`:'';
     return`<div class="result-item" onclick="sel('${d.c}')">
       <span class="r-cod">${d.c}</span>
       <span class="r-nome">${d.n.toLowerCase()}</span>
@@ -416,7 +416,7 @@ function sel(cod){
 
 function renderSession(){
   const keys=Object.keys(saved);
-  const pending=[...attesi].filter(c=>!saved[c]);
+  const pending=[...attesiSet()].filter(c=>!saved[c]);
   document.getElementById('btn-xlsx').disabled=keys.length===0;
   const bxm=document.getElementById('btn-xlsx-mobile');if(bxm)bxm.disabled=keys.length===0;
   const bem=document.getElementById('btn-export-massivo');if(bem)bem.disabled=keys.length===0;
@@ -464,11 +464,11 @@ function renderSession(){
     <button onclick="addAttesiInline()" style="padding:5px 12px;font-size:12px;border:none;border-radius:var(--rad);background:var(--info);color:#fff;cursor:pointer;white-space:nowrap;font-weight:600">+ Aggiungi</button>
   </div>`:''
   chips.innerHTML=savedChips+pendingChips+addBar;
-  const totalAttesi=attesi.size||keys.length;
+  const totalAttesi=attesiSet().size||keys.length;
   const done=keys.filter(k=>saved[k].vse_saved&&saved[k].mp_saved).length;
   const vspCount=keys.filter(k=>saved[k].vsp_saved).length;
   const cqCount=keys.filter(k=>saved[k].cq_saved).length;
-  let statsText=attesi.size?`${done}/${totalAttesi} completati`:`${keys.length} dispositivi`;
+  let statsText=attesiSet().size?`${done}/${totalAttesi} completati`:`${keys.length} dispositivi`;
   if(vspCount)statsText+=' · '+vspCount+' VSP';
   if(cqCount)statsText+=' · '+cqCount+' CQ';
   stats.textContent=statsText;
@@ -502,13 +502,13 @@ async function removeFromSession(cod) {
   if (cur && cur.c === cod) { cur = null; curVerif = null; document.getElementById('form-area').style.display = 'none'; }
   renderSession();
   scheduleSync();
-  toast('Dati rimossi: ' + cod + (attesi.has(cod) ? ' (tornato in attesa)' : ''), 'warn');
+  toast('Dati rimossi: ' + cod + (attesiSet().has(cod) ? ' (tornato in attesa)' : ''), 'warn');
 }
 
 function removeFromAttesi(cod) {
   if (!canEditSession()) { toast('Non hai i permessi per modificare questa sessione', 'warn'); return; }
   if (!confirm('Rimuovere ' + cod + ' dagli attesi?')) return;
-  attesi.delete(cod);
+  _attesiMut(s => s.delete(cod));
   renderSession();
   scheduleSync();
   toast('Rimosso dagli attesi: ' + cod, 'warn');
@@ -523,7 +523,7 @@ function addAttesiInline() {
   const codici = txt.split(/[\s,;]+/).map(c => c.replace(/\D/g,'').padStart(7,'0')).filter(c => c.length === 7);
   const validi = codici.filter(c => DB[c]);
   const nonTrovati = codici.filter(c => !DB[c]);
-  validi.forEach(c => attesi.add(c));
+  _attesiMut(s => validi.forEach(c => s.add(c)));
   inp.value = '';
   renderSession();
   if (validi.length) scheduleSync();
@@ -684,7 +684,7 @@ function renderHome() {
   if (!box) return;
   if (currentSessionId) {
     const count = Object.keys(saved).length;
-    const attesiCount = attesi ? attesi.size : 0;
+    const attesiCount = attesiSet()?.size || 0;
     const dateStr = currentSessionDate
       ? new Date(currentSessionDate).toLocaleDateString('it-IT', {day:'2-digit',month:'short',year:'numeric'})
       : '';
@@ -812,7 +812,15 @@ let currentSessionId        = null;   // UUID sessione attiva
 let currentSessionTitle     = null;   // Titolo sessione attiva
 let currentSessionDate      = null;   // Data verifica della sessione attiva (YYYY-MM-DD)
 let currentSessionCreatorId = null;   // utente_id di chi ha creato la sessione
-let attesi = new Set();         // codici dispositivi attesi nella sessione corrente
+
+// ── attesi: Set codici dispositivi attesi — vive in store.session.attesi ──
+function attesiSet() { return store.get('session.attesi'); }
+// Muta il Set clonando (nuovo riferimento → store.set notifica)
+function _attesiMut(fn) {
+  const s = new Set(store.get('session.attesi'));
+  fn(s);
+  store.set('session.attesi', s);
+}
 
 // Può modificare la lista attesi: admin o chi ha creato la sessione
 function canEditSession() {
@@ -862,7 +870,7 @@ async function createSession() {
   await activateSession(sess.id, sess.titolo, dataV, currentUser.id);
   // Se ci sono attesi, aggiungili e sincronizza
   if (attesiList.length) {
-    attesiList.forEach(c => attesi.add(c));
+    _attesiMut(s => attesiList.forEach(c => s.add(c)));
     renderSession();
     await syncSessionNow();
   }
@@ -879,7 +887,6 @@ async function activateSession(id, titolo, dataVerifica, utenteId = null) {
   }
   // Reset memoria
   Object.keys(saved).forEach(k => delete saved[k]);
-  attesi = new Set();
   cur = null; curVerif = null;
   useDataUltimaVerifica = false;
   _updateDataUltimaBtn();
@@ -888,7 +895,7 @@ async function activateSession(id, titolo, dataVerifica, utenteId = null) {
   currentSessionTitle     = titolo || null;
   currentSessionDate      = dataVerifica || null;
   currentSessionCreatorId = utenteId || null;
-  store.patch('session', { id, title: currentSessionTitle, creatorId: currentSessionCreatorId });
+  store.patch('session', { id, title: currentSessionTitle, creatorId: currentSessionCreatorId, attesi: new Set() });
   // Popola campi inline edit
   const _inlT = document.getElementById('sess-inline-title');
   const _inlD = document.getElementById('sess-inline-date');
@@ -901,7 +908,7 @@ async function activateSession(id, titolo, dataVerifica, utenteId = null) {
     schede.forEach(s => {
       if (s.codice === '__attesi__') {
         // Scheda speciale: contiene la lista dispositivi attesi
-        (s.dati_vse?.lista || []).forEach(c => attesi.add(c));
+        _attesiMut(set => (s.dati_vse?.lista || []).forEach(c => set.add(c)));
         return;
       }
       const rec = {
@@ -960,8 +967,8 @@ async function syncSessionNow() {
   // Aggiorna data_aggiornamento della sessione
   try { await db.sessioni.touchAggiornamento(currentSessionId); } catch(e) { console.error('touchAggiornamento:', e); }
   // Salva lista attesi come scheda speciale __attesi__
-  if (attesi.size > 0) {
-    try { await db.schede.upsertAttesi(currentSessionId, [...attesi]); }
+  if (attesiSet().size > 0) {
+    try { await db.schede.upsertAttesi(currentSessionId, [...attesiSet()]); }
     catch(e) { console.error('upsertAttesi:', e); }
   }
   store.set('ui.syncStatus', 'synced');
@@ -1211,7 +1218,7 @@ async function addAttesiToSession() {
   const codici = txt.split(/[\s,;]+/).map(c => c.replace(/\D/g,'').padStart(7,'0')).filter(c => c.length === 7);
   const validi = codici.filter(c => DB[c]);
   const nonTrovati = codici.filter(c => !DB[c] && c !== '0000000');
-  validi.forEach(c => attesi.add(c));
+  _attesiMut(s => validi.forEach(c => s.add(c)));
   document.getElementById('sess-attesi-input').value = '';
   renderSession();
   scheduleSync();
@@ -1257,8 +1264,7 @@ function chiudiSessione() {
   currentSessionId = null;
   currentSessionTitle = null;
   currentSessionCreatorId = null;
-  store.patch('session', { id: null, title: null, creatorId: null });
-  attesi = new Set();
+  store.patch('session', { id: null, title: null, creatorId: null, attesi: new Set() });
   Object.keys(saved).forEach(k => delete saved[k]);
   cur = null; curVerif = null;
   document.getElementById('form-area').style.display = 'none';
@@ -1320,8 +1326,7 @@ async function deleteSession(id, titolo) {
     currentSessionId = null;
     currentSessionTitle = null;
     currentSessionCreatorId = null;
-    store.patch('session', { id: null, title: null, creatorId: null });
-    attesi = new Set();
+    store.patch('session', { id: null, title: null, creatorId: null, attesi: new Set() });
     Object.keys(saved).forEach(k => delete saved[k]);
     cur = null; curVerif = null;
     document.getElementById('form-area').style.display = 'none';

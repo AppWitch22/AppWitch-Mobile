@@ -105,6 +105,7 @@ window.store = createStore({
   session: {
     id: null,
     title: null,
-    creatorId: null
+    creatorId: null,
+    attesi: new Set()  // codici dispositivi attesi nella sessione corrente
   }
 });

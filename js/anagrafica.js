@@ -1228,7 +1228,7 @@ async function confirmCreateSessionFromTable() {
 
   // 3. Attiva sessione e naviga
   await activateSession(sess.id, sess.titolo, dataV);
-  codici.forEach(c => attesi.add(c));
+  _attesiMut(s => codici.forEach(c => s.add(c)));
   renderSession();
   await syncSessionNow();
   await loadSessList();
