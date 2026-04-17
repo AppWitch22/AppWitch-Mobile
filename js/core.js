@@ -16,48 +16,28 @@ let PRESETS={};
 
 async function loadPresets(){
   try{
-    const asl=currentUser?.profile?.asl||'ASL Benevento';
-    const aslKey=asl.toLowerCase().replace('asl ','');
-    const {data:{session}}=await supa.auth.getSession();
-    const token=session?.access_token;
-    const headers={'apikey':SUPA_KEY,'Authorization':'Bearer '+token};
-    // Carica preset VSE
-    const rVse=await fetch(`${SUPA_URL}/rest/v1/preset_vse_${aslKey}?select=codice,dati&limit=10000`,{headers});
-    if(rVse.ok){
-      const rows=await rVse.json();
-      const p={};rows.forEach(r=>{p[r.codice]=r.dati;});
-      PRESETS['PRESET_VSE']=p;
-      console.log('Preset VSE caricati:',Object.keys(p).length);
-    } else {
-      console.error('Errore preset VSE:',rVse.status);
-    }
-    // Carica preset MP
-    const rMp=await fetch(`${SUPA_URL}/rest/v1/preset_mp_${aslKey}?select=codice,dati&limit=10000`,{headers});
-    if(rMp.ok){
-      const rows=await rMp.json();
-      const p={};rows.forEach(r=>{p[r.codice]=r.dati;});
-      PRESETS['PRESET_MP']=p;
-    }
-    // Carica preset VSP
-    const rVsp=await fetch(`${SUPA_URL}/rest/v1/preset_vsp_${aslKey}?select=codice,tipo,dati&limit=10000`,{headers});
-    if(rVsp.ok){
-      const rows=await rVsp.json();
-      rows.forEach(r=>{
-        const key='PRESET_'+r.tipo;
-        if(!PRESETS[key])PRESETS[key]={};
-        PRESETS[key][r.codice]=r.dati;
-      });
-    }
-    // Carica preset CQ
-    const rCq=await fetch(`${SUPA_URL}/rest/v1/preset_cq_${aslKey}?select=codice,tipo,dati&limit=10000`,{headers});
-    if(rCq.ok){
-      const rows=await rCq.json();
-      rows.forEach(r=>{
-        const key='PRESET_'+r.tipo;
-        if(!PRESETS[key])PRESETS[key]={};
-        PRESETS[key][r.codice]=r.dati;
-      });
-    }
+    const vse=await db.preset.list('vse');
+    const pVse={};vse.forEach(r=>{pVse[r.codice]=r.dati;});
+    PRESETS['PRESET_VSE']=pVse;
+    console.log('Preset VSE caricati:',Object.keys(pVse).length);
+
+    const mp=await db.preset.list('mp');
+    const pMp={};mp.forEach(r=>{pMp[r.codice]=r.dati;});
+    PRESETS['PRESET_MP']=pMp;
+
+    const vsp=await db.preset.list('vsp');
+    vsp.forEach(r=>{
+      const key='PRESET_'+r.tipo;
+      if(!PRESETS[key])PRESETS[key]={};
+      PRESETS[key][r.codice]=r.dati;
+    });
+
+    const cq=await db.preset.list('cq');
+    cq.forEach(r=>{
+      const key='PRESET_'+r.tipo;
+      if(!PRESETS[key])PRESETS[key]={};
+      PRESETS[key][r.codice]=r.dati;
+    });
     console.log('Preset caricati da Supabase');
   }catch(e){
     console.error('Preset error:',e);
@@ -1333,30 +1313,14 @@ async function deleteSession(id, titolo) {
 const VSE_PRESET_FIELDS = new Set(['ten','tdp','frq','fdp','pot','pdp','mar','fud','fur','cls','cdp','pat','pad','fnz','def','spi','smo','msp','cav','icv','isp','int','pdc','icn','prc','icd','mus','mse','nag','clm','tms','cor','trm','pnm','pim','pbm','ibm','pcm','icm','giu','vt','vd','mot','str','nrs','ver','vrc','sct']);
 
 // Upsert: PATCH se il record esiste già, POST se è nuovo
-async function presetUpsert(table, codice, tipo, dati, token) {
-  const hdrs = {'apikey':SUPA_KEY,'Authorization':'Bearer '+token};
-  // Controlla esistenza
-  const filter = tipo
-    ? `?codice=eq.${codice}&tipo=eq.${tipo}&select=codice`
-    : `?codice=eq.${codice}&select=codice`;
-  const check = await fetch(`${SUPA_URL}/rest/v1/${table}${filter}`, {headers:hdrs});
-  const rows = check.ok ? await check.json() : [];
-  if (rows.length) {
-    // PATCH
-    const patchFilter = tipo ? `?codice=eq.${codice}&tipo=eq.${tipo}` : `?codice=eq.${codice}`;
-    const r = await fetch(`${SUPA_URL}/rest/v1/${table}${patchFilter}`, {
-      method:'PATCH', headers:{...supaHdrs(token),'Prefer':'return=minimal'}, body:JSON.stringify({dati})
-    });
-    if (!r.ok) { const t=await r.text(); console.error('PATCH preset error',r.status,t); return false; }
-  } else {
-    // POST
-    const body = tipo ? {codice,tipo,dati} : {codice,dati};
-    const r = await fetch(`${SUPA_URL}/rest/v1/${table}`, {
-      method:'POST', headers:{...supaHdrs(token),'Prefer':'return=minimal'}, body:JSON.stringify(body)
-    });
-    if (!r.ok) { const t=await r.text(); console.error('POST preset error',r.status,t); return false; }
+async function presetUpsert(kind, codice, tipo, dati) {
+  try {
+    await db.preset.upsert(kind, codice, tipo, dati);
+    return true;
+  } catch (e) {
+    console.error('preset upsert error', e);
+    return false;
   }
-  return true;
 }
 
 // ── PRESET: Salva sessione corrente come preset ───────────────
@@ -1364,9 +1328,6 @@ async function saveSessionAsPresets() {
   if (!can('preset_edit_personal')) { toast('Operazione non consentita per questo profilo', 'warn'); return; }
   const keys = Object.keys(saved).filter(k => saved[k].vse_saved || saved[k].mp_saved || saved[k].vsp_saved || saved[k].cq_saved);
   if (!keys.length) { toast('Nessun dispositivo compilato nella sessione', 'warn'); return; }
-  const asl = currentUser?.profile?.asl || 'ASL Benevento';
-  const aslKey = asl.toLowerCase().replace('asl ','');
-  const token = await supaToken();
   toast(`Salvataggio preset per ${keys.length} dispositivi...`, 'warn');
   let count = 0, errors = 0;
   for (const cod of keys) {
@@ -1376,7 +1337,7 @@ async function saveSessionAsPresets() {
     if (rec.vse_saved) {
       const dati = {};
       VSE_PRESET_FIELDS.forEach(f => { if (rec[f] != null && rec[f] !== '') dati[f] = rec[f]; });
-      if (Object.keys(dati).length) ok = await presetUpsert(`preset_vse_${aslKey}`, cod, null, dati, token) && ok;
+      if (Object.keys(dati).length) ok = await presetUpsert('vse', cod, null, dati) && ok;
     }
     // MP
     if (rec.mp_saved) {
@@ -1388,7 +1349,7 @@ async function saveSessionAsPresets() {
         else if (v==='NA') dati['mp'+i+'_na']=true;
       }
       if (rec.mp_tecnico) dati.mp_tecnico=rec.mp_tecnico;
-      if (Object.keys(dati).length) ok = await presetUpsert(`preset_mp_${aslKey}`, cod, null, dati, token) && ok;
+      if (Object.keys(dati).length) ok = await presetUpsert('mp', cod, null, dati) && ok;
     }
     // VSP
     if (rec.vsp_saved && rec.vsp_type) {
@@ -1398,7 +1359,7 @@ async function saveSessionAsPresets() {
       if (rec.vsp_tecnico) dati.vsp_tecnico=rec.vsp_tecnico;
       // Campi extra (misure prove di scarica, tempi di carica, correnti ELB, ecc.)
       (VSP_EXTRA[tipo]||[]).forEach(sec=>sec.fields.forEach(f=>{ if(rec[f.id]) dati[f.id]=rec[f.id]; }));
-      if (Object.keys(dati).length) ok = await presetUpsert(`preset_vsp_${aslKey}`, cod, tipo, dati, token) && ok;
+      if (Object.keys(dati).length) ok = await presetUpsert('vsp', cod, tipo, dati) && ok;
     }
     // CQ
     if (rec.cq_saved && rec.cq_type) {
@@ -1407,7 +1368,7 @@ async function saveSessionAsPresets() {
       visPoints.forEach(p => { const pid=p.replace('.','_'), v=rec['cq_vis_'+pid]; if(v==='OK') dati['cq_vis_'+pid+'_ok']=true; else if(v==='KO') dati['cq_vis_'+pid+'_ko']=true; else if(v==='NA') dati['cq_vis_'+pid+'_na']=true; });
       (CQ_PROVA[tipo]||[]).forEach(sec=>sec.fields.forEach(f=>{ if(rec[f.id]) dati[f.id]=rec[f.id]; }));
       ['cq_strum','cq_strum_mod','cq_strum_ser','cq_strum_cert','cq_strum_scad','cq_tecnico'].forEach(f=>{ if(rec[f]) dati[f]=rec[f]; });
-      if (Object.keys(dati).length) ok = await presetUpsert(`preset_cq_${aslKey}`, cod, tipo, dati, token) && ok;
+      if (Object.keys(dati).length) ok = await presetUpsert('cq', cod, tipo, dati) && ok;
     }
     if (ok) count++; else errors++;
   }
@@ -1426,13 +1387,10 @@ async function importPresetsFromExcel(input) {
     await new Promise(res => { const s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js'; s.onload=res; document.head.appendChild(s); });
   }
   const wb = XLSX.read(await file.arrayBuffer(), {type:'array'});
-  const asl = currentUser?.profile?.asl || 'ASL Benevento';
-  const aslKey = asl.toLowerCase().replace('asl ','');
-  const token = await supaToken();
   const norm = c => String(c||'').trim().replace(/\D/g,'').padStart(7,'0');
   let total = 0;
 
-  async function importBatch(table, payload) {
+  async function importBatch(kind, payload) {
     if (!payload.length) return 0;
     // Deduplica per (codice, tipo) — tiene l'ultimo record in caso di duplicati nel file
     const seen = new Map();
@@ -1442,9 +1400,14 @@ async function importPresetsFromExcel(input) {
     let count = 0;
     for (let i=0; i<deduped.length; i+=CHUNK) {
       const chunk = deduped.slice(i, i+CHUNK);
-      const r = await fetch(`${SUPA_URL}/rest/v1/${table}`, {method:'POST',headers:{...supaHdrs(token),'Prefer':'return=minimal,resolution=merge-duplicates'},body:JSON.stringify(chunk)});
-      if (!r.ok) { const t=await r.text(); console.error(`importBatch ${table} chunk ${i}:`, t); toast(`Errore import ${table}: ${t.slice(0,80)}`, 'warn'); return count; }
-      count += chunk.length;
+      try {
+        await db.preset.insertBatch(kind, chunk);
+        count += chunk.length;
+      } catch (e) {
+        console.error(`importBatch ${kind} chunk ${i}:`, e);
+        toast(`Errore import ${kind}: ${String(e.body||e.message).slice(0,80)}`, 'warn');
+        return count;
+      }
     }
     return count;
   }
@@ -1476,7 +1439,7 @@ async function importPresetsFromExcel(input) {
       const dati={}; FVSE.forEach((f,i)=>{ if(!VSE_PRESET_FIELDS.has(f)||row[i]==null||row[i]==='') return; dati[f]=f==='sct'?(_rxldate(row,i)||String(row[i])):String(row[i]); });
       return Object.keys(dati).length ? {codice,dati} : null;
     }).filter(Boolean);
-    total += await importBatch(`preset_vse_${aslKey}`, payload);
+    total += await importBatch('vse', payload);
   }
 
   // ── MP (61 col, 2 header rows, tecnico col 60) ──
@@ -1490,7 +1453,7 @@ async function importPresetsFromExcel(input) {
       if(row[60]) dati.mp_tecnico=String(row[60]);
       return Object.keys(dati).length ? {codice,dati} : null;
     }).filter(Boolean);
-    total += await importBatch(`preset_mp_${aslKey}`, payload);
+    total += await importBatch('mp', payload);
   }
 
   // ── VSP (3 header rows) ──
@@ -1532,7 +1495,7 @@ async function importPresetsFromExcel(input) {
       }
       return Object.keys(dati).length ? {codice,tipo,dati} : null;
     }).filter(Boolean);
-    total += await importBatch(`preset_vsp_${aslKey}`, payload);
+    total += await importBatch('vsp', payload);
   }
 
   // ── CQ (3 header rows) ──
@@ -1620,7 +1583,7 @@ async function importPresetsFromExcel(input) {
       if(row[2]) dati.cq_note=String(row[2]);
       return Object.keys(dati).length ? {codice,tipo,dati} : null;
     }).filter(Boolean);
-    total += await importBatch(`preset_cq_${aslKey}`, payload);
+    total += await importBatch('cq', payload);
   }
   await loadPresets();
   toast(total ? `Importati ${total} preset da Excel` : 'Nessun preset trovato nel file', total?'ok':'warn');

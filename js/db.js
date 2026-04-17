@@ -325,6 +325,54 @@ const _lookupAsl = {
   },
 };
 
+// ── db.preset ────────────────────────────────────────────────
+// Tabelle: preset_{vse|mp|vsp|cq}_{asl}
+// - VSE/MP: colonne (codice, dati)
+// - VSP/CQ: colonne (codice, tipo, dati)
+
+const _preset = {
+  _tbl(kind) { return `preset_${kind}_${_aslKey()}`; },
+
+  _hasTipo(kind) { return kind === 'vsp' || kind === 'cq'; },
+
+  async list(kind) {
+    const cols = this._hasTipo(kind) ? 'codice,tipo,dati' : 'codice,dati';
+    return await _req(`${this._tbl(kind)}?select=${cols}&limit=10000`);
+  },
+
+  // PATCH-first upsert: se 0 righe modificate → INSERT.
+  async upsert(kind, codice, tipo, dati) {
+    const filter = this._hasTipo(kind)
+      ? `codice=eq.${encodeURIComponent(codice)}&tipo=eq.${encodeURIComponent(tipo)}`
+      : `codice=eq.${encodeURIComponent(codice)}`;
+    const res = await _req(`${this._tbl(kind)}?${filter}`, {
+      method: 'PATCH',
+      body: { dati },
+      headers: { 'Prefer': 'count=exact,return=minimal' },
+      raw: true
+    });
+    const cr = res.headers.get('Content-Range');
+    const modified = cr ? parseInt(cr.split('/').pop(), 10) : 0;
+    if (modified > 0) return;
+    const body = this._hasTipo(kind) ? { codice, tipo, dati } : { codice, dati };
+    return await _req(this._tbl(kind), {
+      method: 'POST',
+      body,
+      headers: { 'Prefer': 'return=minimal' }
+    });
+  },
+
+  // Insert a batch con merge-duplicates. Rilancia l'errore al chiamante.
+  async insertBatch(kind, rows) {
+    if (!rows?.length) return;
+    return await _req(this._tbl(kind), {
+      method: 'POST',
+      body: rows,
+      headers: { 'Prefer': 'return=minimal,resolution=merge-duplicates' }
+    });
+  },
+};
+
 // ── Export globale ───────────────────────────────────────────
 
 window.db = {
@@ -334,6 +382,7 @@ window.db = {
   schede:      _schede,
   storico:     _storico,
   lookupAsl:   _lookupAsl,
+  preset:      _preset,
   DbError,
   _aslKey,
 };
