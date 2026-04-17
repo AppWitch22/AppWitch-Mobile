@@ -98,7 +98,13 @@ window.store = createStore({
     // 'idle' = nessuna sessione / reset; 'syncing' = in corso;
     // 'synced' = ok; 'dirty' = modifiche locali in attesa
     syncStatus: 'idle',
-    sessionTitle: null,
     online: typeof navigator !== 'undefined' ? navigator.onLine : true
+  },
+  // Metadati sessione attiva — specchio delle globali currentSession*.
+  // Scritture coordinate con le globali; un subscriber re-renderizza UI.
+  session: {
+    id: null,
+    title: null,
+    creatorId: null
   }
 });

@@ -888,6 +888,7 @@ async function activateSession(id, titolo, dataVerifica, utenteId = null) {
   currentSessionTitle     = titolo || null;
   currentSessionDate      = dataVerifica || null;
   currentSessionCreatorId = utenteId || null;
+  store.patch('session', { id, title: currentSessionTitle, creatorId: currentSessionCreatorId });
   // Popola campi inline edit
   const _inlT = document.getElementById('sess-inline-title');
   const _inlD = document.getElementById('sess-inline-date');
@@ -919,7 +920,7 @@ async function activateSession(id, titolo, dataVerifica, utenteId = null) {
       saved[s.codice] = rec;
     });
   }
-  store.patch('ui', { syncStatus: 'synced', sessionTitle: titolo });
+  store.set('ui.syncStatus', 'synced');
   renderSession();
   closeSessModal();
   const home = document.getElementById('home-section');
@@ -1080,7 +1081,7 @@ function collectCQFromRec(rec) {
 }
 
 // ── Barra sync ───────────────────────────────────────────────
-// Legge lo stato sync dallo store (ui.syncStatus, ui.sessionTitle).
+// Legge lo stato sync dallo store (ui.syncStatus, session.title).
 // Chi vuole cambiare lo stato sync usa store.patch('ui', {...}).
 function updateSyncBar() {
   const bar   = document.getElementById('sess-sync-bar');
@@ -1090,7 +1091,7 @@ function updateSyncBar() {
   if (!bar) return;
   bar.style.display = 'block';
   const syncStatus  = store.get('ui.syncStatus');
-  const storeTitolo = store.get('ui.sessionTitle');
+  const storeTitolo = store.get('session.title');
   let cls;
   if (!currentSessionId) {
     cls = 'sess-sync-dot offline';
@@ -1237,10 +1238,11 @@ async function saveSessionEdits() {
   try {
     await db.sessioni.update(currentSessionId, { titolo: title, data_verifica: date });
     currentSessionTitle = title;
+    store.set('session.title', title);
     currentSessionDate  = date;
     if (syncTimer) { clearTimeout(syncTimer); syncTimer = null; }
     await syncSessionNow();
-    store.patch('ui', { syncStatus: 'synced', sessionTitle: title });
+    store.set('ui.syncStatus', 'synced');
     toast('Sessione aggiornata', 'ok');
   } catch(e) {
     toast('Errore salvataggio sessione', 'err');
@@ -1255,11 +1257,12 @@ function chiudiSessione() {
   currentSessionId = null;
   currentSessionTitle = null;
   currentSessionCreatorId = null;
+  store.patch('session', { id: null, title: null, creatorId: null });
   attesi = new Set();
   Object.keys(saved).forEach(k => delete saved[k]);
   cur = null; curVerif = null;
   document.getElementById('form-area').style.display = 'none';
-  store.patch('ui', { syncStatus: 'idle', sessionTitle: null });
+  store.set('ui.syncStatus', 'idle');
   renderSession();
   const home = document.getElementById('home-section');
   if (home && home.style.display !== 'none') renderHome();
@@ -1315,12 +1318,14 @@ async function deleteSession(id, titolo) {
   try { await db.sessioni.delete_(id); } catch(e) { console.error('Eliminazione sessione fallita:', e); }
   if (currentSessionId === id) {
     currentSessionId = null;
+    currentSessionTitle = null;
     currentSessionCreatorId = null;
+    store.patch('session', { id: null, title: null, creatorId: null });
     attesi = new Set();
     Object.keys(saved).forEach(k => delete saved[k]);
     cur = null; curVerif = null;
     document.getElementById('form-area').style.display = 'none';
-    store.patch('ui', { syncStatus: 'idle', sessionTitle: null });
+    store.set('ui.syncStatus', 'idle');
     renderSession();
   }
   await loadSessList();
