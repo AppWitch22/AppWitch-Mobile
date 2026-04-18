@@ -762,7 +762,9 @@ async function doLogout() {
 }
 
 async function checkSession() {
-  const session = await db.auth.getSession();
+  // NOTA: usa supa.auth direttamente (non db.auth) — questa funzione
+  // è invocata in fondo a core.js, prima che db.js sia caricato.
+  const { data: { session } } = await supa.auth.getSession();
   if (session) {
     await onLogin(session.user);
     return;
