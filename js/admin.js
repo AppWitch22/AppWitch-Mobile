@@ -97,16 +97,8 @@ async function openAdmin() {
 }
 
 async function adminCall(payload) {
-  const token = await db.auth.getToken();
-  const res = await fetch('https://ttgvuoiznybjdyhlshpt.supabase.co/functions/v1/manage-users', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer ' + token
-    },
-    body: JSON.stringify(payload)
-  });
-  return res.json();
+  try { return await db.admin.manageUsers(payload); }
+  catch (e) { console.error('adminCall error:', e); return { error: e.message }; }
 }
 
 async function adminLoadUsers() {

@@ -597,8 +597,9 @@ async function doLogin() {
 }
 
 async function onLogin(user) {
-  const { data: profile, error: profileErr } = await supa.from('profiles').select('*').eq('id', user.id).single();
-  if (profileErr || !profile) {
+  let profile = null;
+  try { profile = await db.profiles.get(user.id); } catch(e) { profile = null; }
+  if (!profile) {
     const err = document.getElementById('login-err');
     if (err) { err.textContent = 'Profilo utente non trovato. Contatta un amministratore.'; err.style.display = 'block'; }
     return;

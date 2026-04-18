@@ -505,6 +505,48 @@ const _auth = {
   },
 };
 
+// ── db.profiles ──────────────────────────────────────────────
+
+const _profiles = {
+  async get(id) {
+    const rows = await _req(`profiles?id=eq.${encodeURIComponent(id)}&limit=1`);
+    return rows[0] || null;
+  },
+  async list({ select = '*', filter = '', order = '' } = {}) {
+    const parts = [`select=${select}`];
+    if (filter) parts.push(filter);
+    if (order)  parts.push(`order=${order}`);
+    return await _req(`profiles?${parts.join('&')}`);
+  },
+  async update(id, patch) {
+    return await _req(`profiles?id=eq.${encodeURIComponent(id)}`, {
+      method:'PATCH', body:patch,
+      headers:{ 'Prefer':'return=representation' }
+    });
+  },
+};
+
+// ── db.admin (edge function manage-users) ────────────────────
+
+const _admin = {
+  async manageUsers(payload) {
+    const token = await _auth.getToken();
+    const res = await fetch(`${SUPA_URL}/functions/v1/manage-users`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) {
+      const txt = await res.text().catch(() => '');
+      throw new DbError(`HTTP ${res.status}`, { status: res.status, body: txt });
+    }
+    return res.json();
+  },
+};
+
 // ── Export globale ───────────────────────────────────────────
 
 window.db = {
@@ -517,6 +559,8 @@ window.db = {
   preset:      _preset,
   archivio:    _archivio,
   auth:        _auth,
+  profiles:    _profiles,
+  admin:       _admin,
   DbError,
   _aslKey,
 };
