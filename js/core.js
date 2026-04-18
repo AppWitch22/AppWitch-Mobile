@@ -49,16 +49,10 @@ async function initDB(){
   const bar=document.getElementById('db-bar');
   try{
     bar.textContent='Caricamento database...';
-    const asl=currentUser?.profile?.asl||'ASL Benevento';
-    const tabella='dispositivi_'+asl.toLowerCase().replace('asl ','');
-    const {data:{session}}=await supa.auth.getSession();
-    const token=session?.access_token;
-    const resp=await fetch(
-      `${SUPA_URL}/rest/v1/${tabella}?select=codice,descrizione_classe,costruttore,modello,matricola,presidio,reparto,sede_struttura,codice_padre,nuova_area,presenze_effettive,verifiche,dettagli_stato,forma_presenza,manutentore,civab,data_ultima_vse,data_ultima_vsp,data_ultima_mo,data_ultima_cq&limit=10000`,
-      {headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+token}}
-    );
-    if(!resp.ok)throw new Error('HTTP '+resp.status);
-    const rows=await resp.json();
+    const rows = await db.dispositivi.list({
+      select: 'codice,descrizione_classe,costruttore,modello,matricola,presidio,reparto,sede_struttura,codice_padre,nuova_area,presenze_effettive,verifiche,dettagli_stato,forma_presenza,manutentore,civab,data_ultima_vse,data_ultima_vsp,data_ultima_mo,data_ultima_cq',
+      limit: 10000
+    });
     DB={};
     const VERIF_MAP_NEW={};
     rows.forEach(r=>{
@@ -1863,12 +1857,9 @@ function toggleDevFlag(cod, flag) {
 async function syncProgrammazioneAnagrafica() {
   const codici = Object.keys(saved);
   if (!codici.length) { toast('Nessun dispositivo in sessione', 'warn'); return; }
-  const asl         = currentUser?.profile?.asl || 'ASL Benevento';
-  const aslKey      = asl.toLowerCase().replace('asl ', '');
-  const tabella     = 'dispositivi_' + aslKey;
+  const aslKey      = (currentUser?.profile?.asl || 'ASL Benevento').toLowerCase().replace('asl ', '');
   const sessDate    = currentSessionDate || new Date().toISOString().split('T')[0];
   const verificatore = currentUser?.profile?.full_name || '';
-  const token       = await supaToken();
   let ok = 0, skip = 0, err = 0;
   const storRows = [];
 
@@ -1920,13 +1911,14 @@ async function syncProgrammazioneAnagrafica() {
 
     if (!Object.keys(payload).length) { skip++; continue; }
 
-    const resp = await fetch(`${SUPA_URL}/rest/v1/${tabella}?codice=eq.${encodeURIComponent(cod)}`, {
-      method: 'PATCH',
-      headers: { ...supaHdrs(token), 'Prefer': 'return=minimal' },
-      body: JSON.stringify(payload)
-    });
-    if (resp.ok) { ok++; if (DB[cod]) Object.assign(DB[cod], payload); }
-    else { err++; console.error('syncProg fallita:', cod, resp.status); }
+    try {
+      await db.dispositivi.update(cod, payload);
+      ok++;
+      if (DB[cod]) Object.assign(DB[cod], payload);
+    } catch (e) {
+      err++;
+      console.error('syncProg fallita:', cod, e.status || e.message);
+    }
   }
 
   // Inserisce nello storico le righe della programmazione

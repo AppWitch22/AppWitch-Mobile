@@ -291,20 +291,14 @@ async function exportDatabaseDispositivi() {
     s.onload = () => exportDatabaseDispositivi();
     document.head.appendChild(s); return;
   }
-  const asl = currentUser.profile?.asl || 'ASL Benevento';
-  const aslKey = asl.toLowerCase().replace('asl ', '');
-  const token = await supaToken();
-  const headers = { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + token };
   toast('Export in corso...', 'warn');
 
-  let all = [], offset = 0, pageSize = 1000;
-  while (true) {
-    const res = await fetch(`${SUPA_URL}/rest/v1/dispositivi_${aslKey}?select=*&limit=${pageSize}&offset=${offset}`, { headers });
-    if (!res.ok) { toast('Errore export: ' + res.status, 'ko'); return; }
-    const rows = await res.json();
-    all = all.concat(rows);
-    if (rows.length < pageSize) break;
-    offset += pageSize;
+  let all;
+  try {
+    all = await db.dispositivi.listAll();
+  } catch (e) {
+    toast('Errore export: ' + (e.status || e.message), 'ko');
+    return;
   }
   if (!all.length) { toast('Nessun dato da esportare', 'warn'); return; }
 
@@ -357,11 +351,6 @@ async function importDatabaseDispositivi(input) {
     s.onload = () => { toast('Seleziona di nuovo il file', 'warn'); };
     document.head.appendChild(s); return;
   }
-
-  const asl = currentUser.profile?.asl || 'ASL Benevento';
-  const aslKey = asl.toLowerCase().replace('asl ', '');
-  const token = await supaToken();
-  const headers = { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' };
 
   // Mostra progress
   const prog = document.getElementById('gdb-progress');
@@ -459,54 +448,21 @@ async function importDatabaseDispositivi(input) {
 
     // 2. Svuota tabella via RPC
     setProgress(10, 'Svuotamento tabella...', '');
-    const rpcRes = await fetch(`${SUPA_URL}/rest/v1/rpc/truncate_dispositivi`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({ asl_key: aslKey })
-    });
-    if (!rpcRes.ok) {
-      const err = await rpcRes.text();
-      throw new Error('Truncate fallita: ' + err);
-    }
+    try { await db.dispositivi.truncate(); }
+    catch (e) { throw new Error('Truncate fallita: ' + (e.body || e.message)); }
 
-    // 3. Insert a batch
-    const BATCH = 200;
+    // 3. Insert a batch (con fallback record-per-record sui chunk falliti)
     const total = clean.length;
-    let inserted = 0, errors = 0;
-
-    for (let i = 0; i < total; i += BATCH) {
-      const batch = clean.slice(i, i + BATCH);
-      const pct = Math.round(10 + (i / total) * 88);
-      setProgress(pct, `Inserimento...`, `${Math.min(i + BATCH, total)} / ${total} record`);
-
-      const res = await fetch(`${SUPA_URL}/rest/v1/dispositivi_${aslKey}`, {
-        method: 'POST',
-        headers: { ...headers, 'Prefer': 'return=minimal' },
-        body: JSON.stringify(batch)
-      });
-      if (!res.ok) {
-        const errText = await res.text();
-        console.error(`Batch ${i}-${i+BATCH} error:`, errText);
-        // Tenta inserimento singolo per identificare il record problematico
-        for (const rec of batch) {
-          const r2 = await fetch(`${SUPA_URL}/rest/v1/dispositivi_${aslKey}`, {
-            method: 'POST',
-            headers: { ...headers, 'Prefer': 'return=minimal' },
-            body: JSON.stringify(rec)
-          });
-          if (r2.ok) inserted++;
-          else {
-            const e2 = await r2.text();
-            console.warn(`Record ${rec.codice} saltato:`, e2);
-            errors++;
-          }
-        }
-      } else {
-        inserted += batch.length;
+    const { inserted, errors } = await db.dispositivi.insertBatch(clean, {
+      chunk: 200,
+      fallbackPerRecord: true,
+      onProgress: (done) => {
+        const pct = Math.round(10 + (done / total) * 88);
+        setProgress(pct, 'Inserimento...', `${done} / ${total} record`);
       }
-    }
+    });
 
-    setProgress(100, 'Import completato!', `${inserted} record inseriti${errors ? ', ' + errors + ' batch con errori' : ''}`);
+    setProgress(100, 'Import completato!', `${inserted} record inseriti${errors ? ', ' + errors + ' record con errori' : ''}`);
     toast(`Import completato: ${inserted} dispositivi`, errors ? 'warn' : 'ok');
 
     // Ricarica DB in memoria

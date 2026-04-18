@@ -698,20 +698,11 @@ async function importAnagraficaFromExcel(input) {
   }).filter(r=>r.codice&&r.codice!=='0000000');
   const seen=new Map(); rows.forEach(r=>seen.set(r.codice,r));
   const deduped=[...seen.values()];
-  const aslKey=(currentUser?.profile?.asl||'ASL Benevento').toLowerCase().replace('asl ','');
-  const token=await supaToken();
   toast(`Import ${deduped.length} dispositivi...`,'warn');
-  let total=0; const CHUNK=200;
-  for(let i=0;i<deduped.length;i+=CHUNK){
-    const chunk=deduped.slice(i,i+CHUNK);
-    const r=await fetch(`${SUPA_URL}/rest/v1/dispositivi_${aslKey}`,{
-      method:'POST',headers:{...supaHdrs(token),'Prefer':'return=minimal,resolution=merge-duplicates'},body:JSON.stringify(chunk)
-    });
-    if(!r.ok){const t=await r.text();toast(`Errore import: ${t.slice(0,80)}`,'warn');break;}
-    total+=chunk.length;
-  }
+  const { inserted, errors } = await db.dispositivi.insertBatch(deduped, { mergeDuplicates: true });
+  if (errors) toast(`Errore import (${errors} chunk falliti)`, 'warn');
   await initDB();
-  toast(total?`Importati ${total} dispositivi`:'Nessun dispositivo importato',total?'ok':'warn');
+  toast(inserted ? `Importati ${inserted} dispositivi` : 'Nessun dispositivo importato', inserted ? 'ok' : 'warn');
 }
 
 // ── VISTA TABELLA UFFICIO ─────────────────────────────────────
@@ -812,19 +803,13 @@ async function loadTableData() {
   const el = document.getElementById('tbl-loading');
   el.style.display = 'block';
   document.getElementById('tbl-table-wrap').innerHTML = '';
-  const aslKey = (currentUser?.profile?.asl||'ASL Benevento').toLowerCase().replace('asl ','');
-  const token = await supaToken();
-  let all = [], offset = 0;
-  while (true) {
-    const r = await fetch(
-      `${SUPA_URL}/rest/v1/dispositivi_${aslKey}?select=*&limit=1000&offset=${offset}`,
-      {headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+token,'Range-Unit':'items'}}
-    );
-    if (!r.ok) { toast('Errore caricamento tabella','warn'); break; }
-    const rows = await r.json();
-    all = all.concat(rows);
-    if (rows.length < 1000) break;
-    offset += 1000;
+  let all;
+  try {
+    all = await db.dispositivi.listAll();
+  } catch (e) {
+    toast('Errore caricamento tabella', 'warn');
+    el.style.display = 'none';
+    return;
   }
   tableData = all;
   el.style.display = 'none';
@@ -1591,45 +1576,36 @@ async function smApplica() {
   const aLabel  = a  === '' ? '(vuoto)' : `"${a}"`;
   if (!confirm(`Sostituire ${daLabel} con ${aLabel} in ${codici.length} record?\n\nCampo: ${campo}\n\nL'operazione non può essere annullata.`)) return;
 
-  const aslKey = (currentUser?.profile?.asl || 'ASL Benevento').toLowerCase().replace('asl ', '');
-  const token  = await supaToken();
-  const hdrs   = { ...supaHdrs(token), 'Prefer': 'return=minimal' };
   const newVal = a === '' ? null : a;
 
-  // PATCH a batch di 100 codici
-  const BATCH = 100;
-  let errors = 0;
-  for (let i = 0; i < codici.length; i += BATCH) {
-    const slice  = codici.slice(i, i + BATCH);
-    const filter = `codice=in.(${slice.map(c => encodeURIComponent(c)).join(',')})`;
-    const res = await fetch(`${SUPA_URL}/rest/v1/dispositivi_${aslKey}?${filter}`, {
-      method: 'PATCH', headers: hdrs, body: JSON.stringify({ [campo]: newVal })
-    });
-    if (!res.ok) { errors++; console.error('smApplica batch error:', await res.text()); continue; }
-    // Aggiorna tableData e DB cache
-    const sliceSet = new Set(slice);
-    if (tableData) {
-      for (const row of tableData) {
-        if (sliceSet.has(row.codice)) row[campo] = newVal;
-      }
+  // PATCH a batch via data layer (default 100 per chunk)
+  const { ok, errors } = await db.dispositivi.bulkPatch(codici, { [campo]: newVal });
+
+  // Aggiorna cache locali solo per i codici effettivamente passati
+  const failedCodici = new Set(errors.flatMap(e => e.slice));
+  const successCodici = codici.filter(c => !failedCodici.has(c));
+  const successSet = new Set(successCodici);
+  if (tableData) {
+    for (const row of tableData) {
+      if (successSet.has(row.codice)) row[campo] = newVal;
     }
-    const KEY_MAP = {
-      descrizione_classe:'n', costruttore:'b', modello:'m', presidio:'loc',
-      reparto:'rep', nuova_area:'na', sede_struttura:'ss', manutentore:'man',
-      dettagli_stato:'ds', presenze_effettive:'pe', forma_presenza:'fp',
-      verifiche:'ver', civab:'civ',
-    };
-    const short = KEY_MAP[campo];
-    if (short) {
-      for (const cod of slice) {
-        if (DB[cod]) DB[cod][short] = newVal || '';
-      }
+  }
+  const KEY_MAP = {
+    descrizione_classe:'n', costruttore:'b', modello:'m', presidio:'loc',
+    reparto:'rep', nuova_area:'na', sede_struttura:'ss', manutentore:'man',
+    dettagli_stato:'ds', presenze_effettive:'pe', forma_presenza:'fp',
+    verifiche:'ver', civab:'civ',
+  };
+  const short = KEY_MAP[campo];
+  if (short) {
+    for (const cod of successCodici) {
+      if (DB[cod]) DB[cod][short] = newVal || '';
     }
   }
 
   document.getElementById('sm-modal')?.remove();
-  if (errors) toast(`Sostituzione completata con ${errors} errori`, 'warn');
-  else toast(`${codici.length} record aggiornati`, 'ok');
+  if (errors.length) toast(`Sostituzione completata con ${errors.length} batch falliti (${ok} OK)`, 'warn');
+  else toast(`${ok} record aggiornati`, 'ok');
   renderTableView();
 }
 

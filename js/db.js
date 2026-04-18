@@ -121,6 +121,64 @@ const _dispositivi = {
     });
     return { ok: codici.length - errors.reduce((s, e) => s + e.slice.length, 0), errors };
   },
+
+  // Lista paginata completa — itera fino a esaurimento. Default pageSize=1000.
+  async listAll({ select = '*', pageSize = 1000 } = {}) {
+    const all = [];
+    let offset = 0;
+    while (true) {
+      const rows = await _req(`${this._tbl()}?select=${select}&limit=${pageSize}&offset=${offset}`);
+      all.push(...rows);
+      if (rows.length < pageSize) break;
+      offset += pageSize;
+    }
+    return all;
+  },
+
+  // Insert batch — POST con array.
+  // Opzioni: mergeDuplicates (Prefer resolution=merge-duplicates), fallbackPerRecord
+  // (su errore di un chunk, tenta record per record per identificare quello rotto),
+  // onProgress(done, total).
+  // Ritorna { inserted, errors }.
+  async insertBatch(rows, { chunk = 200, mergeDuplicates = false, fallbackPerRecord = false, onProgress } = {}) {
+    let inserted = 0, errors = 0;
+    const prefer = mergeDuplicates
+      ? 'return=minimal,resolution=merge-duplicates'
+      : 'return=minimal';
+    for (let i = 0; i < rows.length; i += chunk) {
+      const batch = rows.slice(i, i + chunk);
+      if (typeof onProgress === 'function') onProgress(Math.min(i + chunk, rows.length), rows.length);
+      try {
+        await _req(this._tbl(), { method: 'POST', body: batch, headers: { 'Prefer': prefer } });
+        inserted += batch.length;
+      } catch (e) {
+        console.error(`insertBatch chunk ${i}:`, e);
+        if (fallbackPerRecord) {
+          for (const rec of batch) {
+            try {
+              await _req(this._tbl(), { method: 'POST', body: rec, headers: { 'Prefer': prefer } });
+              inserted++;
+            } catch (e2) {
+              console.warn(`Record ${rec.codice} saltato:`, e2.body || e2.message);
+              errors++;
+            }
+          }
+        } else {
+          errors += batch.length;
+          break;
+        }
+      }
+    }
+    return { inserted, errors };
+  },
+
+  // RPC truncate_dispositivi — svuota la tabella per l'ASL corrente
+  async truncate() {
+    return await _req('rpc/truncate_dispositivi', {
+      method: 'POST',
+      body: { asl_key: _aslKey() }
+    });
+  },
 };
 
 // ── db.configAsl ─────────────────────────────────────────────
