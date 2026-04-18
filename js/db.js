@@ -434,6 +434,54 @@ const _preset = {
   },
 };
 
+// ── db.archivio ──────────────────────────────────────────────
+// Metadata REST (archivio_files) + Storage (bucket archivio + templates).
+
+const _archivio = {
+  // Lista metadata file. allUsers=true → tutti (solo admin), altrimenti solo i propri.
+  async listFiles({ allUsers = false } = {}) {
+    const userFilter = allUsers ? '' : `user_id=eq.${encodeURIComponent(currentUser?.id || '')}&`;
+    return await _req(`archivio_files?${userFilter}select=*&order=created_at.desc`);
+  },
+
+  async insertFileMeta(meta) {
+    return await _req('archivio_files', {
+      method: 'POST',
+      body: meta,
+      headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' }
+    });
+  },
+
+  async deleteFileMeta(id) {
+    return await _req(`archivio_files?id=eq.${encodeURIComponent(id)}`, { method: 'DELETE' });
+  },
+
+  // Storage bucket "archivio"
+  async upload(path, blob, { contentType, upsert = true } = {}) {
+    const { error } = await supa.storage.from('archivio').upload(path, blob, { contentType, upsert });
+    if (error) throw new DbError(error.message, { body: error.message });
+  },
+
+  async download(path) {
+    const { data, error } = await supa.storage.from('archivio').download(path);
+    if (error) throw new DbError(error.message, { body: error.message });
+    return data;
+  },
+
+  async remove(paths) {
+    const arr = Array.isArray(paths) ? paths : [paths];
+    const { error } = await supa.storage.from('archivio').remove(arr);
+    if (error) throw new DbError(error.message, { body: error.message });
+  },
+
+  // Storage bucket "templates"
+  async downloadTemplate(filename) {
+    const { data, error } = await supa.storage.from('templates').download(filename);
+    if (error) throw new DbError(error.message, { body: error.message });
+    return data;
+  },
+};
+
 // ── Export globale ───────────────────────────────────────────
 
 window.db = {
@@ -444,6 +492,7 @@ window.db = {
   storico:     _storico,
   lookupAsl:   _lookupAsl,
   preset:      _preset,
+  archivio:    _archivio,
   DbError,
   _aslKey,
 };

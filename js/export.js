@@ -265,8 +265,9 @@ async function _getTemplate(idbKey,filename){
   _tplCache[idbKey]=await _idbGet(idbKey);
   if(_tplCache[idbKey])return _tplCache[idbKey];
   toast('Scaricamento template '+filename+'...','warn');
-  const{data,error}=await supa.storage.from('templates').download(filename);
-  if(error||!data){toast('Errore download template: '+(error?.message||'sconosciuto'),'warn');return null;}
+  let data;
+  try { data = await db.archivio.downloadTemplate(filename); }
+  catch (e) { toast('Errore download template: '+(e.message||'sconosciuto'),'warn'); return null; }
   _tplCache[idbKey]=await data.arrayBuffer();
   await _idbSet(idbKey,_tplCache[idbKey]);
   return _tplCache[idbKey];
@@ -1071,24 +1072,17 @@ async function _uploadFileCloud(blob, fname, folder) {
   const aslKey = (currentUser?.profile?.asl||'ASL Benevento').toLowerCase().replace('asl ','');
   const userId = currentUser?.id;
   const storagePath = `${userId}/${aslKey}/${folder}/${fname}`;
-  const { error } = await supa.storage.from('archivio').upload(storagePath, blob, {
+  await db.archivio.upload(storagePath, blob, {
     contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     upsert: true
   });
-  if (error) throw error;
-  // Salva metadata
-  const token = await supaToken();
-  await fetch(`${SUPA_URL}/rest/v1/archivio_files`, {
-    method: 'POST',
-    headers: {...supaHdrs(token), 'Prefer': 'resolution=merge-duplicates,return=minimal'},
-    body: JSON.stringify({
-      user_id: userId,
-      user_name: currentUser?.profile?.full_name || '',
-      asl: currentUser?.profile?.asl || '',
-      session_folder: folder,
-      filename: fname,
-      storage_path: storagePath
-    })
+  await db.archivio.insertFileMeta({
+    user_id: userId,
+    user_name: currentUser?.profile?.full_name || '',
+    asl: currentUser?.profile?.asl || '',
+    session_folder: folder,
+    filename: fname,
+    storage_path: storagePath
   });
   return storagePath;
 }
@@ -1288,14 +1282,10 @@ let _archCurKey = null;
 async function loadArchivio() {
   const el = document.getElementById('archivio-content');
   el.innerHTML = '<div class="arch-empty">Caricamento...</div>';
-  const token = await supaToken();
   const isAdmin = currentUser?.profile?.role === 'admin';
-  const url = isAdmin
-    ? `${SUPA_URL}/rest/v1/archivio_files?select=*&order=created_at.desc`
-    : `${SUPA_URL}/rest/v1/archivio_files?user_id=eq.${currentUser.id}&order=created_at.desc`;
-  const r = await fetch(url, {headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+token}});
-  if (!r.ok) { el.innerHTML='<div class="arch-empty">Errore caricamento</div>'; return; }
-  const files = await r.json();
+  let files;
+  try { files = await db.archivio.listFiles({ allUsers: isAdmin }); }
+  catch (e) { el.innerHTML='<div class="arch-empty">Errore caricamento</div>'; return; }
   if (!files.length) { el.innerHTML='<div class="arch-empty">Nessun file caricato</div>'; return; }
   _archGroups = new Map();
   files.forEach(f => {
@@ -1357,8 +1347,7 @@ async function _scaricaTuttiArchivio() {
       let ok = 0, err = 0;
       for (const f of files) {
         try {
-          const { data, error } = await supa.storage.from('archivio').download(f.storage_path);
-          if (error) throw error;
+          const data = await db.archivio.download(f.storage_path);
           const fh = await dirHandle.getFileHandle(f.filename, { create: true });
           const w  = await fh.createWritable();
           await w.write(data);
@@ -1381,8 +1370,9 @@ async function _scaricaTuttiArchivio() {
 }
 
 async function downloadArchivioFile(path, fname) {
-  const { data, error } = await supa.storage.from('archivio').download(path);
-  if (error) { toast('Errore download: '+error.message, 'warn'); return; }
+  let data;
+  try { data = await db.archivio.download(path); }
+  catch (e) { toast('Errore download: '+e.message, 'warn'); return; }
   const url = URL.createObjectURL(data);
   const a = document.createElement('a'); a.href=url; a.download=fname; a.click();
   URL.revokeObjectURL(url);
@@ -1390,11 +1380,10 @@ async function downloadArchivioFile(path, fname) {
 
 async function deleteArchivioFile(id, path) {
   if (!confirm('Eliminare il file?')) return;
-  const { error } = await supa.storage.from('archivio').remove([path]);
-  if (error) { toast('Errore eliminazione: '+error.message,'warn'); return; }
-  const token = await supaToken();
-  await fetch(`${SUPA_URL}/rest/v1/archivio_files?id=eq.${id}`,
-    {method:'DELETE', headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+token}});
+  try { await db.archivio.remove(path); }
+  catch (e) { toast('Errore eliminazione: '+e.message,'warn'); return; }
+  try { await db.archivio.deleteFileMeta(id); }
+  catch (e) { toast('Errore eliminazione meta: '+e.message,'warn'); return; }
   toast('File eliminato','ok');
   // aggiorna la lista locale e ridisegna la sessione corrente
   if (_archCurKey) {
