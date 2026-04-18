@@ -291,6 +291,7 @@ async function exportDatabaseDispositivi() {
     s.onload = () => exportDatabaseDispositivi();
     document.head.appendChild(s); return;
   }
+  const aslKey = (currentUser?.profile?.asl || 'ASL Benevento').toLowerCase().replace('asl ', '');
   toast('Export in corso...', 'warn');
 
   let all;
