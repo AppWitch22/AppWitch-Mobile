@@ -586,8 +586,7 @@ async function doLogin() {
   btn.disabled = true;
   btn.textContent = 'Accesso...';
   try {
-    const { data, error } = await supa.auth.signInWithPassword({ email, password: pass });
-    if (error) throw error;
+    const data = await db.auth.signIn(email, pass);
     await onLogin(data.user);
   } catch(e) {
     err.textContent = 'Email o password errati.';
@@ -742,7 +741,7 @@ async function showApp() {
 }
 
 async function doLogout() {
-  await supa.auth.signOut();
+  await db.auth.signOut();
   localStorage.removeItem('aw_session');
   store.set('user.current', null);
   document.getElementById('login-screen').style.display = 'flex';
@@ -763,7 +762,7 @@ async function doLogout() {
 }
 
 async function checkSession() {
-  const { data: { session } } = await supa.auth.getSession();
+  const session = await db.auth.getSession();
   if (session) {
     await onLogin(session.user);
     return;

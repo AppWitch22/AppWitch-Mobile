@@ -482,6 +482,29 @@ const _archivio = {
   },
 };
 
+// ── db.auth ──────────────────────────────────────────────────
+
+const _auth = {
+  async getSession() {
+    const { data, error } = await supa.auth.getSession();
+    if (error) throw new DbError(error.message, { body: error.message });
+    return data.session || null;
+  },
+  async getToken() {
+    const session = await this.getSession();
+    return session?.access_token || null;
+  },
+  async signIn(email, password) {
+    const { data, error } = await supa.auth.signInWithPassword({ email, password });
+    if (error) throw new DbError(error.message, { body: error.message });
+    return data;
+  },
+  async signOut() {
+    const { error } = await supa.auth.signOut();
+    if (error) throw new DbError(error.message, { body: error.message });
+  },
+};
+
 // ── Export globale ───────────────────────────────────────────
 
 window.db = {
@@ -493,6 +516,7 @@ window.db = {
   lookupAsl:   _lookupAsl,
   preset:      _preset,
   archivio:    _archivio,
+  auth:        _auth,
   DbError,
   _aslKey,
 };

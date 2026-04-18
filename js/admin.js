@@ -97,12 +97,12 @@ async function openAdmin() {
 }
 
 async function adminCall(payload) {
-  const { data: { session } } = await supa.auth.getSession();
+  const token = await db.auth.getToken();
   const res = await fetch('https://ttgvuoiznybjdyhlshpt.supabase.co/functions/v1/manage-users', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': 'Bearer ' + session.access_token
+      'Authorization': 'Bearer ' + token
     },
     body: JSON.stringify(payload)
   });
