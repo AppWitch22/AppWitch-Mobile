@@ -71,7 +71,7 @@ function setMP(n,val){
 
 function updateMPCount(){
   const done=Object.keys(mpState).length;
-  document.getElementById('mp-count').textContent=done;
+  document.getElementById('mp-count').textContent=String(done);
 }
 
 function resetMPPoints(){
@@ -277,8 +277,8 @@ function uM(){
   const limInv = is61010 ? 3500 : (isCls1 ? 500 : 100);
   const limPN  = document.getElementById('lim-pn');
   const limPI  = document.getElementById('lim-pi');
-  if(limPN) limPN.textContent = limInv;
-  if(limPI) limPI.textContent = limInv;
+  if(limPN) limPN.textContent = String(limInv);
+  if(limPI) limPI.textContent = String(limInv);
   const msubInv = document.getElementById('msub-disp-inv');
   if(msubInv) msubInv.innerHTML = is61010
     ? 'Corrente dispersione apparecchio<br>Involucro (IEC 61010, lim. 3500 <span class="unit">mA</span>)'
@@ -783,7 +783,7 @@ function setVSP(l,val){
   if(hdr) hdr.style.background=val==='OK'?'var(--info-bg)':val==='KO'?'var(--ko-bg)':'var(--bg2)';
   document.querySelectorAll('#vsp-btns-'+l+' .mp-btn').forEach(b=>b.classList.toggle('sel',b.textContent===val));
   document.getElementById('vsp-btns-'+l).style.display='none';
-  document.getElementById('vsp-count').textContent=Object.keys(vsp).length;
+  document.getElementById('vsp-count').textContent=String(Object.keys(vsp).length);
   uP();
 }
 
@@ -1297,7 +1297,7 @@ function setCQ(pid,val){
   if(h) h.style.background=val==='OK'?'var(--info-bg)':val==='KO'?'var(--ko-bg)':'var(--bg2)';
   document.querySelectorAll('#cq-btns-'+pid+' .mp-btn').forEach(b=>b.classList.toggle('sel',b.textContent===val));
   document.getElementById('cq-btns-'+pid).style.display='none';
-  document.getElementById('cq-count').textContent=Object.keys(cq).length;
+  document.getElementById('cq-count').textContent=String(Object.keys(cq).length);
   uP();
 }
 

@@ -544,7 +544,7 @@ async function importStorico(input) {
     };
     const normData = v => {
       if (!v) return null;
-      if (v instanceof Date) return isNaN(v) ? null : v.toISOString().split('T')[0];
+      if (v instanceof Date) return isNaN(v.getTime()) ? null : v.toISOString().split('T')[0];
       const s = String(v).trim();
       // GG/MM/AAAA
       const m1 = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);

@@ -660,7 +660,7 @@ function gbRenderScadenze(dev) {
   const today = new Date();
   const _semaforo = prossima => {
     if (!prossima) return '<span style="color:var(--text3)">—</span>';
-    const diff = (new Date(prossima) - today) / 86400000;
+    const diff = (new Date(prossima).getTime() - today.getTime()) / 86400000;
     if (diff < 0)  return '<span style="color:var(--ko)" title="Scaduto">● Scaduto</span>';
     if (diff < 30) return '<span style="color:var(--warn)" title="Entro 30 giorni">● &lt;30gg</span>';
     return '<span style="color:var(--ok)">●</span>';

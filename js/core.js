@@ -1008,7 +1008,7 @@ function _fmtDateIT(v) {
       if (mo) d = new Date(+mDD[3], mo-1, +mDD[1]);
     }
   }
-  if (!d || isNaN(d)) return s;
+  if (!d || isNaN(d.getTime())) return s;
   return `${String(d.getDate()).padStart(2,'0')}-${_MESI_IT[d.getMonth()]}-${d.getFullYear()}`;
 }
 
@@ -1035,7 +1035,7 @@ function _toISODate(v) {
     const n = parseInt(s, 10);
     if (n > 30000 && n < 70000) {
       const d = new Date(Math.round((n - 25569) * 86400 * 1000));
-      if (!isNaN(d)) return d.toISOString().split('T')[0];
+      if (!isNaN(d.getTime())) return d.toISOString().split('T')[0];
     }
   }
   return null;
@@ -1661,6 +1661,7 @@ async function exportPresetsToExcel() {
   const mpP = PRESETS['PRESET_MP'] || {};
   const mpK = Object.keys(mpP);
   if (mpK.length) {
+    /** @type {any[]} */
     const R1 = ['CODICE','DATA','NOTE'];
     for (let i=1;i<=19;i++) R1.push(i,null,null);
     R1.push('Tecnico Esecutore');

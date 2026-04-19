@@ -33,6 +33,7 @@ function exportXLSX(){
   // ── MP (61 col, 2 header rows, tecnico col 60) ──
   const mpKeys=keys.filter(k=>saved[k].mp_saved);
   if(mpKeys.length){
+    /** @type {any[]} */
     const R1=['CODICE','DATA','NOTE'];
     for(let i=1;i<=19;i++){R1.push(i,null,null);}
     R1.push('Tecnico Esecutore');
@@ -293,7 +294,7 @@ async function _loadJSZip(){
 function _toExcelDate(dateStr){
   if(!dateStr)return 0;
   const d=new Date(dateStr+'T00:00:00');
-  return Math.round((d-new Date(1899,11,30))/86400000);
+  return Math.round((d.getTime()-new Date(1899,11,30).getTime())/86400000);
 }
 function _fmtDD_MM_YY(dateStr){
   if(!dateStr)return '';

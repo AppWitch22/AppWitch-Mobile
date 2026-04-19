@@ -38,6 +38,10 @@ function _qs(params) {
   return out.length ? '?' + out.join('&') : '';
 }
 
+/**
+ * @param {string} path
+ * @param {{method?: string, body?: any, headers?: Record<string,string>, raw?: boolean}} [opts]
+ */
 async function _req(path, { method = 'GET', body, headers, raw = false } = {}) {
   const url = `${SUPA_URL}/rest/v1/${path}`;
   const opts = { method, headers: await _hdrs(headers) };
@@ -81,6 +85,7 @@ const _dispositivi = {
     return rows?.[0] || null;
   },
 
+  /** @param {{select?: string, filter?: string, limit?: number, offset?: number, order?: string}} [opts] */
   async list({ select = '*', filter = '', limit, offset, order } = {}) {
     const parts = [`select=${select}`];
     if (filter) parts.push(filter);
@@ -140,6 +145,8 @@ const _dispositivi = {
   // (su errore di un chunk, tenta record per record per identificare quello rotto),
   // onProgress(done, total).
   // Ritorna { inserted, errors }.
+  /** @param {any[]} rows
+   * @param {{chunk?: number, mergeDuplicates?: boolean, fallbackPerRecord?: boolean, onProgress?: (done:number,total:number)=>void}} [opts] */
   async insertBatch(rows, { chunk = 200, mergeDuplicates = false, fallbackPerRecord = false, onProgress } = {}) {
     let inserted = 0, errors = 0;
     const prefer = mergeDuplicates
@@ -209,6 +216,7 @@ const _sessioni = {
     return Array.isArray(rows) ? rows[0] : rows;
   },
 
+  /** @param {{asl?: string, utenteId?: string, select?: string, limit?: number, order?: string}} [opts] */
   async list({ asl, utenteId, select = 'id,titolo,data_verifica,data_aggiornamento,utente_id', limit = 50, order = 'data_aggiornamento.desc' } = {}) {
     const parts = [`select=${select}`, `limit=${limit}`, `order=${order}`];
     if (utenteId) parts.push(`utente_id=eq.${encodeURIComponent(utenteId)}`);
@@ -312,6 +320,7 @@ const _storico = {
 
   // List paginata con count totale (usa Content-Range).
   // Ritorna { rows, total }.
+  /** @param {{aslKey?: string, filtri?: {da?: string, a?: string, tipo?: string, esito?: string, categoria?: string}, offset?: number, pageSize?: number, order?: string}} [opts] */
   async listByAsl({ aslKey, filtri = {}, offset = 0, pageSize = 50, order = 'data.desc' } = {}) {
     const parts = [
       `asl=ilike.*${encodeURIComponent(aslKey)}*`,
@@ -457,6 +466,9 @@ const _archivio = {
   },
 
   // Storage bucket "archivio"
+  /** @param {string} path
+   * @param {Blob} blob
+   * @param {{contentType?: string, upsert?: boolean}} [opts] */
   async upload(path, blob, { contentType, upsert = true } = {}) {
     const { error } = await supa.storage.from('archivio').upload(path, blob, { contentType, upsert });
     if (error) throw new DbError(error.message, { body: error.message });
