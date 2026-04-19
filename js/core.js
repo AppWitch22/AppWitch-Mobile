@@ -513,9 +513,35 @@ function toast(msg,type){
   setTimeout(()=>t.classList.remove('show'),3000);
 }
 
-const SUPA_URL = 'https://ttgvuoiznybjdyhlshpt.supabase.co';
-const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR0Z3Z1b2l6bnliamR5aGxzaHB0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxNDc2OTIsImV4cCI6MjA4OTcyMzY5Mn0.Igk1hjHa_yY70FfDay6oCQRYo5EhIoCh-8H2u9NAXxo';
+// ── Toggle ambiente prod / staging ────────────────────────────
+// Staging: hostname contiene "staging" oppure è localhost/127.0.0.1.
+// Produzione: tutto il resto (incluso GitHub Pages "appwitch22.github.io").
+// Per testare staging in locale: aprire http://localhost:... oppure ospitare
+// su un dominio con "staging" nel nome.
+const IS_STAGING = /staging/i.test(location.hostname)
+                || location.hostname === 'localhost'
+                || location.hostname === '127.0.0.1';
+
+const SUPA_URL = IS_STAGING
+  ? 'https://ednnmbhhbsiqjcxtjzfd.supabase.co'
+  : 'https://ttgvuoiznybjdyhlshpt.supabase.co';
+
+const SUPA_KEY = IS_STAGING
+  ? 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVkbm5tYmhoYnNpcWpjeHRqemZkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY1NDgxMzYsImV4cCI6MjA5MjEyNDEzNn0.g5uYyvexvrqDcEUQ1UpHT6cTKXrfSojWf2jxubG5G6Y'
+  : 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR0Z3Z1b2l6bnliamR5aGxzaHB0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxNDc2OTIsImV4cCI6MjA4OTcyMzY5Mn0.Igk1hjHa_yY70FfDay6oCQRYo5EhIoCh-8H2u9NAXxo';
+
 const supa = supabase.createClient(SUPA_URL, SUPA_KEY);
+
+// Banner visivo se in staging — evita confusione tra ambienti
+if (IS_STAGING) {
+  console.warn('[AppWitch] Running in STAGING mode →', SUPA_URL);
+  document.addEventListener('DOMContentLoaded', () => {
+    const b = document.createElement('div');
+    b.textContent = 'STAGING';
+    b.style.cssText = 'position:fixed;top:0;right:0;z-index:9999;background:#ff8800;color:#000;font:bold 11px sans-serif;padding:2px 8px;border-bottom-left-radius:4px;';
+    document.body.appendChild(b);
+  });
+}
 
 // currentUser vive in store.user.current; manteniamo questo alias come mirror
 // automatico per non toccare i 57 consumer sparsi. Unica fonte di verità: store.

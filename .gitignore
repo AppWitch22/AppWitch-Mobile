@@ -1,0 +1,28 @@
+﻿# Env files con segreti
+*.env
+.env
+.env.local
+.env.*.local
+staging.env
+
+# Supabase
+supabase/.temp/
+supabase/.branches/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+
+# Node (per quando aggiungeremo Fase A2/A3)
+node_modules/
+npm-debug.log*
+yarn-error.log
+
+# Build output
+dist/
+build/
