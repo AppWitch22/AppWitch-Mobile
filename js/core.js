@@ -624,7 +624,7 @@ async function doLogin() {
 
 async function onLogin(user) {
   let profile = null;
-  try { profile = await db.profiles.get(user.id); } catch(e) { profile = null; }
+  try { profile = await db.profiles.get(user.id); } catch(e) { /* profile resta null */ }
   if (!profile) {
     const err = document.getElementById('login-err');
     if (err) { err.textContent = 'Profilo utente non trovato. Contatta un amministratore.'; err.style.display = 'block'; }

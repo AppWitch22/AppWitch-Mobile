@@ -696,7 +696,7 @@ function buildVSPPoints(type){
             </tr>
             <tr>
               <td style="${tdK}">B</td>
-              <td style="${tdD}">Condizione di defibrillatore pronto dall\'accensione dell\'apparecchio</td>
+              <td style="${tdD}">Condizione di defibrillatore pronto dall'accensione dell'apparecchio</td>
               <td style="${tdC}">${inp('def_tc_br')}</td><td style="${tdC}">${inp('def_tc_bb')}</td>
               <td style="${tdM}">25</td>
             </tr>
@@ -709,7 +709,7 @@ function buildVSPPoints(type){
             </tr>
             <tr>
               <td style="${tdK}">D</td>
-              <td style="${tdD}">Condizione di defibrillatore pronto dopo il rilevamento del ritmo DAE dall\'accensione</td>
+              <td style="${tdD}">Condizione di defibrillatore pronto dopo il rilevamento del ritmo DAE dall'accensione</td>
               <td style="${tdC}">${inp('def_tc_dr')}</td><td style="${tdC}">${inp('def_tc_db')}</td>
               <td style="${tdM}">40</td>
             </tr>

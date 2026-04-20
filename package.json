@@ -3,12 +3,17 @@
   "version": "0.0.0",
   "private": true,
   "description": "Gestionale verifiche dispositivi medicali — vanilla JS SPA",
+  "type": "module",
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "lint": "eslint ."
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.2.1",
+    "globals": "^17.5.0",
     "jsdom": "^29.0.2",
     "typescript": "^5.6.0",
     "vitest": "^4.1.4"

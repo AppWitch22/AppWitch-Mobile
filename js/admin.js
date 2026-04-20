@@ -442,7 +442,7 @@ async function importDatabaseDispositivi(input) {
     // 2. Svuota tabella via RPC
     setProgress(10, 'Svuotamento tabella...', '');
     try { await db.dispositivi.truncate(); }
-    catch (e) { throw new Error('Truncate fallita: ' + (e.body || e.message)); }
+    catch (e) { throw new Error('Truncate fallita: ' + (e.body || e.message), { cause: e }); }
 
     // 3. Insert a batch (con fallback record-per-record sui chunk falliti)
     const total = clean.length;
