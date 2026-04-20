@@ -599,41 +599,8 @@ document.querySelector('.app').insertAdjacentHTML('afterbegin', `
 </div>
 `);
 
-document.getElementById('l-pass').addEventListener('keydown', e => {
-  if (e.key === 'Enter') doLogin();
-});
-
-async function doLogin() {
-  const email = document.getElementById('l-email').value.trim();
-  const pass = document.getElementById('l-pass').value;
-  const btn = document.getElementById('l-btn');
-  const err = document.getElementById('l-err');
-  err.style.display = 'none';
-  btn.disabled = true;
-  btn.textContent = 'Accesso...';
-  try {
-    const data = await db.auth.signIn(email, pass);
-    await onLogin(data.user);
-  } catch(e) {
-    err.textContent = 'Email o password errati.';
-    err.style.display = 'block';
-    btn.disabled = false;
-    btn.textContent = 'Accedi';
-  }
-}
-
-async function onLogin(user) {
-  let profile = null;
-  try { profile = await db.profiles.get(user.id); } catch(e) { /* profile resta null */ }
-  if (!profile) {
-    const err = document.getElementById('login-err');
-    if (err) { err.textContent = 'Profilo utente non trovato. Contatta un amministratore.'; err.style.display = 'block'; }
-    return;
-  }
-  store.set('user.current', { ...user, profile });
-  localStorage.setItem('aw_session', JSON.stringify({ user, profile }));
-  await showApp();
-}
+// NOTA: doLogin/onLogin/doLogout/checkSession + supaToken/supaHdrs estratti
+// in js/auth.js (Step B2). Il keydown listener su #l-pass vive lì.
 
 const CP_ICONS = {
   verifica:  `<svg width="18" height="18" viewBox="0 0 14 14" fill="none"><circle cx="6" cy="6" r="3.5" stroke="currentColor" stroke-width="1.4"/><path d="M9 9L11.5 11.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>`,
@@ -767,52 +734,8 @@ async function showApp() {
   await initDB();
 }
 
-async function doLogout() {
-  await db.auth.signOut();
-  localStorage.removeItem('aw_session');
-  store.set('user.current', null);
-  document.getElementById('login-screen').style.display = 'flex';
-  document.getElementById('user-bar').style.display = 'none';
-  document.body.classList.remove('logged-in');
-  const lBtn = document.getElementById('l-btn');
-  if (lBtn) { lBtn.disabled = false; lBtn.textContent = 'Accedi'; }
-  const lErr = document.getElementById('l-err');
-  if (lErr) lErr.style.display = 'none';
-  // Nascondi bottoni sidebar ruolo-dipendenti
-  ['sb-btn-admin','sb-btn-gestione-db','sb-btn-liste','btn-data-ultima','btn-data-ultima-m'].forEach(id => {
-    const el = document.getElementById(id); if (el) el.style.display = 'none';
-  });
-  // Nascondi home e tutte le sezioni
-  ['home-section','verifica-section','anag-section','tabella-section'].forEach(id => {
-    const el = document.getElementById(id); if (el) el.style.display = 'none';
-  });
-}
-
-async function checkSession() {
-  // NOTA: usa supa.auth direttamente (non db.auth) — questa funzione
-  // è invocata in fondo a core.js, prima che db.js sia caricato.
-  const { data: { session } } = await supa.auth.getSession();
-  if (session) {
-    await onLogin(session.user);
-    return;
-  }
-  const saved = localStorage.getItem('aw_session');
-  if (saved) {
-    try {
-      const { user, profile } = JSON.parse(saved);
-      if (user && profile) {
-        store.set('user.current', { ...user, profile });
-        await showApp();
-        return;
-      }
-    } catch(e) {}
-  }
-}
-
-checkSession();
 // Iscrive la sync bar allo store — qualunque cambio a ui.* re-renderizza
 store.subscribe('ui', () => updateSyncBar());
-// ── FINE AUTH ──────────────────────────────────────────────
 
 let currentSessionId        = null;   // UUID sessione attiva
 let currentSessionTitle     = null;   // Titolo sessione attiva
@@ -838,20 +761,7 @@ let syncPending = false;        // ci sono modifiche da sincronizzare
 let syncTimer   = null;         // timer auto-save
 let useDataUltimaVerifica = false; // se true, usa data_ultima_vse di ogni dispositivo come data verifica
 
-// ── Helpers Supabase ─────────────────────────────────────────
-async function supaToken() {
-  const { data: { session } } = await supa.auth.getSession();
-  return session?.access_token;
-}
-
-function supaHdrs(token) {
-  return {
-    'apikey': SUPA_KEY,
-    'Authorization': 'Bearer ' + token,
-    'Content-Type': 'application/json',
-    'Prefer': 'return=representation'
-  };
-}
+// NOTA: supaToken/supaHdrs estratti in js/auth.js (Step B2).
 
 // ── Crea nuova sessione ───────────────────────────────────────
 async function createSession() {
