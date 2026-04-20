@@ -22,7 +22,17 @@ const MP_POINTS=[
   {n:19,t:"Attendibilità/ripetibilità misurazioni",d:"Accertarsi che le varie misurazioni / risultati effettuati sulla funzionalità dell'apparecchiatura siano attendibili e ripetibili."}
 ];
 
-let mpState={};  // punto -> 'OK'|'KO'|'NA'
+// mpState: proxy su store.form.mp (Step B5). Coerenza con form.vsp/form.cq.
+// Source of truth: store.form.mp. Mutazioni in-place `mpState[n]=val` non
+// notificano subscriber (nessuno c'è). Riassegnazione `mpState={}` passa dal
+// setter → store.set.
+store.set('form.mp', store.get('form.mp') || {});
+Object.defineProperty(window, 'mpState', {
+  get() { return store.get('form.mp'); },
+  set(v) { store.set('form.mp', v); },
+  configurable: true,
+  enumerable: true,
+});
 
 function buildMPPoints(){
   const container=document.getElementById('mp-points');

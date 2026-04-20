@@ -48,6 +48,10 @@ declare function attesiSet(): Set<string>;
 declare function _attesiMut(fn: (s: Set<string>) => void): void;
 declare function canEditSession(): boolean;
 
+// ─── Step B5: proxy su store per currentUser e mpState ───────
+declare let currentUser: any;
+declare let mpState: Record<string, string>;
+
 // ─── store reattivo ──────────────────────────────────────────
 
 declare const store: {
