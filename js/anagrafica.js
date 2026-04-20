@@ -287,8 +287,8 @@ function renderAnagList() {
     pag.style.display = 'none'; return;
   }
   list.innerHTML = page.map(d => `
-    <div class="anag-item" onclick="openAnagDetail('${d.c}')">
-      <span class="anag-cod">${d.c}</span>
+    <div class="anag-item" onclick="openAnagDetail('${_esc(d.c)}')">
+      <span class="anag-cod">${_esc(d.c)}</span>
       <div class="anag-info">
         <div class="anag-nome">${_esc(d.n||'—')}</div>
         <div class="anag-loc">${[d.b,d.m,d.rep].filter(Boolean).map(_esc).join(' · ')}</div>

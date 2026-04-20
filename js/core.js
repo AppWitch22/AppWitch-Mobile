@@ -340,11 +340,11 @@ function doSearch(){
     const extraTags=vm?[vm.vsp,vm.cq].filter(Boolean).map(t=>`<span class="r-tag part">${t}</span>`).join(''):'';
     const doneTags=s?`<span class="r-tag done">${[s.vse_saved?'VSE':'',s.mp_saved?'MP':''].filter(Boolean).join('+')}</span>`:'';
     const attTag=attesiSet().has(d.c)&&!s?`<span class="r-tag pending">atteso</span>`:'';
-    return`<div class="result-item" onclick="sel('${d.c}')">
-      <span class="r-cod">${d.c}</span>
-      <span class="r-nome">${d.n.toLowerCase()}</span>
+    return`<div class="result-item" onclick="sel('${_esc(d.c)}')">
+      <span class="r-cod">${_esc(d.c)}</span>
+      <span class="r-nome">${_esc(d.n.toLowerCase())}</span>
       <span class="r-stato">${doneTags}${attTag}${extraTags}</span>
-      <span class="r-loc">${(d.pre||'').split(' ')[0]}</span>
+      <span class="r-loc">${_esc((d.pre||'').split(' ')[0])}</span>
     </div>`;
   }).join('');
 }
@@ -677,7 +677,7 @@ function renderHome() {
           <span class="sess-sync-dot synced" style="display:inline-block;flex-shrink:0"></span>
           Sessione in corso
         </div>
-        <div class="home-sess-title">${currentSessionTitle || '—'}</div>
+        <div class="home-sess-title">${_esc(currentSessionTitle || '—')}</div>
         <div class="home-sess-meta">${count} dispositivi compilati${attesiCount ? ' · ' + attesiCount + ' attesi' : ''}${dateStr ? ' · ' + dateStr : ''}</div>
         <div class="home-sess-acts">
           <button class="btn-salva" onclick="sbNav('verifica');document.getElementById('search-input').focus()">→ Continua verifica</button>
