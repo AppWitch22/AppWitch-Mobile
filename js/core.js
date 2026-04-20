@@ -735,29 +735,10 @@ async function showApp() {
 }
 
 // NOTA: store.subscribe('ui', …) e updateSyncBar spostati in js/sync.js (Step B3).
-
-let currentSessionId        = null;   // UUID sessione attiva
-let currentSessionTitle     = null;   // Titolo sessione attiva
-let currentSessionDate      = null;   // Data verifica della sessione attiva (YYYY-MM-DD)
-let currentSessionCreatorId = null;   // utente_id di chi ha creato la sessione
-
-// ── attesi: Set codici dispositivi attesi — vive in store.session.attesi ──
-function attesiSet() { return store.get('session.attesi'); }
-// Muta il Set clonando (nuovo riferimento → store.set notifica)
-function _attesiMut(fn) {
-  const s = new Set(store.get('session.attesi'));
-  fn(s);
-  store.set('session.attesi', s);
-}
-
-// Può modificare la lista attesi: admin o chi ha creato la sessione
-function canEditSession() {
-  if (!currentSessionId) return false;
-  if (currentUser?.profile?.role === 'admin') return true;
-  return !!currentSessionCreatorId && currentSessionCreatorId === currentUser?.id;
-}
+// NOTA: currentSessionId/Title/Date/CreatorId, attesiSet, _attesiMut, canEditSession,
+//       useDataUltimaVerifica spostati in js/session.js (Step B4) — ora proxy su
+//       store.session.* via Object.defineProperty su window.
 // NOTA: syncPending / syncTimer spostati in js/sync.js (Step B3).
-let useDataUltimaVerifica = false; // se true, usa data_ultima_vse di ogni dispositivo come data verifica
 
 // NOTA: supaToken/supaHdrs estratti in js/auth.js (Step B2).
 

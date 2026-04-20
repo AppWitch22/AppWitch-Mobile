@@ -37,6 +37,17 @@ declare let curVerif: { vsp: string; cq: string };
 declare let vspState: Record<string, any>;
 declare let cqState: Record<string, any>;
 
+// ─── Session proxy (Step B4: session.js espone i seguenti come getter/setter
+//     su window, source of truth in store.session.*) ─────────
+declare let currentSessionId: string | null;
+declare let currentSessionTitle: string | null;
+declare let currentSessionDate: string | null;
+declare let currentSessionCreatorId: string | null;
+declare let useDataUltimaVerifica: boolean;
+declare function attesiSet(): Set<string>;
+declare function _attesiMut(fn: (s: Set<string>) => void): void;
+declare function canEditSession(): boolean;
+
 // ─── store reattivo ──────────────────────────────────────────
 
 declare const store: {
