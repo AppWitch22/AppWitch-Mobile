@@ -4,9 +4,13 @@
   "private": true,
   "description": "Gestionale verifiche dispositivi medicali — vanilla JS SPA",
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "devDependencies": {
-    "typescript": "^5.6.0"
+    "jsdom": "^29.0.2",
+    "typescript": "^5.6.0",
+    "vitest": "^4.1.4"
   }
 }
