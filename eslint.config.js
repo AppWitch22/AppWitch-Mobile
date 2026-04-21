@@ -16,6 +16,7 @@ export default [
       'gen_mapping.js',      // tool one-shot
       'package-lock.json',
       '.github/**',          // YAML, non JS
+      '_backup*/**',         // cartelle di backup locale dello sviluppatore
     ],
   },
 

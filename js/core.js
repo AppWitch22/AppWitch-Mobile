@@ -56,9 +56,9 @@ async function initDB(){
   const bar=document.getElementById('db-bar');
   try{
     bar.textContent='Caricamento database...';
-    const rows = await db.dispositivi.list({
-      select: 'codice,descrizione_classe,costruttore,modello,matricola,presidio,reparto,sede_struttura,codice_padre,nuova_area,presenze_effettive,verifiche,dettagli_stato,forma_presenza,manutentore,civab,data_ultima_vse,data_ultima_vsp,data_ultima_mo,data_ultima_cq',
-      limit: 10000
+    // listAll pagina internamente (1000/req) → indipendente da Max rows server-side
+    const rows = await db.dispositivi.listAll({
+      select: 'codice,descrizione_classe,costruttore,modello,matricola,presidio,reparto,sede_struttura,codice_padre,nuova_area,presenze_effettive,verifiche,dettagli_stato,forma_presenza,manutentore,civab,data_ultima_vse,data_ultima_vsp,data_ultima_mo,data_ultima_cq'
     });
     DB={};
     const VERIF_MAP_NEW={};
