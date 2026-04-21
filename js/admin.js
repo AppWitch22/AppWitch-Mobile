@@ -439,6 +439,49 @@ async function importDatabaseDispositivi(input) {
       return obj;
     });
 
+    // Validazione semantica date: intercetta data_ultima_* future e coppie invertite
+    // prima di TRUNCATE (altrimenti import silenzioso di dati corrotti, vedi bug 04-18).
+    const _today = new Date(); _today.setHours(0,0,0,0);
+    const _pad = n => String(n).padStart(2,'0');
+    const _todayISO = `${_today.getFullYear()}-${_pad(_today.getMonth()+1)}-${_pad(_today.getDate())}`;
+    const _ULTIMA = ['data_ultima_vse','data_ultima_mo','data_ultima_vsp','data_ultima_cq'];
+    const _isoRx = /^\d{4}-\d{2}-\d{2}$/;
+    const anomalie = [];
+    for (const r of clean) {
+      const cod = r.codice || '(senza codice)';
+      for (const k of _ULTIMA) {
+        const u = r[k];
+        if (u && _isoRx.test(u) && u > _todayISO) {
+          anomalie.push({ cod, info: `${k} = ${u}`, tipo: 'ultima_futura' });
+        }
+        const kp = k.replace('_ultima_', '_prossima_');
+        const p = r[kp];
+        if (u && p && _isoRx.test(u) && _isoRx.test(p) && u > p) {
+          anomalie.push({ cod, info: `${k}(${u}) > ${kp}(${p})`, tipo: 'ordine_invertito' });
+        }
+      }
+    }
+    if (anomalie.length > 0) {
+      const perTipo = anomalie.reduce((a,x) => (a[x.tipo] = (a[x.tipo]||0) + 1, a), {});
+      const righe = anomalie.slice(0,8).map(a => `  • ${a.cod} · ${a.info}`).join('\n');
+      const msg = [
+        `Trovate ${anomalie.length} anomalie nelle date:`,
+        ...Object.entries(perTipo).map(([t,n]) => `  - ${t}: ${n}`),
+        '',
+        'Esempi:',
+        righe,
+        anomalie.length > 8 ? `  ... e altre ${anomalie.length - 8}` : '',
+        '',
+        "Procedere comunque con l'import?",
+        '(Annulla = raccomandato, correggi il file prima)'
+      ].filter(Boolean).join('\n');
+      if (!confirm(msg)) {
+        setProgress(0, 'Import annullato', `${anomalie.length} anomalie rilevate`);
+        toast('Import annullato — correggi il file', 'warn');
+        return;
+      }
+    }
+
     // 2. Svuota tabella via RPC
     setProgress(10, 'Svuotamento tabella...', '');
     try { await db.dispositivi.truncate(); }
