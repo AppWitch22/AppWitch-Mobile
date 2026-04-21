@@ -898,11 +898,51 @@ function _toISODate(v) {
   if (/^\d+$/.test(s)) {
     const n = parseInt(s, 10);
     if (n > 30000 && n < 70000) {
-      const d = new Date(Math.round((n - 25569) * 86400 * 1000));
-      if (!isNaN(d.getTime())) return d.toISOString().split('T')[0];
+      const iso = _excelSerialToISO(n, false);
+      if (iso) return iso;
     }
   }
   return null;
+}
+
+// Converte seriale Excel numerico → ISO YYYY-MM-DD.
+// `date1904`=true per workbook Mac 1904; default false = sistema 1900.
+// Nota: per il sistema 1900 Excel ha il bug "1900 è bisestile": serial 60
+// non esiste (rappresenterebbe 1900-02-29). Le date dal 1900-03-01 in poi
+// funzionano correttamente con origin=25569 (giorni tra 1899-12-30 e 1970-01-01).
+function _excelSerialToISO(n, date1904) {
+  if (typeof n !== 'number' || !isFinite(n)) return null;
+  const origin = date1904 ? 24107 : 25569;
+  const ms = Math.round((n - origin) * 86400 * 1000);
+  const d = new Date(ms);
+  if (isNaN(d.getTime())) return null;
+  // Usiamo componenti UTC perché ms è costruito come midnight UTC → niente TZ drift
+  const y = d.getUTCFullYear();
+  const mo = String(d.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(d.getUTCDate()).padStart(2, '0');
+  return `${y}-${mo}-${day}`;
+}
+
+// Converte JS Date object → ISO YYYY-MM-DD usando componenti LOCALI.
+// Evita il bug classico di `toISOString()` che shifta di ±1 giorno quando
+// la Date è creata al local-midnight ma il TZ è diverso da UTC.
+function _dateObjToISO(d) {
+  if (!(d instanceof Date) || isNaN(d.getTime())) return null;
+  const y = d.getFullYear();
+  const mo = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${mo}-${day}`;
+}
+
+// Converte una cella xlsx (oggetto con .t tipo e .v valore) → ISO YYYY-MM-DD.
+// Priorità: numero seriale (non ambiguo) → Date object → stringa (fallback _toISODate).
+// Questo bypassa completamente l'ambiguità D/M vs M/D delle stringhe formattate.
+function _cellToISO(cell, date1904) {
+  if (!cell || cell.v == null || cell.v === '') return null;
+  if (cell.t === 'n') return _excelSerialToISO(cell.v, !!date1904);
+  if (cell.t === 'd') return _dateObjToISO(cell.v);
+  // stringa o altro: fallback al parser testuale (ambiguo su slash)
+  return _toISODate(String(cell.v));
 }
 
 // ── Helpers scadenze ─────────────────────────────────────────

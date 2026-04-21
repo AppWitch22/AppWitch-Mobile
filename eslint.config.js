@@ -81,4 +81,17 @@ export default [
       globals: { ...globals.node },
     },
   },
+
+  // tools/*.js — script CLI Node ESM (es. preview_import.js diagnostico)
+  {
+    files: ['tools/**/*.js'],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: 'module',
+      globals: { ...globals.node },
+    },
+    rules: {
+      'no-unused-vars': ['warn', { args: 'none', varsIgnorePattern: '^_' }],
+    },
+  },
 ];

@@ -368,6 +368,35 @@ async function importDatabaseDispositivi(input) {
     if (!rows.length) { toast('File vuoto', 'warn'); return; }
     setProgress(5, `Letti ${rows.length} record`, 'Pulizia valori...');
 
+    // Pre-processing date: sostituisce le stringhe formattate di sheet_to_json
+    // con ISO YYYY-MM-DD letto direttamente dal valore raw della cella.
+    // Risolve l'ambiguità D/M vs M/D (es. "2/8/26" era interpretato come 2-ago
+    // invece di 8-feb se la cella era formattata m/d/yy US). Vedi _cellToISO
+    // in core.js: usa il seriale numerico quando disponibile, quindi bypass totale
+    // del formato di display.
+    try {
+      const date1904 = !!(wb.Workbook && wb.Workbook.WBProps && wb.Workbook.WBProps.date1904);
+      const range = XLSX.utils.decode_range(ws['!ref']);
+      // Mappa header testuale → lettera colonna, solo per DATE_KEYS
+      const dateColLetters = {};
+      for (let c = range.s.c; c <= range.e.c; c++) {
+        const hdrAddr = XLSX.utils.encode_cell({ r: range.s.r, c });
+        const hdrCell = ws[hdrAddr];
+        if (!hdrCell || hdrCell.v == null) continue;
+        const key = String(hdrCell.v).trim();
+        if (DATE_KEYS.has(key)) dateColLetters[key] = XLSX.utils.encode_col(c);
+      }
+      // Sostituisci i valori in ogni riga con ISO letto dalla cella raw
+      for (let i = 0; i < rows.length; i++) {
+        for (const [key, colLetter] of Object.entries(dateColLetters)) {
+          const addr = colLetter + (range.s.r + 2 + i);
+          rows[i][key] = _cellToISO(ws[addr], date1904);
+        }
+      }
+    } catch (e) {
+      console.warn('[import] pre-processing date fallito, fallback al parser stringa:', e);
+    }
+
     // Colonne gestite automaticamente da Supabase — da escludere
     const SKIP_COLS = new Set(['updated_at']);
 
