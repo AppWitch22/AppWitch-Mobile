@@ -599,7 +599,34 @@ async function importStorico(input) {
     const ws   = wb.Sheets[wb.SheetNames[0]];
     const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
 
-    const asl = currentUser?.profile?.asl || 'ASL Benevento';
+    // Pre-processing cell-level della colonna `data`: bypassa il display format
+    // ambiguo (m/d/yy vs d/m/yy) leggendo il seriale numerico raw, e usa
+    // _dateObjToISO (componenti locali) invece di toISOString() per evitare
+    // TZ shift di -1 giorno. Stesso pattern di importDatabaseDispositivi (commit ca832df).
+    try {
+      const date1904 = !!(wb.Workbook && wb.Workbook.WBProps && wb.Workbook.WBProps.date1904);
+      const range = XLSX.utils.decode_range(ws['!ref']);
+      let dataCol = null;
+      for (let c = range.s.c; c <= range.e.c; c++) {
+        const hdr = ws[XLSX.utils.encode_cell({ r: range.s.r, c })];
+        if (hdr && String(hdr.v).trim().toLowerCase() === 'data') {
+          dataCol = XLSX.utils.encode_col(c); break;
+        }
+      }
+      if (dataCol) {
+        for (let i = 0; i < rows.length; i++) {
+          const addr = dataCol + (range.s.r + 2 + i);
+          rows[i].data = _cellToISO(ws[addr], date1904);
+        }
+      }
+    } catch (e) {
+      console.warn('[importStorico] pre-processing date fallito, fallback al parser:', e);
+    }
+
+    // Normalizza ASL come fa syncProgrammazioneAnagrafica (core.js): lowercase
+    // senza prefisso "asl ". Allinea le due convenzioni che storicamente
+    // popolavano la tabella in modo incoerente ("ASL Benevento" vs "benevento").
+    const asl = (currentUser?.profile?.asl || 'ASL Benevento').toLowerCase().replace('asl ', '');
 
     // Normalizzatori
     const normTipo = t => {
@@ -614,16 +641,17 @@ async function importStorico(input) {
       if (s.toLowerCase() === 'non eseguita') return 'Non Eseguita';
       return s;
     };
+    // normData: fallback per file legacy con celle stringa.
+    // Per le celle data (t='n' o t='d') la conversione è già avvenuta a monte
+    // via _cellToISO (pre-processing cell-level), che restituisce ISO
+    // YYYY-MM-DD direttamente. Questo branch gestisce solo i casi residui.
     const normData = v => {
       if (!v) return null;
-      if (v instanceof Date) return isNaN(v.getTime()) ? null : v.toISOString().split('T')[0];
+      if (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v)) return v; // ISO già normalizzato
+      if (v instanceof Date) return _dateObjToISO(v);
       const s = String(v).trim();
-      // GG/MM/AAAA
       const m1 = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
       if (m1) return `${m1[3]}-${m1[2].padStart(2,'0')}-${m1[1].padStart(2,'0')}`;
-      // AAAA-MM-GG
-      const m2 = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-      if (m2) return s;
       return null;
     };
     const normCodice = v => {
@@ -653,21 +681,36 @@ async function importStorico(input) {
 
     if (!clean.length) { toast('Nessuna riga valida trovata nel file', 'warn'); return; }
 
+    // Deduplica per chiave naturale (asl, codice, data, tipo) — mantiene la prima
+    // occorrenza. Necessario perché ignoreDuplicates (PostgREST ON CONFLICT
+    // DO NOTHING) NON gestisce duplicati DENTRO lo stesso INSERT batch:
+    // Postgres rifiuta con "cannot affect row a second time" e fa fallire
+    // l'intero batch atomicamente, perdendo anche le righe valide.
+    const dedupMap = new Map();
+    let dups = 0;
+    for (const r of clean) {
+      const key = `${r.asl}|${r.codice}|${r.data}|${r.tipo}`;
+      if (dedupMap.has(key)) { dups++; continue; }
+      dedupMap.set(key, r);
+    }
+    const cleanDedup = Array.from(dedupMap.values());
+    if (dups > 0) console.log(`[importStorico] deduplicati ${dups} record (chiave asl+codice+data+tipo)`);
+
     // Insert a batch (ON CONFLICT DO NOTHING via upsert ignoreSelf)
     const BATCH = 200;
-    const total = clean.length;
+    const total = cleanDedup.length;
     let inserted = 0, errors = 0;
 
     for (let i = 0; i < total; i += BATCH) {
-      const batch = clean.slice(i, i + BATCH);
+      const batch = cleanDedup.slice(i, i + BATCH);
       const pct   = Math.round(15 + (i / total) * 83);
       setProgress(pct, 'Inserimento...', `${Math.min(i + BATCH, total)} / ${total} record`);
       try { await db.storico.insertMany(batch, { ignoreDuplicates: true }); inserted += batch.length; }
       catch(e) { console.error('Batch error', i, e); errors += batch.length; }
     }
 
-    setProgress(100, 'Completato', `${inserted} record inseriti, ${skipped} righe saltate, ${errors} errori`);
-    toast(`Storico importato: ${inserted} record`, 'ok');
+    setProgress(100, 'Completato', `${inserted} record inseriti, ${skipped} righe saltate, ${dups} duplicati interni rimossi, ${errors} errori`);
+    toast(`Storico importato: ${inserted} record (${dups} duplicati rimossi)`, 'ok');
   } catch (e) {
     console.error('importStorico error:', e);
     toast('Errore import storico: ' + e.message, 'warn');
