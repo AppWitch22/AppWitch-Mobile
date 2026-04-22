@@ -76,6 +76,7 @@ async function openAdmin() {
           <select id="adm-asl" style="padding:8px 10px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text);font-size:14px">
   <option value="ASL Benevento">ASL Benevento</option>
   <option value="ASL Avellino">ASL Avellino</option>
+  <option value="ASL Strega">ASL Strega</option>
 </select>
           <button onclick="adminCreate()" style="padding:8px 14px;font-size:13px;font-weight:600;background:var(--info);color:#fff;border:none;border-radius:var(--rad);cursor:pointer">+ Crea</button>
         </div>
