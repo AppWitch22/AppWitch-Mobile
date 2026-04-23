@@ -723,7 +723,7 @@ async function importAnagraficaFromExcel(input) {
   const seen = new Map(); clean.forEach(r => seen.set(r.codice, r));
   const deduped = [...seen.values()];
   toast(`Import ${deduped.length} dispositivi...`,'warn');
-  const { inserted, errors } = await db.dispositivi.insertBatch(deduped, { mergeDuplicates:true });
+  const { inserted, errors } = await db.dispositivi.insertBatch(deduped, { ignoreDuplicates:true });
   if (errors) toast(`Errore import (${errors} chunk falliti)`,'warn');
   await initDB();
   toast(inserted ? `Importati ${inserted} dispositivi` : 'Nessun dispositivo importato', inserted?'ok':'warn');

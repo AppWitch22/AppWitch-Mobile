@@ -146,12 +146,14 @@ const _dispositivi = {
   // onProgress(done, total).
   // Ritorna { inserted, errors }.
   /** @param {any[]} rows
-   * @param {{chunk?: number, mergeDuplicates?: boolean, fallbackPerRecord?: boolean, onProgress?: (done:number,total:number)=>void}} [opts] */
-  async insertBatch(rows, { chunk = 200, mergeDuplicates = false, fallbackPerRecord = false, onProgress } = {}) {
+   * @param {{chunk?: number, mergeDuplicates?: boolean, ignoreDuplicates?: boolean, fallbackPerRecord?: boolean, onProgress?: (done:number,total:number)=>void}} [opts] */
+  async insertBatch(rows, { chunk = 200, mergeDuplicates = false, ignoreDuplicates = false, fallbackPerRecord = false, onProgress } = {}) {
     let inserted = 0, errors = 0;
     const prefer = mergeDuplicates
       ? 'return=minimal,resolution=merge-duplicates'
-      : 'return=minimal';
+      : ignoreDuplicates
+        ? 'return=minimal,resolution=ignore-duplicates'
+        : 'return=minimal';
     for (let i = 0; i < rows.length; i += chunk) {
       const batch = rows.slice(i, i + chunk);
       if (typeof onProgress === 'function') onProgress(Math.min(i + chunk, rows.length), rows.length);
