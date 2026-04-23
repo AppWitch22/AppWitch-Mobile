@@ -1,5 +1,26 @@
 // ── ANAGRAFICA: lista, filtri, dettaglio, tabella ──
 
+// Mappa colonne Excel ↔ campi DB — usata sia da import che da export
+const ANAG_COL_MAP = [
+  ['Codice','codice'],['Codice padre','codice_padre'],['Descrizione Classe','descrizione_classe'],
+  ['Costruttore','costruttore'],['Modello','modello'],['Matricola','matricola'],
+  ['Cliente','cliente'],['Presidio','presidio'],['Reparto','reparto'],
+  ['NUOVA AREA','nuova_area'],['Sede Struttura','sede_struttura'],['Stanza','stanza'],
+  ['CIVAB','civab'],['Verifiche','verifiche'],
+  ['Proposta dismissione','proposta_dismissione'],['Dismissione effettiva','dismissione_effettiva'],
+  ['Dettagli Stato','dettagli_stato'],['Manutentore (ID_Assistenza)','manutentore'],
+  ['Data fine Garanzia','data_fine_garanzia'],
+  ["PERIODICITA' VSE",'periodicita_vse'],['VSE 23/24','jolly_11'],['VSE 24/25','data_ultima_vse'],['VSE 25/26','esito_ultima_vse'],['Data prossima VSE','data_prossima_vse'],
+  ["PERIODICITA' VPS",'periodicita_vsp'],['VSP 23/24','jolly_12'],['VSP 24/25','data_ultima_vsp'],['VSP 25/26','esito_ultima_vsp'],['Data prossima VSP','data_prossima_vsp'],
+  ["PERIODICITA' MO",'periodicita_mo'],['MO 23/24','mo_2324'],['MO 24/25','mo_2425'],['MO 25/26','mo_2526'],['Data prossima MO','data_prossima_mp'],
+  ["PERIODICITA' CQ",'periodicita_cq'],['CQ  23/24','jolly_14'],['CQ  24/25','data_ultima_cq'],['CQ  25/26','esito_ultima_cq'],['Data prossimo CQ','data_prossima_cq'],
+  ['NOTE PROGRAMMATE','note_programmate'],['NOTE INVENTARIO','note_inventario'],
+  ['Presenze Effettive','presenze_effettive'],['Esito Verifica','jolly_16'],
+  ['Esito Verifica anno precedente','jolly_17'],
+  ['Proprietà','proprieta'],['Fine Service Comodato','fine_service_comodato'],
+  ['Forma di Presenza8','forma_presenza'],['Data Collaudo','data_collaudo'],
+];
+
 const ANAG_GROUPS = [
   { id:'id', label:'Identificazione', fields:[
     {k:'codice',l:'Codice',ro:true,req:true},
@@ -658,25 +679,6 @@ async function importAnagraficaFromExcel(input) {
   const wb = XLSX.read(await file.arrayBuffer(),{type:'array',cellDates:true});
   const ws = wb.Sheets[wb.SheetNames[0]];
   if (!ws) { toast('Foglio non trovato','warn'); return; }
-  const COL_MAP = [
-    ['Codice','codice'],['Codice padre','codice_padre'],['Descrizione Classe','descrizione_classe'],
-    ['Costruttore','costruttore'],['Modello','modello'],['Matricola','matricola'],
-    ['Cliente','cliente'],['Presidio','presidio'],['Reparto','reparto'],
-    ['NUOVA AREA','nuova_area'],['Sede Struttura','sede_struttura'],['Stanza','stanza'],
-    ['CIVAB','civab'],['Verifiche','verifiche'],
-    ['Proposta dismissione','proposta_dismissione'],['Dismissione effettiva','dismissione_effettiva'],
-    ['Dettagli Stato','dettagli_stato'],['Manutentore (ID_Assistenza)','manutentore'],
-    ['Data fine Garanzia','data_fine_garanzia'],
-    ["PERIODICITA' VSE",'periodicita_vse'],['VSE 23/24','jolly_11'],['VSE 24/25','data_ultima_vse'],['VSE 25/26','esito_ultima_vse'],['Data prossima VSE','data_prossima_vse'],
-    ["PERIODICITA' VPS",'periodicita_vsp'],['VSP 23/24','jolly_12'],['VSP 24/25','data_ultima_vsp'],['VSP 25/26','esito_ultima_vsp'],['Data prossima VSP','data_prossima_vsp'],
-    ["PERIODICITA' MO",'periodicita_mo'],['MO 23/24','mo_2324'],['MO 24/25','mo_2425'],['MO 25/26','mo_2526'],['Data prossima MO','data_prossima_mp'],
-    ["PERIODICITA' CQ",'periodicita_cq'],['CQ  23/24','jolly_14'],['CQ  24/25','data_ultima_cq'],['CQ  25/26','esito_ultima_cq'],['Data prossimo CQ','data_prossima_cq'],
-    ['NOTE PROGRAMMATE','note_programmate'],['NOTE INVENTARIO','note_inventario'],
-    ['Presenze Effettive','presenze_effettive'],['Esito Verifica','jolly_16'],
-    ['Esito Verifica anno precedente','jolly_17'],
-    ['Proprietà','proprieta'],['Fine Service Comodato','fine_service_comodato'],
-    ['Forma di Presenza8','forma_presenza'],['Data Collaudo','data_collaudo'],
-  ];
   const NULL_PH = new Set(['-','/','n/a','n.a.','nd','n.d.','']);
   const toStr = v => {
     if (v==null) return null;
@@ -692,7 +694,7 @@ async function importAnagraficaFromExcel(input) {
   const raw = XLSX.utils.sheet_to_json(ws,{raw:false,defval:null});
   const rows = raw.map(r=>{
     const obj={};
-    COL_MAP.forEach(([ec,dc])=>{obj[dc]=toStr(r[ec]);});
+    ANAG_COL_MAP.forEach(([ec,dc])=>{obj[dc]=toStr(r[ec]);});
     if(obj.codice) obj.codice=String(obj.codice).replace(/\D/g,'').padStart(7,'0');
     return obj;
   }).filter(r=>r.codice&&r.codice!=='0000000');
@@ -704,6 +706,38 @@ async function importAnagraficaFromExcel(input) {
   await initDB();
   toast(inserted ? `Importati ${inserted} dispositivi` : 'Nessun dispositivo importato', inserted ? 'ok' : 'warn');
 }
+
+async function exportAnagraficaToExcel() {
+  if (!can('anagrafica_read')) { toast('Operazione non consentita', 'warn'); return; }
+  if (typeof XLSX === 'undefined') {
+    toast('Caricamento libreria...', 'warn');
+    await new Promise(res => { const s = document.createElement('script'); s.src = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js'; s.onload = res; document.head.appendChild(s); });
+  }
+  toast('Esportazione in corso...', 'warn');
+  let devs;
+  try {
+    devs = await db.dispositivi.listAll();
+  } catch (e) {
+    toast('Errore lettura dispositivi', 'warn'); return;
+  }
+  if (!devs.length) { toast('Nessun dispositivo', 'warn'); return; }
+
+  // Stesse intestazioni del file di importazione
+  const headers = ANAG_COL_MAP.map(([h]) => h);
+  const rows = devs.map(d => ANAG_COL_MAP.map(([, k]) => {
+    const v = d[k];
+    return (v == null) ? null : String(v);
+  }));
+
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+  ws['!cols'] = headers.map(() => ({ wch: 18 }));
+  XLSX.utils.book_append_sheet(wb, ws, 'Dispositivi');
+  const date = new Date().toISOString().split('T')[0];
+  XLSX.writeFile(wb, `backup_anagrafica_${date}.xlsx`);
+  toast(`Esportati ${devs.length} dispositivi`, 'ok');
+}
+
 
 // ── VISTA TABELLA UFFICIO ─────────────────────────────────────
 
