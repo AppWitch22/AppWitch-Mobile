@@ -655,54 +655,78 @@ async function importAnagraficaFromExcel(input) {
     toast('Caricamento libreria...','warn');
     await new Promise(res=>{ const s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js'; s.onload=res; document.head.appendChild(s); });
   }
-  const wb = XLSX.read(await file.arrayBuffer(),{type:'array',cellDates:true});
+  const buf = await file.arrayBuffer();
+  const wb = XLSX.read(buf, { type:'array', cellDates:true });
   const ws = wb.Sheets[wb.SheetNames[0]];
   if (!ws) { toast('Foglio non trovato','warn'); return; }
-  const COL_MAP = [
-    ['Codice','codice'],['Codice padre','codice_padre'],['Descrizione Classe','descrizione_classe'],
-    ['Costruttore','costruttore'],['Modello','modello'],['Matricola','matricola'],
-    ['Cliente','cliente'],['Presidio','presidio'],['Reparto','reparto'],
-    ['NUOVA AREA','nuova_area'],['Sede Struttura','sede_struttura'],['Stanza','stanza'],
-    ['CIVAB','civab'],['Verifiche','verifiche'],
-    ['Proposta dismissione','proposta_dismissione'],['Dismissione effettiva','dismissione_effettiva'],
-    ['Dettagli Stato','dettagli_stato'],['Manutentore (ID_Assistenza)','manutentore'],
-    ['Data fine Garanzia','data_fine_garanzia'],
-    ["PERIODICITA' VSE",'periodicita_vse'],['VSE 23/24','jolly_11'],['VSE 24/25','data_ultima_vse'],['VSE 25/26','esito_ultima_vse'],['Data prossima VSE','data_prossima_vse'],
-    ["PERIODICITA' VPS",'periodicita_vsp'],['VSP 23/24','jolly_12'],['VSP 24/25','data_ultima_vsp'],['VSP 25/26','esito_ultima_vsp'],['Data prossima VSP','data_prossima_vsp'],
-    ["PERIODICITA' MO",'periodicita_mo'],['MO 23/24','mo_2324'],['MO 24/25','mo_2425'],['MO 25/26','mo_2526'],['Data prossima MO','data_prossima_mp'],
-    ["PERIODICITA' CQ",'periodicita_cq'],['CQ  23/24','jolly_14'],['CQ  24/25','data_ultima_cq'],['CQ  25/26','esito_ultima_cq'],['Data prossimo CQ','data_prossima_cq'],
-    ['NOTE PROGRAMMATE','note_programmate'],['NOTE INVENTARIO','note_inventario'],
-    ['Presenze Effettive','presenze_effettive'],['Esito Verifica','jolly_16'],
-    ['Esito Verifica anno precedente','jolly_17'],
-    ['Proprietà','proprieta'],['Fine Service Comodato','fine_service_comodato'],
-    ['Forma di Presenza8','forma_presenza'],['Data Collaudo','data_collaudo'],
-  ];
-  const NULL_PH = new Set(['-','/','n/a','n.a.','nd','n.d.','']);
-  const toStr = v => {
-    if (v==null) return null;
-    if (v instanceof Date) {
-      if (isNaN(v.getTime())) return null;
-      return v.getDate().toString().padStart(2,'0')+'/'+(v.getMonth()+1).toString().padStart(2,'0')+'/'+v.getFullYear();
+
+  const rows = XLSX.utils.sheet_to_json(ws, { defval:null, raw:false });
+  if (!rows.length) { toast('File vuoto','warn'); return; }
+
+  // Pre-processing date: legge il seriale numerico raw dalla cella per evitare
+  // ambiguità D/M vs M/D nelle stringhe formattate da sheet_to_json
+  try {
+    const date1904 = !!(wb.Workbook?.WBProps?.date1904);
+    const range = XLSX.utils.decode_range(ws['!ref']);
+    const dateColLetters = {};
+    for (let c = range.s.c; c <= range.e.c; c++) {
+      const hdrCell = ws[XLSX.utils.encode_cell({ r: range.s.r, c })];
+      if (!hdrCell || hdrCell.v == null) continue;
+      const key = String(hdrCell.v).trim();
+      if (DATE_KEYS.has(key)) dateColLetters[key] = XLSX.utils.encode_col(c);
     }
-    const s=String(v).trim();
-    if (NULL_PH.has(s.toLowerCase())) return null;
-    if (/^\d+$/.test(s)){const n=parseInt(s,10);if(n>=30000&&n<=60000){const d=new Date(Math.round((n-25569)*86400*1000));return d.getUTCDate().toString().padStart(2,'0')+'/'+(d.getUTCMonth()+1).toString().padStart(2,'0')+'/'+d.getUTCFullYear();}}
-    return s||null;
+    for (let i = 0; i < rows.length; i++) {
+      for (const [key, colLetter] of Object.entries(dateColLetters)) {
+        rows[i][key] = _cellToISO(ws[colLetter + (range.s.r + 2 + i)], date1904);
+      }
+    }
+  } catch(e) { console.warn('[import anagrafica] pre-processing date fallito:', e); }
+
+  // Colonne tecniche valide
+  const DB_COLS = new Set([
+    'codice','codice_padre','descrizione_classe','costruttore','modello','matricola',
+    'presidio','reparto','nuova_area','sede_struttura','stanza','civab','verifiche',
+    'proposta_dismissione','dismissione_effettiva','dettagli_stato','manutentore',
+    'data_fine_garanzia','periodicita_vse','data_ultima_vse','esito_ultima_vse',
+    'data_prossima_vse','periodicita_vsp','data_ultima_vsp','esito_ultima_vsp',
+    'data_prossima_vsp','periodicita_cq','data_ultima_cq','esito_ultima_cq',
+    'data_prossima_cq','note_programmate','note_inventario','presenze_effettive',
+    'cliente','periodicita_mo','data_ultima_mo','esito_ultima_mo','data_prossima_mo',
+    'proprieta','fine_service_comodato','forma_presenza','data_collaudo',
+    ...Array.from({length:22},(_,i)=>`jolly_${i+1}`)
+  ]);
+  const jollyLabelToKey = {};
+  getJollyMeta().forEach((m,i) => { if (m.label) jollyLabelToKey[m.label.toLowerCase()] = `jolly_${i+1}`; });
+  const resolveCol = k => {
+    if (DB_COLS.has(k)) return k;
+    if (jollyLabelToKey[k.toLowerCase()]) return jollyLabelToKey[k.toLowerCase()];
+    const m = k.match(/^jolly?\s*_?\s*(\d+)$/i); if (m) return `jolly_${m[1]}`;
+    return DB_COLS.has(k.toLowerCase()) ? k.toLowerCase() : null;
   };
-  const raw = XLSX.utils.sheet_to_json(ws,{raw:false,defval:null});
-  const rows = raw.map(r=>{
-    const obj={};
-    COL_MAP.forEach(([ec,dc])=>{obj[dc]=toStr(r[ec]);});
-    if(obj.codice) obj.codice=String(obj.codice).replace(/\D/g,'').padStart(7,'0');
+  const xlsxDateToISO = n => { const d=new Date(Math.round((n-25569)*86400*1000)); return isNaN(d.getTime())?null:d.toISOString().split('T')[0]; };
+
+  const clean = rows.map(r => {
+    const obj = {};
+    for (let [k, v] of Object.entries(r)) {
+      k = resolveCol(k); if (!k) continue;
+      if (v===null||v===undefined||v==='') { obj[k]=null; continue; }
+      if (v instanceof Date) { obj[k]=isNaN(v.getTime())?null:v.toISOString().split('T')[0]; continue; }
+      const s = String(v).trim(); if (!s) { obj[k]=null; continue; }
+      if (/^\d+$/.test(s)) { const n=parseInt(s,10); if (n>30000&&n<70000) { obj[k]=xlsxDateToISO(n); continue; } }
+      if (DATE_KEYS.has(k)) { obj[k]=_toISODate(s); continue; }
+      if ((k==='codice'||k==='codice_padre')&&/^\d+$/.test(s)) { obj[k]=s.padStart(7,'0'); continue; }
+      obj[k]=s;
+    }
     return obj;
-  }).filter(r=>r.codice&&r.codice!=='0000000');
-  const seen=new Map(); rows.forEach(r=>seen.set(r.codice,r));
-  const deduped=[...seen.values()];
+  }).filter(r => r.codice && r.codice !== '0000000');
+
+  const seen = new Map(); clean.forEach(r => seen.set(r.codice, r));
+  const deduped = [...seen.values()];
   toast(`Import ${deduped.length} dispositivi...`,'warn');
-  const { inserted, errors } = await db.dispositivi.insertBatch(deduped, { mergeDuplicates: true });
-  if (errors) toast(`Errore import (${errors} chunk falliti)`, 'warn');
+  const { inserted, errors } = await db.dispositivi.insertBatch(deduped, { mergeDuplicates:true });
+  if (errors) toast(`Errore import (${errors} chunk falliti)`,'warn');
   await initDB();
-  toast(inserted ? `Importati ${inserted} dispositivi` : 'Nessun dispositivo importato', inserted ? 'ok' : 'warn');
+  toast(inserted ? `Importati ${inserted} dispositivi` : 'Nessun dispositivo importato', inserted?'ok':'warn');
 }
 
 // ── VISTA TABELLA UFFICIO ─────────────────────────────────────
