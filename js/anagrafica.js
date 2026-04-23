@@ -705,6 +705,10 @@ async function importAnagraficaFromExcel(input) {
   };
   const xlsxDateToISO = n => { const d=new Date(Math.round((n-25569)*86400*1000)); return isNaN(d.getTime())?null:d.toISOString().split('T')[0]; };
 
+  const PERIOD_VALIDE = /^(annuale|1\s*anno|12\s*mesi|12|semestrale|6\s*mesi|6|biennale|2\s*anni|24\s*mesi|24|trimestrale|3\s*mesi|3|quadrimestrale|4\s*mesi|4|non prevista|\d+)$/i;
+  const PERIOD_KEYS = ['periodicita_vse','periodicita_vsp','periodicita_mo','periodicita_cq'];
+  const erroriVal = []; // { codice, campo, valore, tipo }
+
   const clean = rows.map(r => {
     const obj = {};
     for (let [k, v] of Object.entries(r)) {
@@ -713,8 +717,15 @@ async function importAnagraficaFromExcel(input) {
       if (v instanceof Date) { obj[k]=isNaN(v.getTime())?null:v.toISOString().split('T')[0]; continue; }
       const s = String(v).trim(); if (!s) { obj[k]=null; continue; }
       if (/^\d+$/.test(s)) { const n=parseInt(s,10); if (n>30000&&n<70000) { obj[k]=xlsxDateToISO(n); continue; } }
-      if (DATE_KEYS.has(k)) { obj[k]=_toISODate(s); continue; }
-      if ((k==='codice'||k==='codice_padre')&&/^\d+$/.test(s)) { obj[k]=s.padStart(7,'0'); continue; }
+      if (DATE_KEYS.has(k)) {
+        const iso = _toISODate(s);
+        if (!iso) erroriVal.push({ codice: String(r.codice||'?'), campo:k, valore:s, tipo:'data_non_valida' });
+        obj[k]=iso; continue;
+      }
+      if ((k==='codice'||k==='codice_padre') && /^\d+$/.test(s)) { obj[k]=s.padStart(7,'0').slice(0,7); continue; }
+      if (PERIOD_KEYS.includes(k) && s && !PERIOD_VALIDE.test(s)) {
+        erroriVal.push({ codice: String(r.codice||'?'), campo:k, valore:s, tipo:'periodicita_non_valida' });
+      }
       obj[k]=s;
     }
     return obj;
@@ -722,11 +733,34 @@ async function importAnagraficaFromExcel(input) {
 
   const seen = new Map(); clean.forEach(r => seen.set(r.codice, r));
   const deduped = [...seen.values()];
-  toast(`Import ${deduped.length} dispositivi...`,'warn');
-  const { inserted, errors } = await db.dispositivi.insertBatch(deduped, { ignoreDuplicates:true });
+
+  // Classificazione: nuovi vs già esistenti
+  const esistenti = deduped.filter(r => DB[r.codice]).map(r => r.codice);
+  const nuovi = deduped.filter(r => !DB[r.codice]);
+
+  // Report pre-inserimento
+  const righeReport = [];
+  if (nuovi.length)     righeReport.push(`✅ Nuovi da inserire: ${nuovi.length}`);
+  if (esistenti.length) righeReport.push(`⚠️ Già esistenti (ignorati): ${esistenti.length}\n   ${esistenti.slice(0,10).join(', ')}${esistenti.length>10?' …':''}`);
+  if (erroriVal.length) {
+    const perTipo = erroriVal.reduce((a,e)=>(a[e.tipo]=(a[e.tipo]||0)+1,a),{});
+    righeReport.push(`❌ Errori validazione: ${erroriVal.length}`);
+    if (perTipo.data_non_valida)        righeReport.push(`   • Date non valide: ${perTipo.data_non_valida}`);
+    if (perTipo.periodicita_non_valida) righeReport.push(`   • Periodicità non riconosciuta: ${perTipo.periodicita_non_valida}`);
+    erroriVal.slice(0,5).forEach(e => righeReport.push(`     – ${e.codice} · ${e.campo}: "${e.valore}"`));
+    if (erroriVal.length>5) righeReport.push(`     … e altri ${erroriVal.length-5}`);
+  }
+  if (!nuovi.length) {
+    alert(righeReport.join('\n')+'\n\nNessun dispositivo nuovo da inserire.');
+    return;
+  }
+  if (!confirm(righeReport.join('\n')+'\n\nProcedere con l\'inserimento?')) return;
+
+  toast(`Inserimento ${nuovi.length} dispositivi...`,'warn');
+  const { inserted, errors } = await db.dispositivi.insertBatch(nuovi, { ignoreDuplicates:true });
   if (errors) toast(`Errore import (${errors} chunk falliti)`,'warn');
   await initDB();
-  toast(inserted ? `Importati ${inserted} dispositivi` : 'Nessun dispositivo importato', inserted?'ok':'warn');
+  toast(inserted ? `Inseriti ${inserted} dispositivi` : 'Nessun dispositivo inserito', inserted?'ok':'warn');
 }
 
 // ── VISTA TABELLA UFFICIO ─────────────────────────────────────
