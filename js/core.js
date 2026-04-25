@@ -342,14 +342,29 @@ async function deleteLookupValue(campo, valore) {
   return true;
 }
 
-// Conta quanti dispositivi in DB in-memory usano questo valore per il campo dato.
-// Ritorna null se il campo non ha una chiave breve (periodicita_*, esito_*).
-function countLookupUsage(campo, valore) {
+// Conta quanti dispositivi usano questo valore per il campo dato.
+// 1. Prova DB in-memory (campi con chiave breve)
+// 2. Prova tableData se caricata (jolly e altri campi estesi)
+// 3. Fallback query Supabase
+// Ritorna null solo se tutte le fonti falliscono.
+async function countLookupUsage(campo, valore) {
   const k = LOOKUP_DB_KEY[campo];
-  if (!k) return null;
-  let n = 0;
-  for (const d of Object.values(DB || {})) if (d[k] === valore) n++;
-  return n;
+  if (k) {
+    let n = 0;
+    for (const d of Object.values(DB || {})) if (d[k] === valore) n++;
+    return n;
+  }
+  // Jolly e campi non in DB in-memory: prova tableData (caricata da tabella)
+  if (Array.isArray(window.tableData)) {
+    return window.tableData.filter(r => r[campo] === valore).length;
+  }
+  // Fallback: query Supabase
+  try {
+    const rows = await db.dispositivi.listAll({ select: campo });
+    return (rows || []).filter(r => r[campo] === valore).length;
+  } catch(e) {
+    return null;
+  }
 }
 
 // Rinomina un valore lookup: aggiorna dispositivi in bulk + lookup_asl.

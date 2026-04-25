@@ -967,7 +967,7 @@ async function glAggiungi() {
 }
 
 async function glElimina(campo, valore) {
-  const count = countLookupUsage(campo, valore);
+  const count = await countLookupUsage(campo, valore);
   if (count === null) {
     // Campo senza chiave breve: avviso + conferma classica
     if (!confirm(`Attenzione: impossibile verificare quanti dispositivi usano "${valore}".\nEliminare comunque dalla lista?`)) return;
