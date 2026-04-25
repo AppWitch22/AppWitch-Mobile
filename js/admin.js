@@ -1090,21 +1090,94 @@ async function glSincronizzaDaDB() {
   const lista = document.getElementById('gl-lista');
   if (lista) lista.innerHTML = '<div style="padding:12px;text-align:center;color:var(--text3);font-size:13px">Sincronizzazione...</div>';
   const dbKey = LOOKUP_DB_KEY[campo];
-  const vals = new Set();
+  const inDB = new Set();
   if (dbKey) {
     for (const d of Object.values(DB || {})) {
-      if (d[dbKey]) vals.add(String(d[dbKey]).trim());
+      if (d[dbKey]) inDB.add(String(d[dbKey]).trim());
     }
   }
-  if (!vals.size) { glMsg('Nessun valore trovato nel DB per questo campo.', false); glLoadCampo(); return; }
+  // Aggiungi valori nuovi
   let added = 0;
-  for (const v of vals) {
+  for (const v of inDB) {
     const existing = window._storedLookups?.[campo];
     if (!Array.isArray(existing) || !existing.includes(v)) {
       await saveLookupValue(campo, v);
       added++;
     }
   }
+  // Trova orfani: in lista ma non usati da nessun dispositivo
+  const orfani = (window._storedLookups?.[campo] || []).filter(v => dbKey && !inDB.has(v));
   glLoadCampo();
-  glMsg(`Sincronizzati ${added} nuovi valori da ${vals.size} trovati nel DB.`, true);
+  if (orfani.length) {
+    glSyncOrfani(campo, orfani, added);
+  } else {
+    glMsg(added > 0 ? `Sincronizzati ${added} nuovi valori.` : 'Lista già aggiornata.', true);
+  }
+}
+
+function glSyncOrfani(campo, orfani, added) {
+  document.getElementById('gl-orfani')?.remove();
+  const panel = document.createElement('div');
+  panel.id = 'gl-orfani';
+  panel.style.cssText = 'margin-top:10px;padding:12px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg3);font-size:13px';
+  const righe = orfani.map(v => `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border)">
+      <span style="color:var(--text)">${_esc(v)}</span>
+      <div style="display:flex;gap:6px">
+        <button onclick="glSyncEliminaOrfano(${_esc(JSON.stringify(campo))}, ${_esc(JSON.stringify(v))})"
+          style="padding:2px 8px;font-size:11px;border:1px solid var(--ko);border-radius:var(--rad);background:var(--bg);color:var(--ko);cursor:pointer">
+          Elimina
+        </button>
+        <button onclick="glSyncMantieniOrfano(this)"
+          style="padding:2px 8px;font-size:11px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text3);cursor:pointer">
+          Mantieni
+        </button>
+      </div>
+    </div>`).join('');
+  panel.innerHTML = `
+    <div style="margin-bottom:8px;font-weight:600;color:var(--text)">
+      ${added > 0 ? `${added} valori aggiunti. ` : ''}${orfani.length} valor${orfani.length === 1 ? 'e non usato' : 'i non usati'} da nessun dispositivo:
+    </div>
+    ${righe}
+    <div style="margin-top:8px;display:flex;gap:6px">
+      <button onclick="glSyncEliminaTutti(${_esc(JSON.stringify(campo))}, ${_esc(JSON.stringify(orfani))})"
+        style="padding:4px 10px;font-size:12px;border:1px solid var(--ko);border-radius:var(--rad);background:var(--bg);color:var(--ko);cursor:pointer">
+        Elimina tutti
+      </button>
+      <button onclick="document.getElementById('gl-orfani')?.remove()"
+        style="padding:4px 10px;font-size:12px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg3);color:var(--text2);cursor:pointer">
+        Mantieni tutti
+      </button>
+    </div>`;
+  const msg = document.getElementById('gl-msg');
+  if (msg) msg.after(panel); else document.getElementById('gl-lista')?.after(panel);
+}
+
+async function glSyncEliminaOrfano(campo, valore) {
+  const ok = await deleteLookupValue(campo, valore);
+  if (!ok) { glMsg('Eliminazione non riuscita.', false); return; }
+  // Rimuovi la riga dal panel
+  const panel = document.getElementById('gl-orfani');
+  if (panel) {
+    const righe = panel.querySelectorAll('div[style*="border-bottom"]');
+    for (const r of righe) {
+      if (r.querySelector('span')?.textContent === valore) { r.remove(); break; }
+    }
+    // Se non restano orfani, chiudi il panel
+    if (!panel.querySelectorAll('div[style*="border-bottom"]').length) panel.remove();
+  }
+  glLoadCampo();
+}
+
+function glSyncMantieniOrfano(btn) {
+  btn.closest('div[style*="border-bottom"]')?.remove();
+  const panel = document.getElementById('gl-orfani');
+  if (panel && !panel.querySelectorAll('div[style*="border-bottom"]').length) panel.remove();
+}
+
+async function glSyncEliminaTutti(campo, orfani) {
+  document.getElementById('gl-orfani')?.remove();
+  for (const v of orfani) await deleteLookupValue(campo, v);
+  glLoadCampo();
+  glMsg(`${orfani.length} valor${orfani.length === 1 ? 'e eliminato' : 'i eliminati'}.`, true);
 }
