@@ -237,12 +237,21 @@
     <div class="sess-hdr">
       <div class="card-title" style="margin-bottom:0">Tabella Dispositivi</div>
       <div class="sess-btns">
-        <button class="btn-sm" onclick="tblReload()">↺ Ricarica</button>
-        <button class="btn-sm" onclick="toggleTblColPicker();renderTblColPicker()">⊞ Colonne</button>
-        <button class="btn-sm" onclick="closeTabella()" title="Chiudi sezione">✕ Chiudi</button>
-        <button class="btn-sm" onclick="toggleTblViews()">☰ Viste</button>
-        <button class="btn-sm" id="btn-crea-sess-tbl" onclick="openCreateSessionFromTable()" disabled>+ Sessione</button>
-        <button class="btn-sm tbl-fs-btn" id="btn-tbl-fs" onclick="toggleTblFullscreen()" title="Schermo intero">⛶</button>
+        <div class="tbl-btn-group">
+          <button class="btn-sm" onclick="tblReload()">↺ Ricarica</button>
+          <button class="btn-sm" onclick="toggleTblColPicker();renderTblColPicker()">⊞ Colonne</button>
+          <button class="btn-sm" onclick="toggleTblViews()">☰ Viste</button>
+        </div>
+        <div class="tbl-btn-group">
+          <button class="btn-sm" id="btn-crea-sess-tbl" onclick="openCreateSessionFromTable()" disabled>+ Sessione</button>
+          <button class="btn-sm" id="btn-agg-massivo" style="display:none" onclick="openAggiornamentoMassivo()" disabled>✎ Massivo</button>
+          <button class="btn-sm" id="btn-sost-massiva" style="display:none" onclick="openSostMassiva()">⇄ Sostituisci</button>
+        </div>
+        <div class="tbl-btn-group">
+          <button class="btn-sm btn-xlsx" onclick="exportXLSX()">📊 Esporta XLSX</button>
+          <button class="btn-sm tbl-fs-btn" id="btn-tbl-fs" onclick="toggleTblFullscreen()" title="Schermo intero">⛶ Schermo intero</button>
+          <button class="btn-sm" onclick="closeTabella()" title="Chiudi sezione">✕ Chiudi</button>
+        </div>
       </div>
     </div>
     <!-- col picker -->
@@ -262,8 +271,6 @@
       <input type="text" id="tbl-search" placeholder="Cerca in tutte le colonne..." oninput="tblSearch(this.value)">
       <button id="tbl-clear-filters" onclick="tblClearAllFilters()">✕ Filtri</button>
       <button class="btn-sm" id="btn-toggle-archiviati-tbl" onclick="toggleArchiviati()" title="Mostra/nascondi dispositivi archiviati">Archiviati: OFF</button>
-      <button class="btn-sm" id="btn-agg-massivo" style="display:none" onclick="openAggiornamentoMassivo()" disabled>✎ Massivo</button>
-      <button class="btn-sm" id="btn-sost-massiva" style="display:none" onclick="openSostMassiva()">⇄ Sostituisci</button>
       <span class="tbl-sel-count" id="tbl-sel-count"></span>
       <span class="tbl-counter" id="tbl-row-count"></span>
     </div>
