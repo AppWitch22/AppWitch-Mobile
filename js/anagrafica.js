@@ -1661,6 +1661,9 @@ async function smApplica() {
     }
   }
 
+  // Aggiorna lookup: aggiungi il nuovo valore se campo è gestito a lista
+  if (newVal && LOOKUP_KEYS.has(campo)) await saveLookupValue(campo, newVal);
+
   document.getElementById('sm-modal')?.remove();
   if (errors.length) toast(`Sostituzione completata con ${errors.length} batch falliti (${ok} OK)`, 'warn');
   else toast(`${ok} record aggiornati`, 'ok');
