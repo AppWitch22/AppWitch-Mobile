@@ -900,7 +900,8 @@ function openGestioneListe() {
       </div>
       <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
         <select id="gl-campo" onchange="glLoadCampo()" style="flex:1;padding:8px 10px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text);font-size:14px">${opts}</select>
-        <button onclick="glSincronizzaDaDB()" title="Importa valori unici già presenti nel database dispositivi" style="padding:8px 12px;font-size:12px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg3);color:var(--text2);cursor:pointer;white-space:nowrap">↻ Sync da DB</button>
+        <button onclick="glSincronizzaDaDB()" title="Sincronizza questo campo dal database" style="padding:8px 12px;font-size:12px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg3);color:var(--text2);cursor:pointer;white-space:nowrap">↻ Sync</button>
+        <button onclick="glSincronizzaTutto()" title="Sincronizza tutte le colonne dal database" style="padding:8px 12px;font-size:12px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg3);color:var(--text2);cursor:pointer;white-space:nowrap">↻ Sync tutto</button>
       </div>
       <div style="display:flex;gap:6px;margin-bottom:12px">
         <input id="gl-nuovo" type="text" placeholder="Nuovo valore..." style="flex:1;padding:8px 10px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text);font-size:13px">
@@ -1200,4 +1201,158 @@ async function glSyncEliminaTutti(campo, orfani) {
   for (const v of orfani) await deleteLookupValue(campo, v);
   glLoadCampo();
   glMsg(`${orfani.length} valor${orfani.length === 1 ? 'e eliminato' : 'i eliminati'}.`, true);
+}
+
+async function glSincronizzaTutto() {
+  const lista = document.getElementById('gl-lista');
+  if (lista) lista.innerHTML = '<div style="padding:12px;text-align:center;color:var(--text3);font-size:13px">Sincronizzazione in corso...</div>';
+  document.getElementById('gl-orfani')?.remove();
+  document.getElementById('gl-sync-tutto-report')?.remove();
+
+  // Costruisce la lista completa di campi (standard + jolly bloccate)
+  const campi = { ...LOOKUP_LABELS };
+  try {
+    getJollyMeta().forEach((m, i) => {
+      if (m.type === 'bloccata') campi[`jolly_${i + 1}`] = m.label || `Jolly ${i + 1}`;
+    });
+  } catch(e) {}
+
+  let totalAdded = 0;
+  const orfaniPerCampo = {};   // { campo: { label, valori[] } }
+
+  for (const [campo, label] of Object.entries(campi)) {
+    // Raccoglie valori dal DB (memoria → tableData → Supabase)
+    const dbKey = LOOKUP_DB_KEY[campo];
+    const inDB = new Set();
+    if (dbKey) {
+      for (const d of Object.values(DB || {})) if (d[dbKey]) inDB.add(String(d[dbKey]).trim());
+    }
+    if (!inDB.size) {
+      if (Array.isArray(window.tableData)) {
+        for (const r of window.tableData) { const v = r[campo]; if (v) inDB.add(String(v).trim()); }
+      }
+      if (!inDB.size) {
+        try {
+          const rows = await db.dispositivi.listAll({ select: campo });
+          for (const r of (rows || [])) { const v = r[campo]; if (v) inDB.add(String(v).trim()); }
+        } catch(e) {}
+      }
+    }
+
+    // Aggiungi nuovi valori
+    for (const v of inDB) {
+      const existing = window._storedLookups?.[campo];
+      if (!Array.isArray(existing) || !existing.includes(v)) {
+        await saveLookupValue(campo, v);
+        totalAdded++;
+      }
+    }
+
+    // Rileva orfani (solo se abbiamo dati dal DB per questo campo)
+    if (inDB.size) {
+      const orfani = (window._storedLookups?.[campo] || []).filter(v => !inDB.has(v));
+      if (orfani.length) orfaniPerCampo[campo] = { label, valori: orfani };
+    }
+  }
+
+  glLoadCampo();
+  const totOrfani = Object.values(orfaniPerCampo).reduce((s, x) => s + x.valori.length, 0);
+
+  if (!totOrfani) {
+    glMsg(totalAdded > 0 ? `Sync completato: ${totalAdded} valori aggiunti.` : 'Tutte le liste sono già aggiornate.', true);
+    return;
+  }
+
+  // Mostra riepilogo orfani raggruppato per campo
+  const sezioni = Object.entries(orfaniPerCampo).map(([campo, { label, valori }]) => {
+    const righe = valori.map(v => `
+      <div data-orf-campo="${_esc(campo)}" data-orf-val="${_esc(v)}"
+           style="display:flex;align-items:center;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border)">
+        <span style="font-size:13px;color:var(--text)">${_esc(v)}</span>
+        <div style="display:flex;gap:5px">
+          <button onclick="glTuttoEliminaOrfano(this,'${_esc(campo)}','${_esc(v)}')"
+            style="padding:1px 7px;font-size:11px;border:1px solid var(--ko);border-radius:var(--rad);background:var(--bg);color:var(--ko);cursor:pointer">Elimina</button>
+          <button onclick="this.closest('[data-orf-campo]').remove();glTuttoChiudiSeVuota('${_esc(campo)}')"
+            style="padding:1px 7px;font-size:11px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text3);cursor:pointer">Mantieni</button>
+        </div>
+      </div>`).join('');
+    return `
+      <div style="margin-bottom:10px">
+        <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px">${_esc(label)}</div>
+        <div id="gl-tutto-sezione-${_esc(campo)}">${righe}</div>
+        <div style="display:flex;gap:6px;margin-top:5px">
+          <button onclick="glTuttoEliminaCampo('${_esc(campo)}')"
+            style="padding:2px 8px;font-size:11px;border:1px solid var(--ko);border-radius:var(--rad);background:var(--bg);color:var(--ko);cursor:pointer">Elimina tutti</button>
+          <button onclick="glTuttoMantieniCampo('${_esc(campo)}')"
+            style="padding:2px 8px;font-size:11px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg3);color:var(--text2);cursor:pointer">Mantieni tutti</button>
+        </div>
+      </div>`;
+  }).join('');
+
+  const panel = document.createElement('div');
+  panel.id = 'gl-sync-tutto-report';
+  panel.style.cssText = 'margin-top:10px;padding:12px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg3);font-size:13px;max-height:400px;overflow-y:auto';
+  panel.innerHTML = `
+    <div style="font-weight:600;color:var(--text);margin-bottom:10px">
+      ${totalAdded > 0 ? `${totalAdded} valori aggiunti. ` : ''}${totOrfani} valor${totOrfani === 1 ? 'e non usato' : 'i non usati'} in ${Object.keys(orfaniPerCampo).length} camp${Object.keys(orfaniPerCampo).length === 1 ? 'o' : 'i'}:
+    </div>
+    ${sezioni}
+    <div style="display:flex;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
+      <button onclick="glTuttoEliminaTutti()"
+        style="padding:5px 12px;font-size:12px;border:1px solid var(--ko);border-radius:var(--rad);background:var(--bg);color:var(--ko);cursor:pointer;font-weight:600">
+        Elimina tutti gli orfani
+      </button>
+      <button onclick="document.getElementById('gl-sync-tutto-report')?.remove()"
+        style="padding:5px 12px;font-size:12px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg3);color:var(--text2);cursor:pointer">
+        Mantieni tutti
+      </button>
+    </div>`;
+
+  // Salva mappa orfani per le azioni bulk
+  window._glOrf = orfaniPerCampo;
+  const msg = document.getElementById('gl-msg');
+  if (msg) msg.after(panel); else document.getElementById('gl-lista')?.after(panel);
+}
+
+async function glTuttoEliminaOrfano(btn, campo, valore) {
+  const ok = await deleteLookupValue(campo, valore);
+  if (!ok) { glMsg('Eliminazione non riuscita.', false); return; }
+  btn.closest('[data-orf-campo]')?.remove();
+  glTuttoChiudiSeVuota(campo);
+  glLoadCampo();
+}
+
+function glTuttoChiudiSeVuota(campo) {
+  const sez = document.getElementById(`gl-tutto-sezione-${campo}`);
+  if (sez && !sez.children.length) sez.closest('div[style*="margin-bottom:10px"]')?.remove();
+  const report = document.getElementById('gl-sync-tutto-report');
+  if (report && !report.querySelectorAll('[data-orf-campo]').length) report.remove();
+}
+
+async function glTuttoEliminaCampo(campo) {
+  const sez = document.getElementById(`gl-tutto-sezione-${campo}`);
+  const valori = [...(sez?.querySelectorAll('[data-orf-val]') || [])].map(el => el.dataset.orfVal);
+  for (const v of valori) await deleteLookupValue(campo, v);
+  sez?.closest('div[style*="margin-bottom:10px"]')?.remove();
+  const report = document.getElementById('gl-sync-tutto-report');
+  if (report && !report.querySelectorAll('[data-orf-campo]').length) report.remove();
+  glLoadCampo();
+}
+
+function glTuttoMantieniCampo(campo) {
+  const sez = document.getElementById(`gl-tutto-sezione-${campo}`);
+  sez?.closest('div[style*="margin-bottom:10px"]')?.remove();
+  const report = document.getElementById('gl-sync-tutto-report');
+  if (report && !report.querySelectorAll('[data-orf-campo]').length) report.remove();
+}
+
+async function glTuttoEliminaTutti() {
+  const orf = window._glOrf || {};
+  for (const [campo, { valori }] of Object.entries(orf)) {
+    for (const v of valori) await deleteLookupValue(campo, v);
+  }
+  window._glOrf = null;
+  document.getElementById('gl-sync-tutto-report')?.remove();
+  glLoadCampo();
+  glMsg('Tutti gli orfani eliminati.', true);
 }
