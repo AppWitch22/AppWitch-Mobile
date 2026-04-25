@@ -1089,6 +1089,9 @@ async function glSincronizzaDaDB() {
   if (!campo) return;
   const lista = document.getElementById('gl-lista');
   if (lista) lista.innerHTML = '<div style="padding:12px;text-align:center;color:var(--text3);font-size:13px">Sincronizzazione...</div>';
+
+  // Raccoglie valori unici: prima prova dal DB in-memory (solo campi con chiave breve),
+  // poi cade back su query Supabase per jolly e campi non caricati in memoria.
   const dbKey = LOOKUP_DB_KEY[campo];
   const inDB = new Set();
   if (dbKey) {
@@ -1096,6 +1099,23 @@ async function glSincronizzaDaDB() {
       if (d[dbKey]) inDB.add(String(d[dbKey]).trim());
     }
   }
+  if (!inDB.size) {
+    // Fallback: query diretta a Supabase per questo campo
+    try {
+      const rows = await db.dispositivi.listAll({ select: campo });
+      for (const r of (rows || [])) {
+        const v = r[campo];
+        if (v) inDB.add(String(v).trim());
+      }
+    } catch(e) {
+      glMsg('Errore query database: ' + e.message, false);
+      glLoadCampo();
+      return;
+    }
+  }
+
+  if (!inDB.size) { glMsg('Nessun valore trovato nel DB per questo campo.', false); glLoadCampo(); return; }
+
   // Aggiungi valori nuovi
   let added = 0;
   for (const v of inDB) {
@@ -1106,7 +1126,7 @@ async function glSincronizzaDaDB() {
     }
   }
   // Trova orfani: in lista ma non usati da nessun dispositivo
-  const orfani = (window._storedLookups?.[campo] || []).filter(v => dbKey && !inDB.has(v));
+  const orfani = (window._storedLookups?.[campo] || []).filter(v => !inDB.has(v));
   glLoadCampo();
   if (orfani.length) {
     glSyncOrfani(campo, orfani, added);
