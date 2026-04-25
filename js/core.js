@@ -153,6 +153,16 @@ const FIELD_DL = {
   forma_presenza:     'dl-presenza',
 };
 
+// Mappa campo lookup → chiave breve usata nel DB in-memory (DB[codice][key])
+// Condivisa con admin.js (glSincronizzaDaDB) e usati da countLookupUsage/renameLookupValue
+const LOOKUP_DB_KEY = {
+  descrizione_classe: 'n',   costruttore: 'b',   modello: 'm',
+  presidio:           'loc', reparto:     'rep', nuova_area:      'na',
+  sede_struttura:     'ss',  civab:       'civ', verifiche:       'ver',
+  dettagli_stato:     'ds',  manutentore: 'man', presenze_effettive: 'pe',
+  forma_presenza:     'fp',  cliente:     'cli', proprieta:       'pro',
+};
+
 function buildLookups() {
   const sets = {
     descrizione_classe: new Set(), costruttore: new Set(), modello: new Set(),
@@ -247,6 +257,26 @@ async function loadLookupsFromDB() {
     window._storedLookups = stored;
   } catch(e) {}
   buildLookups();
+  // Migrazione iniziale: se lookup_asl è vuota per questa ASL, popola automaticamente dai dati in DB
+  const isEmpty = !window._storedLookups || Object.keys(window._storedLookups).length === 0;
+  if (isEmpty && typeof DB !== 'undefined' && Object.keys(DB).length > 0 && typeof can === 'function' && can('lookup_write')) {
+    _runInitialLookupMigration();
+  }
+}
+
+async function _runInitialLookupMigration() {
+  let added = 0;
+  for (const [campo, shortKey] of Object.entries(LOOKUP_DB_KEY)) {
+    const vals = new Set();
+    for (const d of Object.values(DB)) {
+      if (d[shortKey]) vals.add(String(d[shortKey]).trim());
+    }
+    for (const v of vals) {
+      await saveLookupValue(campo, v);
+      added++;
+    }
+  }
+  if (added > 0) toast(`Liste popolate con ${added} valori dal database esistente. Verifica in Gestione Liste.`, 'ok');
 }
 
 async function saveLookupValue(campo, valore) {
@@ -310,6 +340,47 @@ async function deleteLookupValue(campo, valore) {
     if (dl) { const opt = [...dl.options].find(o => o.value === valore); if (opt) opt.remove(); }
   }
   return true;
+}
+
+// Conta quanti dispositivi in DB in-memory usano questo valore per il campo dato.
+// Ritorna null se il campo non ha una chiave breve (periodicita_*, esito_*).
+function countLookupUsage(campo, valore) {
+  const k = LOOKUP_DB_KEY[campo];
+  if (!k) return null;
+  let n = 0;
+  for (const d of Object.values(DB || {})) if (d[k] === valore) n++;
+  return n;
+}
+
+// Rinomina un valore lookup: aggiorna dispositivi in bulk + lookup_asl.
+// Ritorna { updated: N, ok: boolean }.
+async function renameLookupValue(campo, oldV, newV) {
+  const k = LOOKUP_DB_KEY[campo];
+  // Raccoglie codici dispositivi che usano oldV
+  const codici = k
+    ? Object.entries(DB || {}).filter(([, d]) => d[k] === oldV).map(([cod]) => cod)
+    : [];
+
+  let updated = 0;
+  let ok = true;
+  if (codici.length) {
+    try {
+      await db.dispositivi.bulkPatch(codici, { [campo]: newV });
+      // Aggiorna cache locale
+      for (const cod of codici) if (DB[cod] && k) DB[cod][k] = newV;
+      updated = codici.length;
+    } catch (e) {
+      console.warn('[renameLookupValue] bulkPatch fallita', e);
+      ok = false;
+    }
+  }
+
+  // Aggiorna lookup_asl: elimina vecchio + inserisci nuovo
+  const delOk = await deleteLookupValue(campo, oldV);
+  await saveLookupValue(campo, newV);
+  if (!delOk) ok = false;
+
+  return { updated, ok };
 }
 
 function isValidLookup(campo, valore) {

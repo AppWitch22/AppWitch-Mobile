@@ -528,17 +528,178 @@ async function importDatabaseDispositivi(input) {
       }
     });
 
-    setProgress(100, 'Import completato!', `${inserted} record inseriti${errors ? ', ' + errors + ' record con errori' : ''}`);
-    toast(`Import completato: ${inserted} dispositivi`, errors ? 'warn' : 'ok');
+    setProgress(98, 'Finalizzazione...', `${inserted} record inseriti${errors ? ', ' + errors + ' errori' : ''}`);
 
     // Ricarica DB in memoria
     await initDB();
+
+    // Review valori nuovi non ancora in lookup_asl
+    if (can('lookup_write')) {
+      const diff = _computeImportDiff();
+      const tot = Object.values(diff).reduce((s, a) => s + a.length, 0);
+      if (tot > 0) {
+        _showImportReview(diff, inserted, errors);
+        return;
+      }
+    }
+
+    setProgress(100, 'Import completato!', `${inserted} record inseriti${errors ? ', ' + errors + ' record con errori' : ''}`);
+    toast(`Import completato: ${inserted} dispositivi`, errors ? 'warn' : 'ok');
 
   } catch (e) {
     console.error('Import error:', e);
     setProgress(0, 'Errore', e.message);
     toast('Errore import: ' + e.message, 'ko');
   }
+}
+
+// ── Post-import review ─────────────────────────────────────────
+
+function _computeImportDiff() {
+  const diff = {};
+  for (const [campo, shortKey] of Object.entries(LOOKUP_DB_KEY)) {
+    const stored = new Set(window._storedLookups?.[campo] || []);
+    for (const d of Object.values(DB || {})) {
+      const v = d[shortKey];
+      if (v && !stored.has(String(v))) {
+        if (!diff[campo]) diff[campo] = new Set();
+        diff[campo].add(String(v));
+      }
+    }
+  }
+  return Object.fromEntries(Object.entries(diff).map(([k, s]) => [k, [...s].sort()]));
+}
+
+function _showImportReview(diff, inserted, errors) {
+  document.getElementById('gdb-review')?.remove();
+  const progBox = document.getElementById('gdb-progress');
+  if (progBox) progBox.style.display = 'none';
+
+  const rows = [];
+  const allLabels = { ...LOOKUP_LABELS };
+  for (const [campo, vals] of Object.entries(diff)) {
+    const label = allLabels[campo] || campo;
+    for (const v of vals) {
+      rows.push({ campo, label, v });
+    }
+  }
+
+  const rowsHtml = rows.map((r, i) => {
+    const esistenti = [...(window._storedLookups?.[r.campo] || [])].filter(x => x !== r.v).sort();
+    const sostOpts = esistenti.map(x => `<option value="${_esc(x)}">${_esc(x)}</option>`).join('');
+    return `
+    <tr data-ir="${i}" style="border-bottom:1px solid var(--border)">
+      <td style="padding:6px 8px;font-size:12px;color:var(--text3);white-space:nowrap">${_esc(r.label)}</td>
+      <td style="padding:6px 8px;font-size:13px;color:var(--text);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${_esc(r.v)}">${_esc(r.v)}</td>
+      <td style="padding:4px 6px">
+        <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer;white-space:nowrap">
+          <input type="radio" name="ir-${i}" value="aggiungi" checked onchange="_irToggle(${i})"> Aggiungi
+        </label>
+      </td>
+      <td style="padding:4px 6px">
+        <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer;white-space:nowrap">
+          <input type="radio" name="ir-${i}" value="ignora" onchange="_irToggle(${i})"> Ignora
+        </label>
+      </td>
+      <td style="padding:4px 6px">
+        <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer;white-space:nowrap">
+          <input type="radio" name="ir-${i}" value="sostituisci" onchange="_irToggle(${i})"> Sostituisci con
+        </label>
+        <select id="ir-sel-${i}" disabled style="margin-top:2px;width:100%;padding:3px 6px;font-size:12px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text);opacity:.4">
+          <option value="">— scegli —</option>${sostOpts}
+        </select>
+      </td>
+    </tr>`;
+  }).join('');
+
+  const panel = document.createElement('div');
+  panel.id = 'gdb-review';
+  panel.innerHTML = `
+    <div style="margin-bottom:12px;font-size:14px;font-weight:600;color:var(--text)">
+      Import completato${errors ? ` (${errors} errori)` : ''}.
+      Trovati <strong>${rows.length}</strong> valori nuovi non presenti nelle liste.
+    </div>
+    <div style="margin-bottom:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <button onclick="_irSelectAll('aggiungi')"
+        style="padding:5px 12px;font-size:12px;font-weight:600;background:var(--info);color:#fff;border:none;border-radius:var(--rad);cursor:pointer">
+        ✓ Aggiungi tutti
+      </button>
+      <button onclick="_irSelectAll('ignora')"
+        style="padding:5px 12px;font-size:12px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg3);color:var(--text2);cursor:pointer">
+        Ignora tutti
+      </button>
+    </div>
+    <div style="overflow-x:auto;border:1px solid var(--border);border-radius:var(--rad);margin-bottom:12px;max-height:320px;overflow-y:auto">
+      <table style="width:100%;border-collapse:collapse">
+        <thead>
+          <tr style="background:var(--bg3);font-size:11px;color:var(--text3);text-transform:uppercase">
+            <th style="padding:6px 8px;text-align:left;font-weight:500">Campo</th>
+            <th style="padding:6px 8px;text-align:left;font-weight:500">Valore</th>
+            <th colspan="3" style="padding:6px 8px;text-align:left;font-weight:500">Azione</th>
+          </tr>
+        </thead>
+        <tbody id="ir-tbody">${rowsHtml}</tbody>
+      </table>
+    </div>
+    <button id="gdb-review-apply"
+      style="width:100%;padding:10px;font-size:14px;font-weight:600;background:var(--ok);color:#fff;border:none;border-radius:var(--rad);cursor:pointer">
+      Applica e chiudi
+    </button>`;
+
+  // Memorizza i dati delle righe per _applyImportReview
+  window._irRows = rows;
+  panel.querySelector('#gdb-review-apply').onclick = () => _applyImportReview();
+
+  if (progBox) progBox.after(panel);
+  else document.getElementById('gdb-modal')?.querySelector('div')?.appendChild(panel);
+}
+
+function _irToggle(i) {
+  const sel = document.getElementById(`ir-sel-${i}`);
+  if (!sel) return;
+  const checked = document.querySelector(`input[name="ir-${i}"]:checked`)?.value;
+  sel.disabled = checked !== 'sostituisci';
+  sel.style.opacity = checked === 'sostituisci' ? '1' : '.4';
+}
+
+function _irSelectAll(azione) {
+  const rows = window._irRows || [];
+  rows.forEach((_, i) => {
+    const radio = document.querySelector(`input[name="ir-${i}"][value="${azione}"]`);
+    if (radio) { radio.checked = true; _irToggle(i); }
+  });
+}
+
+async function _applyImportReview() {
+  const rows = window._irRows || [];
+  let aggiunti = 0, sostituiti = 0;
+  for (let i = 0; i < rows.length; i++) {
+    const { campo, v } = rows[i];
+    const azione = document.querySelector(`input[name="ir-${i}"]:checked`)?.value || 'aggiungi';
+    if (azione === 'aggiungi') {
+      await saveLookupValue(campo, v);
+      aggiunti++;
+    } else if (azione === 'sostituisci') {
+      const newV = document.getElementById(`ir-sel-${i}`)?.value;
+      if (!newV) continue;
+      const k = LOOKUP_DB_KEY[campo];
+      if (k) {
+        const codici = Object.entries(DB || {}).filter(([, d]) => d[k] === v).map(([c]) => c);
+        if (codici.length) {
+          try {
+            await db.dispositivi.bulkPatch(codici, { [campo]: newV });
+            for (const cod of codici) if (DB[cod]) DB[cod][k] = newV;
+          } catch(e) { console.warn('[_applyImportReview] bulkPatch', e); }
+        }
+      }
+      sostituiti++;
+    }
+    // 'ignora': nulla
+  }
+  window._irRows = null;
+  document.getElementById('gdb-review')?.remove();
+  document.getElementById('gdb-progress')?.style && (document.getElementById('gdb-progress').style.display = 'none');
+  toast(`Liste aggiornate: ${aggiunti} aggiunti, ${sostituiti} sostituiti.`, 'ok');
 }
 
 // ── GESTIONE LISTE LOOKUP ──────────────────────────────────────
@@ -775,12 +936,18 @@ function glLoadCampo() {
     return;
   }
   lista.innerHTML = vals.map(v => `
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:7px 12px;border-bottom:1px solid var(--border);font-size:13px">
-      <span style="color:var(--text)">${_esc(v)}</span>
-      <button onclick="glElimina(${_esc(JSON.stringify(campo))}, ${_esc(JSON.stringify(v))})"
-        style="padding:2px 8px;font-size:11px;border:1px solid var(--ko);border-radius:var(--rad);background:var(--bg);color:var(--ko);cursor:pointer">
-        Elimina
-      </button>
+    <div data-gl-row="${_esc(v)}" style="display:flex;align-items:center;justify-content:space-between;padding:7px 12px;border-bottom:1px solid var(--border);font-size:13px">
+      <span style="color:var(--text);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${_esc(v)}</span>
+      <div style="display:flex;gap:6px;flex-shrink:0;margin-left:8px">
+        <button onclick="glRinomina(${_esc(JSON.stringify(campo))}, ${_esc(JSON.stringify(v))})"
+          style="padding:2px 8px;font-size:11px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg3);color:var(--text2);cursor:pointer">
+          Rinomina
+        </button>
+        <button onclick="glElimina(${_esc(JSON.stringify(campo))}, ${_esc(JSON.stringify(v))})"
+          style="padding:2px 8px;font-size:11px;border:1px solid var(--ko);border-radius:var(--rad);background:var(--bg);color:var(--ko);cursor:pointer">
+          Elimina
+        </button>
+      </div>
     </div>`).join('');
 }
 
@@ -800,11 +967,121 @@ async function glAggiungi() {
 }
 
 async function glElimina(campo, valore) {
-  if (!confirm(`Eliminare "${valore}" dalla lista "${campo}"?`)) return;
+  const count = countLookupUsage(campo, valore);
+  if (count === null) {
+    // Campo senza chiave breve: avviso + conferma classica
+    if (!confirm(`Attenzione: impossibile verificare quanti dispositivi usano "${valore}".\nEliminare comunque dalla lista?`)) return;
+    const ok = await deleteLookupValue(campo, valore);
+    glLoadCampo();
+    if (ok) glMsg('Valore eliminato.', true);
+    else glMsg('Eliminazione non riuscita — verifica policy RLS su lookup_asl.', false);
+    return;
+  }
+  if (count === 0) {
+    const ok = await deleteLookupValue(campo, valore);
+    glLoadCampo();
+    if (ok) glMsg('Valore eliminato.', true);
+    else glMsg('Eliminazione non riuscita — verifica policy RLS su lookup_asl.', false);
+    return;
+  }
+  // count > 0: mostra delete guard
+  showGlDeleteGuard(campo, valore, count);
+}
+
+function showGlDeleteGuard(campo, valore, count) {
+  const altri = [...(window._storedLookups?.[campo] || [])].filter(v => v !== valore).sort();
+  const optsHtml = altri.map(v => `<option value="${_esc(v)}">${_esc(v)}</option>`).join('');
+  const guard = document.getElementById('gl-guard');
+  if (guard) guard.remove();
+
+  const panel = document.createElement('div');
+  panel.id = 'gl-guard';
+  panel.style.cssText = 'margin-top:10px;padding:12px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg3);font-size:13px';
+  panel.innerHTML = `
+    <div style="margin-bottom:10px;color:var(--text)">
+      <strong>${_esc(valore)}</strong> è usato da <strong>${count}</strong> dispositiv${count === 1 ? 'o' : 'i'}. Cosa vuoi fare?
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div style="display:flex;gap:6px;align-items:center">
+        <select id="gl-guard-sel" style="flex:1;padding:6px 8px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text);font-size:13px">
+          <option value="">— seleziona valore sostitutivo —</option>
+          ${optsHtml}
+        </select>
+        <button onclick="glGuardSostituisci(${_esc(JSON.stringify(campo))}, ${_esc(JSON.stringify(valore))})"
+          style="padding:6px 12px;font-size:12px;font-weight:600;background:var(--info);color:#fff;border:none;border-radius:var(--rad);cursor:pointer;white-space:nowrap">
+          Sostituisci
+        </button>
+      </div>
+      <button onclick="glGuardLascia(${_esc(JSON.stringify(campo))}, ${_esc(JSON.stringify(valore))})"
+        style="padding:6px 10px;font-size:12px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text2);cursor:pointer;text-align:left">
+        Lascia invariato — elimina solo dalla lista
+      </button>
+      <button onclick="document.getElementById('gl-guard')?.remove()"
+        style="padding:4px 10px;font-size:12px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text3);cursor:pointer">
+        Annulla
+      </button>
+    </div>`;
+
+  const msg = document.getElementById('gl-msg');
+  if (msg) msg.after(panel); else document.getElementById('gl-lista')?.after(panel);
+}
+
+async function glGuardSostituisci(campo, valore) {
+  const nuovoVal = document.getElementById('gl-guard-sel')?.value;
+  if (!nuovoVal) { glMsg('Seleziona un valore sostitutivo.', false); return; }
+  document.getElementById('gl-guard')?.remove();
+  glMsg('Sostituzione in corso...', true);
+  const { updated, ok } = await renameLookupValue(campo, valore, nuovoVal);
+  glLoadCampo();
+  if (ok) glMsg(`Sostituito in ${updated} dispositiv${updated === 1 ? 'o' : 'i'}.`, true);
+  else glMsg('Operazione parziale — verifica log console.', false);
+}
+
+async function glGuardLascia(campo, valore) {
+  document.getElementById('gl-guard')?.remove();
   const ok = await deleteLookupValue(campo, valore);
   glLoadCampo();
-  if (ok) glMsg('Valore eliminato.', true);
+  if (ok) glMsg('Valore eliminato dalla lista. I dispositivi esistenti non sono stati modificati.', true);
   else glMsg('Eliminazione non riuscita — verifica policy RLS su lookup_asl.', false);
+}
+
+function glRinomina(campo, valore) {
+  const lista = document.getElementById('gl-lista');
+  if (!lista) return;
+  const row = lista.querySelector(`[data-gl-row="${CSS.escape(valore)}"]`);
+  if (!row) return;
+  row.innerHTML = `
+    <input id="gl-rin-input" type="text" value="${_esc(valore)}"
+      style="flex:1;padding:5px 8px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text);font-size:13px;min-width:0"
+      onkeydown="if(event.key==='Enter')glConfirmRinomina(${_esc(JSON.stringify(campo))},${_esc(JSON.stringify(valore))});if(event.key==='Escape')glLoadCampo()">
+    <div style="display:flex;gap:6px;flex-shrink:0;margin-left:8px">
+      <button onclick="glConfirmRinomina(${_esc(JSON.stringify(campo))}, ${_esc(JSON.stringify(valore))})"
+        style="padding:2px 10px;font-size:11px;font-weight:600;background:var(--info);color:#fff;border:none;border-radius:var(--rad);cursor:pointer">
+        Conferma
+      </button>
+      <button onclick="glLoadCampo()"
+        style="padding:2px 8px;font-size:11px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text3);cursor:pointer">
+        Annulla
+      </button>
+    </div>`;
+  row.style.display = 'flex';
+  row.style.alignItems = 'center';
+  document.getElementById('gl-rin-input')?.focus();
+}
+
+async function glConfirmRinomina(campo, oldV) {
+  const newV = document.getElementById('gl-rin-input')?.value?.trim();
+  if (!newV) { glMsg('Il nome non può essere vuoto.', false); return; }
+  if (newV === oldV) { glLoadCampo(); return; }
+  const existing = window._storedLookups?.[campo];
+  if (Array.isArray(existing) && existing.includes(newV)) {
+    glMsg(`"${newV}" è già presente nella lista.`, false); return;
+  }
+  glMsg('Rinomina in corso...', true);
+  const { updated, ok } = await renameLookupValue(campo, oldV, newV);
+  glLoadCampo();
+  if (ok) glMsg(`Rinominato. ${updated} dispositiv${updated === 1 ? 'o' : 'i'} aggiornati.`, true);
+  else glMsg('Operazione parziale — verifica log console.', false);
 }
 
 async function glSincronizzaDaDB() {
@@ -812,14 +1089,7 @@ async function glSincronizzaDaDB() {
   if (!campo) return;
   const lista = document.getElementById('gl-lista');
   if (lista) lista.innerHTML = '<div style="padding:12px;text-align:center;color:var(--text3);font-size:13px">Sincronizzazione...</div>';
-  // Raccoglie valori unici dal DB in-memory per questo campo
-  const KEY_MAP = {
-    descrizione_classe:'n', costruttore:'b', modello:'m', presidio:'loc',
-    reparto:'rep', nuova_area:'na', sede_struttura:'ss', civab:'civ',
-    verifiche:'ver', dettagli_stato:'ds', manutentore:'man',
-    presenze_effettive:'pe', forma_presenza:'fp', cliente:'cli', proprieta:'pro',
-  };
-  const dbKey = KEY_MAP[campo];
+  const dbKey = LOOKUP_DB_KEY[campo];
   const vals = new Set();
   if (dbKey) {
     for (const d of Object.values(DB || {})) {
