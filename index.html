@@ -805,5 +805,15 @@
 <script src="js/anagrafica.js"></script>
 <script src="js/gestione.js"></script>
 <script src="js/admin.js"></script>
+<script>
+document.addEventListener('input', e => {
+  const el = e.target;
+  if ((el.tagName === 'INPUT' && !['password','number','date','time','checkbox','radio','file','color'].includes(el.type)) || el.tagName === 'TEXTAREA') {
+    const pos = el.selectionStart;
+    el.value = el.value.toUpperCase();
+    try { el.setSelectionRange(pos, pos); } catch(_) {}
+  }
+});
+</script>
 </body>
 </html>

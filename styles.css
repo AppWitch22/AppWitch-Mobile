@@ -501,3 +501,6 @@ body.logged-in h1,body.logged-in .subtitle{display:none}
 .tbl-sess-actions .btn-confirm{background:var(--info);border-color:var(--info);color:#fff}
 
 .bottom-nav{display:none}
+
+input:not([type=password]):not([type=number]):not([type=date]):not([type=time]):not([type=checkbox]):not([type=radio]):not([type=file]):not([type=color]),
+textarea{text-transform:uppercase}
