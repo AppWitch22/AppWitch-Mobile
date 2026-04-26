@@ -1052,6 +1052,7 @@ function openTblFilter(k, e) {
   const q = tableSearchQ.toLowerCase();
   const allCols = _getTblCols();
   const baseRows = tableData.filter(row => {
+    if (!showArchiviati && (row.presenze_effettive||'').toLowerCase() === 'archiviato') return false;
     if (q && !allCols.some(c => (row[c.k]||'').toLowerCase().includes(q))) return false;
     for (const [fk, vals] of Object.entries(tableColFilters)) {
       if (fk === k) continue;
