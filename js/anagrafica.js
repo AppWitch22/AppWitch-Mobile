@@ -816,8 +816,10 @@ let tableSortCol    = 'codice';
 let tableSortDir    = 1;      // 1=asc, -1=desc
 let tableHiddenCols = new Set();
 let tableSelected   = new Set();
-let tableViews      = [];     // [{name, hidden:[...]}]
+let tableViews      = [];     // [{name, hidden:[...], order:[...]}]
+let tableColOrder   = [];     // [] = ordine default; altrimenti array di colKey
 let tableSearchQ    = '';
+let _tblDragKey     = null;   // chiave colonna in drag
 // virtual scroll
 const TBL_ROW_H   = 28;      // px per riga — deve corrispondere al CSS
 const TBL_BUFFER  = 60;      // righe extra sopra/sotto il viewport
@@ -836,7 +838,11 @@ function _getTblCols() {
     const isDefault = /^jolly\s*\d*\s*\??$/i.test(m.label.trim());
     if (!isDefault) cols.push({k:'jolly_'+(idx+1), l:m.label, w:100});
   });
-  return cols;
+  if (!tableColOrder.length) return cols;
+  const byKey = Object.fromEntries(cols.map(c => [c.k, c]));
+  const ordered = tableColOrder.filter(k => byKey[k]).map(k => byKey[k]);
+  const rest = cols.filter(c => !tableColOrder.includes(c.k));
+  return [...ordered, ...rest];
 }
 
 async function toggleTabella() { await openTabella(); }
@@ -922,7 +928,7 @@ function renderTableView() {
     const sorted   = tableSortCol === c.k;
     const si = sorted ? (tableSortDir===1?' ▲':' ▼') : '';
     const fltIcon = filtered ? '▾<span class="tbl-flt-dot">●</span>' : '▾';
-    thead += `<th class="tbl-th${filtered?' tbl-th-filtered':''}" style="min-width:${c.w}px"><div class="tbl-th-inner"><span class="tbl-th-label" onclick="tblSort('${c.k}')">${_esc(c.l)}${si}</span><button class="tbl-th-flt${filtered?' active':''}" onclick="openTblFilter('${c.k}',event)">${fltIcon}</button></div></th>`;
+    thead += `<th class="tbl-th${filtered?' tbl-th-filtered':''}" draggable="true" data-colkey="${c.k}" style="min-width:${c.w}px"><div class="tbl-th-inner"><span class="tbl-th-label" onclick="tblSort('${c.k}')">${_esc(c.l)}${si}</span><button class="tbl-th-flt${filtered?' active':''}" onclick="openTblFilter('${c.k}',event)">${fltIcon}</button></div></th>`;
   }
   thead += '</tr>';
 
@@ -938,6 +944,9 @@ function renderTableView() {
     <tbody id="tbl-tbody"></tbody>
     <tbody><tr id="tbl-virt-bot"><td colspan="${colCount}" style="height:${rows.length*TBL_ROW_H}px;padding:0;border:none"></td></tr></tbody>
   </table>`;
+
+  const theadEl = wrap.querySelector('thead');
+  if (theadEl) _tblAttachDrag(theadEl);
 
   wrap._tblScrollFn = () => {
     if (_tblRaf) cancelAnimationFrame(_tblRaf);
@@ -1102,6 +1111,52 @@ function closeTblFilter() {
   _tblFilterOpenKey = null;
 }
 
+function _tblAttachDrag(thead) {
+  thead.addEventListener('dragstart', e => {
+    const th = e.target.closest('th[data-colkey]');
+    if (!th) return;
+    _tblDragKey = th.dataset.colkey;
+    e.dataTransfer.effectAllowed = 'move';
+    requestAnimationFrame(() => th.classList.add('tbl-th-dragging'));
+  });
+  thead.addEventListener('dragover', e => {
+    const th = e.target.closest('th[data-colkey]');
+    if (!th || th.dataset.colkey === _tblDragKey) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    thead.querySelectorAll('.tbl-th-drag-over').forEach(t => t.classList.remove('tbl-th-drag-over'));
+    th.classList.add('tbl-th-drag-over');
+  });
+  thead.addEventListener('dragleave', e => {
+    if (!thead.contains(e.relatedTarget)) {
+      thead.querySelectorAll('.tbl-th-drag-over').forEach(t => t.classList.remove('tbl-th-drag-over'));
+    }
+  });
+  thead.addEventListener('drop', e => {
+    e.preventDefault();
+    const th = e.target.closest('th[data-colkey]');
+    if (!th || !_tblDragKey) return;
+    const dropKey = th.dataset.colkey;
+    if (dropKey === _tblDragKey) return;
+    const keys = _getTblCols().map(c => c.k);
+    const fromIdx = keys.indexOf(_tblDragKey);
+    const toIdx   = keys.indexOf(dropKey);
+    if (fromIdx === -1 || toIdx === -1) return;
+    keys.splice(fromIdx, 1);
+    keys.splice(toIdx, 0, _tblDragKey);
+    tableColOrder = keys;
+    _tblDragKey = null;
+    saveTableColConfig();
+    renderTableView();
+  });
+  thead.addEventListener('dragend', () => {
+    thead.querySelectorAll('.tbl-th-drag-over,.tbl-th-dragging').forEach(t => {
+      t.classList.remove('tbl-th-drag-over', 'tbl-th-dragging');
+    });
+    _tblDragKey = null;
+  });
+}
+
 function tblFpSearch(q) {
   const ql = q.toLowerCase();
   document.querySelectorAll('#tbl-fp-list .tbl-fp-item').forEach(el => {
@@ -1234,7 +1289,7 @@ function renderTblViews() {
 function saveTblViewNamed() {
   const name = document.getElementById('tbl-view-name').value.trim();
   if (!name) { toast('Inserisci un nome per la vista','warn'); return; }
-  tableViews.push({name, hidden:[...tableHiddenCols]});
+  tableViews.push({name, hidden:[...tableHiddenCols], order:[...tableColOrder]});
   saveTableColConfig();
   document.getElementById('tbl-view-name').value = '';
   renderTblViews();
@@ -1244,6 +1299,7 @@ function saveTblViewNamed() {
 function applyTblView(i) {
   const v = tableViews[i]; if (!v) return;
   tableHiddenCols = new Set(v.hidden);
+  tableColOrder   = v.order ? [...v.order] : [];
   saveTableColConfig();
   renderTblColPicker();
   renderTableView();
@@ -1261,7 +1317,7 @@ function deleteTblView(i) {
 
 function saveTableColConfig() {
   const uid = currentUser?.id || 'guest';
-  localStorage.setItem('tbl_cfg_'+uid, JSON.stringify({v:2, hidden:[...tableHiddenCols], views:tableViews}));
+  localStorage.setItem('tbl_cfg_'+uid, JSON.stringify({v:3, hidden:[...tableHiddenCols], order:tableColOrder, views:tableViews}));
 }
 
 function loadTableColConfig() {
@@ -1269,6 +1325,7 @@ function loadTableColConfig() {
   try {
     const cfg = JSON.parse(localStorage.getItem('tbl_cfg_'+uid)||'{}');
     tableHiddenCols = new Set(cfg.hidden || []);
+    tableColOrder   = cfg.order || [];
     tableViews = cfg.views || [];
     // Migrazione v2: con la logica jolly-fantasma le jolly_N precedentemente
     // nascoste potrebbero essere ora etichettate → reset visibilità jolly una tantum
@@ -1276,7 +1333,7 @@ function loadTableColConfig() {
       for (let i = 1; i <= 22; i++) tableHiddenCols.delete('jolly_'+i);
       saveTableColConfig();
     }
-  } catch { tableHiddenCols = new Set(); tableViews = []; }
+  } catch { tableHiddenCols = new Set(); tableColOrder = []; tableViews = []; }
 }
 
 // ── Crea sessione dalla selezione ──

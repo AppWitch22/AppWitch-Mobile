@@ -472,6 +472,10 @@ body.logged-in h1,body.logged-in .subtitle{display:none}
 .tbl-th-filtered .tbl-th-label{color:var(--info)}
 .tbl-th-flt{border:none;background:none;cursor:pointer;padding:5px 5px;color:var(--text2);font-size:11px;line-height:1;-webkit-tap-highlight-color:transparent}
 .tbl-th-flt:hover,.tbl-th-flt.active{color:var(--info)}
+th.tbl-th[draggable="true"]{cursor:grab}
+th.tbl-th[draggable="true"]:active{cursor:grabbing}
+.tbl-th-drag-over{box-shadow:inset 3px 0 0 var(--info);background:#b8d4ed !important}
+.tbl-th-dragging{opacity:.45}
 .tbl-flt-dot{font-size:10px;vertical-align:super;margin-left:1px}
 #tbl-clear-filters{display:none;padding:5px 10px;font-size:12px;border:1px solid var(--info);border-radius:var(--rad);background:var(--info-bg);color:var(--info);cursor:pointer;white-space:nowrap}
 .tbl-th-chk,.tbl-td-chk{padding:5px 8px;text-align:center;border-right:1px solid var(--border);border-bottom:1px solid var(--border);background:var(--bg3);position:sticky;left:0;z-index:5}
