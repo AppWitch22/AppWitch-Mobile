@@ -1038,6 +1038,8 @@ function tblToggleRow(codice, checked) {
 // ── Filtri per colonna ──
 let _tblFilterOpenKey = null;
 let _tblFilterOutside = null;
+let _tblColPickerOutside = null;
+let _tblViewsOutside = null;
 
 function openTblFilter(k, e) {
   e.stopPropagation();
@@ -1151,9 +1153,29 @@ function toggleTblFullscreen() {
 }
 
 // ── Colonne visibili ──
-function toggleTblColPicker() {
-  document.getElementById('tbl-col-picker').classList.toggle('open');
+function toggleTblColPicker(e) {
+  const p = document.getElementById('tbl-col-picker');
   document.getElementById('tbl-views-panel').classList.remove('open');
+  if (_tblViewsOutside) { document.removeEventListener('click', _tblViewsOutside); _tblViewsOutside = null; }
+  if (p.classList.contains('open')) {
+    p.classList.remove('open');
+    if (_tblColPickerOutside) { document.removeEventListener('click', _tblColPickerOutside); _tblColPickerOutside = null; }
+    return;
+  }
+  const rect = e.currentTarget.getBoundingClientRect();
+  p.style.top = (rect.bottom + 4) + 'px';
+  p.style.left = Math.max(4, Math.min(rect.left, window.innerWidth - 424)) + 'px';
+  p.classList.add('open');
+  setTimeout(() => {
+    _tblColPickerOutside = (ev) => {
+      if (!p.contains(ev.target)) {
+        p.classList.remove('open');
+        document.removeEventListener('click', _tblColPickerOutside);
+        _tblColPickerOutside = null;
+      }
+    };
+    document.addEventListener('click', _tblColPickerOutside);
+  }, 0);
 }
 
 function renderTblColPicker() {
@@ -1174,11 +1196,30 @@ function tblToggleCol(k, vis) {
 }
 
 // ── Viste personali ──
-function toggleTblViews() {
+function toggleTblViews(e) {
   const p = document.getElementById('tbl-views-panel');
-  p.classList.toggle('open');
-  if (p.classList.contains('open')) { renderTblViews(); }
   document.getElementById('tbl-col-picker').classList.remove('open');
+  if (_tblColPickerOutside) { document.removeEventListener('click', _tblColPickerOutside); _tblColPickerOutside = null; }
+  if (p.classList.contains('open')) {
+    p.classList.remove('open');
+    if (_tblViewsOutside) { document.removeEventListener('click', _tblViewsOutside); _tblViewsOutside = null; }
+    return;
+  }
+  const rect = e.currentTarget.getBoundingClientRect();
+  p.style.top = (rect.bottom + 4) + 'px';
+  p.style.left = Math.max(4, Math.min(rect.left, window.innerWidth - 364)) + 'px';
+  p.classList.add('open');
+  renderTblViews();
+  setTimeout(() => {
+    _tblViewsOutside = (ev) => {
+      if (!p.contains(ev.target)) {
+        p.classList.remove('open');
+        document.removeEventListener('click', _tblViewsOutside);
+        _tblViewsOutside = null;
+      }
+    };
+    document.addEventListener('click', _tblViewsOutside);
+  }, 0);
 }
 
 function renderTblViews() {
