@@ -524,8 +524,9 @@ body.logged-in h1,body.logged-in .subtitle{display:none}
 #tabella-section .tbl-table tbody tr:hover{background:var(--info-bg,#e8efff)}
 #tabella-section .tbl-table tbody tr:hover .tbl-td{background:transparent}
 #tabella-section .tbl-table tbody tr.tbl-row-sel{background:rgba(44,82,130,.08)}
+#tabella-section .tbl-table tbody tr.tbl-row-sel:nth-child(even){background:rgba(44,82,130,.13)}
+#tabella-section .tbl-table tbody tr.tbl-row-sel:hover{background:rgba(44,82,130,.18)}
 #tabella-section .tbl-table tbody tr.tbl-row-sel .tbl-td{background:transparent}
-#tabella-section .tbl-table tbody tr.tbl-row-sel:hover{background:rgba(44,82,130,.12)}
 #tabella-section .tbl-table .tbl-td{padding:7px 10px;color:var(--text);white-space:nowrap;vertical-align:middle}
 #tabella-section .tbl-table td.mono,#tabella-section .tbl-table td[data-mono]{font-family:"IBM Plex Mono","SF Mono",ui-monospace,Menlo,monospace;font-weight:600;color:var(--info,#2c5282);font-size:11.5px}
 #tabella-section .tbl-table .badge{display:inline-block;font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;letter-spacing:.02em}
