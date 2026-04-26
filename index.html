@@ -248,7 +248,7 @@
           <button class="btn-sm" id="btn-sost-massiva" style="display:none" onclick="openSostMassiva()">⇄ Sostituisci</button>
         </div>
         <div class="tbl-btn-group">
-          <button class="btn-sm btn-xlsx" onclick="exportXLSX()">📊 Esporta XLSX</button>
+          <button class="btn-sm btn-xlsx" onclick="openExportTblModal()">📊 Esporta XLSX</button>
           <button class="btn-sm tbl-fs-btn" id="btn-tbl-fs" onclick="toggleTblFullscreen()" title="Schermo intero">⛶ Schermo intero</button>
           <button class="btn-sm" onclick="closeTabella()" title="Chiudi sezione">✕ Chiudi</button>
         </div>
@@ -387,6 +387,46 @@
       <div class="tbl-sess-actions">
         <button onclick="closeTblSessModal()">Annulla</button>
         <button class="btn-confirm" onclick="confirmCreateSessionFromTable()">Crea sessione</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL EXPORT ENGINE -->
+  <div id="modal-export-tbl">
+    <div class="exp-modal-box">
+      <div class="exp-modal-hdr">
+        <span>Esporta dispositivi</span>
+        <button onclick="closeExportTblModal()" title="Chiudi">✕</button>
+      </div>
+      <div class="exp-modal-body">
+        <div>
+          <div class="exp-section-label">Profilo</div>
+          <div class="exp-profile-row">
+            <select id="exp-profile-select" onchange="expLoadProfile()"></select>
+            <button class="btn-sm" onclick="expDeleteProfile()">Elimina</button>
+          </div>
+          <div class="exp-profile-save">
+            <input type="text" id="exp-profile-name" placeholder="Nome profilo da salvare...">
+            <button class="btn-sm" onclick="expSaveProfile()">Salva</button>
+          </div>
+        </div>
+        <div>
+          <div class="exp-section-label" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+            <span>Campi</span>
+            <div style="display:flex;gap:6px">
+              <button class="btn-sm" onclick="expSelectAll()">Tutti</button>
+              <button class="btn-sm" onclick="expDeselectAll()">Nessuno</button>
+            </div>
+          </div>
+          <div id="exp-field-list" class="exp-field-list"></div>
+        </div>
+      </div>
+      <div class="exp-modal-ftr">
+        <span id="exp-info" class="exp-info"></span>
+        <div style="display:flex;gap:8px">
+          <button class="btn-sm" onclick="closeExportTblModal()">Annulla</button>
+          <button class="btn-sm btn-xlsx" onclick="doExportTbl()">📊 Esporta</button>
+        </div>
       </div>
     </div>
   </div>
@@ -810,6 +850,7 @@
 <script src="js/verifica.js"></script>
 <script src="js/export.js"></script>
 <script src="js/anagrafica.js"></script>
+<script src="js/export_tbl.js"></script>
 <script src="js/gestione.js"></script>
 <script src="js/admin.js"></script>
 <script>
