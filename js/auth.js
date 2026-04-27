@@ -69,6 +69,7 @@ async function doLogout() {
   ['home-section','verifica-section','anag-section','tabella-section'].forEach(id => {
     const el = document.getElementById(id); if (el) el.style.display = 'none';
   });
+  resetTableState();
 }
 
 async function checkSession() {

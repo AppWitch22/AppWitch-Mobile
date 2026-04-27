@@ -1188,6 +1188,23 @@ function tblClearAllFilters() {
   renderTableView();
 }
 
+function resetTableState() {
+  tableData       = null;
+  tableColFilters = {};
+  tableSortCol    = 'codice';
+  tableSortDir    = 1;
+  tableHiddenCols = new Set();
+  tableSelected   = new Set();
+  tableColOrder   = [];
+  tableSearchQ    = '';
+  _tblRows        = [];
+  _tblCols        = [];
+  _tblSliceStart  = -1;
+  _tblSliceEnd    = -1;
+  const searchEl = document.getElementById('tbl-search');
+  if (searchEl) searchEl.value = '';
+}
+
 // ── Schermo intero ──
 function toggleTblFullscreen() {
   const sec = document.getElementById('tabella-section');
