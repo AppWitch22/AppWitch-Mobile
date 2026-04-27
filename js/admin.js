@@ -111,16 +111,20 @@ async function adminLoadUsers() {
   if (users.length === 0) { list.innerHTML = 'Nessun utente.'; return; }
   list.innerHTML = users.map(u => {
     const role = u.profile?.role || 'tecnico';
+    const asl  = u.profile?.asl  || 'ASL Benevento';
     const isAdmin = role === 'admin';
     const perms = (u.profile?.permissions && Object.keys(u.profile.permissions).length)
       ? u.profile.permissions
       : (DEFAULT_PERMISSIONS[role] || {});
+    const aslOpts = ['ASL Benevento','ASL Avellino','ASL Strega'].map(a =>
+      `<option value="${a}" ${asl===a?'selected':''}>${a}</option>`).join('');
     return `
     <div style="border:1px solid var(--border);border-radius:var(--rad);margin-bottom:6px;overflow:hidden">
       <div style="display:flex;align-items:center;gap:8px;padding:10px 12px;flex-wrap:wrap">
         <div style="flex:1;min-width:160px">
-          <div style="font-weight:500;color:var(--text)">${u.profile?.full_name || '—'}</div>
-          <div style="font-size:11px;color:var(--text3)">${u.email}</div>
+          <div style="font-weight:500;color:var(--text)">${_esc(u.profile?.full_name || '—')}</div>
+          <div style="font-size:11px;color:var(--text3)">${_esc(u.email)}</div>
+          <div style="font-size:11px;color:var(--text3)">${_esc(asl)}</div>
         </div>
         <select onchange="adminUpdateRole('${u.id}', this.value)" style="padding:4px 8px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text);font-size:12px">
           <option value="tecnico"        ${role==='tecnico'?'selected':''}>Tecnico</option>
@@ -128,11 +132,31 @@ async function adminLoadUsers() {
           <option value="amministrativo" ${role==='amministrativo'?'selected':''}>Amministrativo</option>
           <option value="admin"          ${role==='admin'?'selected':''}>Admin</option>
         </select>
+        <button onclick="adminToggleEdit('${u.id}')" style="padding:4px 10px;font-size:12px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text2);cursor:pointer">✏ Modifica</button>
         <button onclick="adminTogglePermissions('${u.id}')" style="padding:4px 10px;font-size:12px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text2);cursor:pointer">⚙ Permessi</button>
         <button onclick="adminBan('${u.id}', ${u.banned})" style="padding:4px 10px;font-size:12px;border:1px solid ${u.banned ? 'var(--ok)' : 'var(--warn)'};border-radius:var(--rad);background:var(--bg);color:${u.banned ? 'var(--ok)' : 'var(--warn)'};cursor:pointer">
           ${u.banned ? 'Riabilita' : 'Disabilita'}
         </button>
-        <button onclick="adminDelete('${u.id}', '${u.email}')" style="padding:4px 10px;font-size:12px;border:1px solid var(--ko);border-radius:var(--rad);background:var(--bg);color:var(--ko);cursor:pointer">Elimina</button>
+        <button onclick="adminDelete('${u.id}', '${_esc(u.email)}')" style="padding:4px 10px;font-size:12px;border:1px solid var(--ko);border-radius:var(--rad);background:var(--bg);color:var(--ko);cursor:pointer">Elimina</button>
+      </div>
+      <div id="adm-edit-${u.id}" style="display:none;padding:10px 12px;border-top:1px solid var(--border);background:var(--bg3)">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:6px">
+          <input type="text" id="adm-edit-name-${u.id}" value="${_esc(u.profile?.full_name || '')}"
+            placeholder="Nome completo"
+            style="flex:1;min-width:160px;padding:6px 10px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text);font-size:13px">
+          <select id="adm-edit-asl-${u.id}"
+            style="padding:6px 10px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text);font-size:13px">
+            ${aslOpts}
+          </select>
+          <button onclick="adminSaveProfile('${u.id}')"
+            style="padding:6px 14px;font-size:12px;font-weight:600;background:var(--info);color:#fff;border:none;border-radius:var(--rad);cursor:pointer">
+            Salva
+          </button>
+          <button onclick="adminToggleEdit('${u.id}')"
+            style="padding:6px 10px;font-size:12px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text3);cursor:pointer">
+            Annulla
+          </button>
+        </div>
       </div>
       <div id="adm-perms-${u.id}" style="display:none;padding:10px 12px;border-top:1px solid var(--border);background:var(--bg3)">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px 16px;margin-bottom:10px">
@@ -212,6 +236,26 @@ function adminTogglePermissions(userId) {
   const panel = document.getElementById('adm-perms-' + userId);
   if (!panel) return;
   panel.style.display = panel.style.display === 'none' ? '' : 'none';
+}
+
+function adminToggleEdit(userId) {
+  const panel = document.getElementById('adm-edit-' + userId);
+  if (!panel) return;
+  panel.style.display = panel.style.display === 'none' ? '' : 'none';
+}
+
+async function adminSaveProfile(userId) {
+  const nameEl = document.getElementById('adm-edit-name-' + userId);
+  const aslEl  = document.getElementById('adm-edit-asl-'  + userId);
+  if (!nameEl || !aslEl) return;
+  const fullName = nameEl.value.trim();
+  const asl      = aslEl.value;
+  if (!fullName) { adminMsg('Il nome non può essere vuoto.', false); return; }
+  const res = await adminCall({ action: 'update_profile', userId, fullName, asl });
+  if (res?.error) { adminMsg('Errore: ' + res.error, false); return; }
+  adminMsg('Profilo aggiornato.', true);
+  adminToggleEdit(userId);
+  adminLoadUsers();
 }
 
 async function adminSaveUserPermissions(userId) {
