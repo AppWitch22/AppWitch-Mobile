@@ -780,7 +780,7 @@ async function showApp() {
   if (!p) { console.error('showApp: profilo non disponibile'); return; }
   const roleLabel = ROLE_LABELS[p.role] || p.role || '—';
   document.getElementById('u-name').textContent = p.full_name || '—';
-  document.getElementById('u-role').textContent = ' · ' + roleLabel;
+  document.getElementById('u-role').textContent = ' · ' + roleLabel + (p.asl_key ? ' · ASL ' + p.asl_key.toUpperCase() : '');
   document.getElementById('user-bar').style.display = 'flex';
   if (p.role === 'admin') document.getElementById('btn-admin').style.display = '';
   document.getElementById('login-screen').style.display = 'none';
