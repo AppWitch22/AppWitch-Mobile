@@ -780,20 +780,20 @@ async function showApp() {
   if (!p) { console.error('showApp: profilo non disponibile'); return; }
   const roleLabel = ROLE_LABELS[p.role] || p.role || '—';
   document.getElementById('u-name').textContent = p.full_name || '—';
-  document.getElementById('u-role').textContent = ' · ' + roleLabel + (p.asl_key ? ' · ASL ' + p.asl_key.toUpperCase() : '');
+  document.getElementById('u-role').textContent = ' · ' + roleLabel + (p.asl ? ' · ' + p.asl : '');
   document.getElementById('user-bar').style.display = 'flex';
   if (p.role === 'admin') document.getElementById('btn-admin').style.display = '';
   document.getElementById('login-screen').style.display = 'none';
   // Sidebar + bottom nav
   document.getElementById('sb-name').textContent = p.full_name || '—';
-  document.getElementById('sb-meta').textContent = roleLabel + (p.asl_key ? ' · ASL ' + p.asl_key.toUpperCase() : '');
+  document.getElementById('sb-meta').textContent = roleLabel + (p.asl ? ' · ' + p.asl : '');
   document.body.classList.add('logged-in');
   // Popola header pannello di controllo
   const nome = p.full_name ? p.full_name.split(' ')[0] : '—';
   const greetEl = document.getElementById('home-greeting');
   if (greetEl) greetEl.textContent = 'Benvenuto, ' + nome;
   const roleEl = document.getElementById('home-role');
-  if (roleEl) roleEl.textContent = roleLabel + (p.asl_key ? ' · ASL ' + p.asl_key.toUpperCase() : '');
+  if (roleEl) roleEl.textContent = roleLabel + (p.asl ? ' · ' + p.asl : '');
   // Costruisce le card del pannello (una volta sola, in base al ruolo)
   buildCPGrid(p.role);
   // Mostra pannello come landing screen
