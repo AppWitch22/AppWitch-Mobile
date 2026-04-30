@@ -602,8 +602,13 @@ function addAttesiInline() {
 
 function toast(msg,type){
   const t=document.getElementById('toast');
-  t.textContent=msg;t.className='toast show'+(type==='ok'?' ok':type==='warn'?' warn':'');
-  setTimeout(()=>t.classList.remove('show'),3000);
+  if(t._toastTimer){clearTimeout(t._toastTimer);t._toastTimer=null;}
+  t.textContent=msg;
+  t.className='toast show'+(type==='ok'?' ok':type==='warn'?' warn':type==='err'?' err':'');
+  const dur=type==='warn'?5000:type==='err'?0:3500;
+  const hide=()=>{t.classList.add('hiding');t._toastTimer=setTimeout(()=>{t.classList.remove('show','hiding');},220);};
+  t.onclick=hide;
+  if(dur>0)t._toastTimer=setTimeout(hide,dur);
 }
 
 // ── Toggle ambiente prod / staging ────────────────────────────
