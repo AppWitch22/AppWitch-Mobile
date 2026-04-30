@@ -119,7 +119,7 @@ function updateSyncBar() {
   ['btn-salva-sess','btn-salva-sess-m'].forEach(id => { const el=document.getElementById(id); if(el) el.style.display=canEdit?'':'none'; });
   // Bottone Chiudi
   const hasSession = !!currentSessionId;
-  ['btn-chiudi-sess','btn-chiudi-sess-m'].forEach(id => { const el=document.getElementById(id); if(el) el.style.display=hasSession?'':'none'; });
+  ['btn-chiudi-sess','btn-chiudi-sess-m','btn-sess-to-tbl','btn-sess-to-tbl-m'].forEach(id => { const el=document.getElementById(id); if(el) el.style.display=hasSession?'':'none'; });
   // Bottoni Aggiorna Anagrafica / Straordinaria
   const hasSaved = hasSession && Object.keys(saved).length > 0;
   ['btn-sync-prog','btn-sync-straord'].forEach(id => { const el=document.getElementById(id); if(el) el.style.display=hasSaved?'':'none'; });

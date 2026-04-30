@@ -1353,6 +1353,18 @@ function loadTableColConfig() {
   } catch { tableHiddenCols = new Set(); tableColOrder = []; tableViews = []; }
 }
 
+// ── Carica sessione attiva in tabella (inversa di confirmCreateSessionFromTable) ──
+async function caricaSessioneInTabella() {
+  if (!currentSessionId) { toast('Nessuna sessione attiva', 'warn'); return; }
+  const codici = new Set([...attesiSet(), ...Object.keys(saved)]);
+  if (!codici.size) { toast('La sessione non contiene dispositivi', 'warn'); return; }
+  await openTabella();
+  tableSelected = new Set([...codici].filter(c => DB[c]));
+  renderTableView();
+  sbNav('tabella');
+  toast(`${tableSelected.size} dispositivi caricati in tabella`, 'ok');
+}
+
 // ── Crea sessione dalla selezione ──
 function openCreateSessionFromTable() {
   const selRows = _tblFilteredRows().filter(r => tableSelected.has(r.codice));
