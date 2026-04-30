@@ -849,7 +849,8 @@ async function showApp() {
 async function createSession() {
   const title = document.getElementById('sess-new-title').value.trim();
   if (!title) { toast('Inserisci un nome per la sessione', 'warn'); return; }
-  const asl = currentUser?.profile?.asl || 'ASL Benevento';
+  const asl = currentUser?.profile?.asl;
+  if (!asl) { toast('Profilo utente senza ASL configurata — contatta un amministratore', 'warn'); return; }
   // Parse lista dispositivi attesi (se inserita)
   const attesiTxt = document.getElementById('sess-new-attesi').value.trim();
   const attesiList = attesiTxt
@@ -1204,7 +1205,11 @@ function chiudiSessione() {
 async function loadSessList() {
   const list = document.getElementById('sess-list');
   list.innerHTML = '<div style="font-size:13px;color:var(--text3);padding:8px">Caricamento...</div>';
-  const asl = currentUser?.profile?.asl || 'ASL Benevento';
+  const asl = currentUser?.profile?.asl;
+  if (can('sessioni_altrui') && !asl) {
+    list.innerHTML = '<div style="color:var(--ko);padding:8px">Profilo senza ASL configurata — contatta un amministratore</div>';
+    return;
+  }
   // Responsabile e admin vedono tutte le sessioni dell'ASL; verificatore solo le proprie
   const query = can('sessioni_altrui') ? { asl } : { utenteId: currentUser.id };
   let sessioni;

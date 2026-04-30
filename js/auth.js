@@ -51,6 +51,12 @@ async function onLogin(user) {
 }
 
 async function doLogout() {
+  // Reset sessione attiva prima di pulire l'utente, altrimenti
+  // il login successivo eredita currentSessionId/saved della sessione precedente
+  const s = store.get('session.saved');
+  if (s) Object.keys(s).forEach(k => delete s[k]);
+  store.patch('session', { id: null, title: null, date: null, creatorId: null, attesi: new Set(), cur: null, curVerif: null });
+  store.set('ui.syncStatus', 'idle');
   await db.auth.signOut();
   localStorage.removeItem('aw_session');
   store.set('user.current', null);
