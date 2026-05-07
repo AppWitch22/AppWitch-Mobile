@@ -115,10 +115,15 @@ function gbRenderDati(dev, editMode) {
   const _inputStyle = 'font-size:14px;padding:8px 10px;border:1.5px solid var(--border2);border-radius:var(--rad);background:var(--bg3);color:var(--text);width:100%;-webkit-appearance:none;box-sizing:border-box';
 
   const _field = (k, label, opts = {}) => {
-    const raw     = dev[k];
-    const cls     = 'anag-field' + (opts.full ? ' full' : '');
-    const roFinal = opts.ro && !(gbIsNew && k === 'codice');
-    const reqMark = opts.req ? ' <span style="color:var(--ko)">*</span>' : '';
+    const raw      = dev[k];
+    const cls      = 'anag-field' + (opts.full ? ' full' : '');
+    const roFinal  = opts.ro && !(gbIsNew && k === 'codice');
+    const reqMark  = opts.req ? ' <span style="color:var(--ko)">*</span>' : '';
+    const canonical = opts._canonical || label;
+    const editLbl  = currentUser?.profile?.role === 'admin'
+      ? `<button class="jolly-lbl-btn" onclick="editColLabel('${k}','${_esc(canonical)}')" title="Rinomina colonna" style="font-size:10px;padding:0 3px;margin-left:3px;vertical-align:middle">✎</button>`
+      : '';
+    const lbl = `${_esc(label)}${editLbl}`;
 
     // Sola lettura o fuori edit mode
     if (!editMode || roFinal) {
@@ -137,13 +142,13 @@ function gbRenderDati(dev, editMode) {
           if (calc) displayVal = _fmtDate(calc);
         }
       }
-      return `<div class="${cls}"><label>${_esc(label)}</label><div class="gb-field-val">${_esc(displayVal)}</div></div>`;
+      return `<div class="${cls}"><label>${lbl}</label><div class="gb-field-val">${_esc(displayVal)}</div></div>`;
     }
 
     // Textarea
     if (opts.ta) {
       const val = raw != null ? String(raw) : '';
-      return `<div class="${cls}"><label>${_esc(label)}</label><textarea id="gb-f-${k}" data-k="${k}" style="font-size:14px;padding:8px 10px;border:1.5px solid var(--border2);border-radius:var(--rad);background:var(--bg3);color:var(--text);width:100%;min-height:58px;resize:vertical;font-family:inherit;box-sizing:border-box">${_esc(val)}</textarea></div>`;
+      return `<div class="${cls}"><label>${lbl}</label><textarea id="gb-f-${k}" data-k="${k}" style="font-size:14px;padding:8px 10px;border:1.5px solid var(--border2);border-radius:var(--rad);background:var(--bg3);color:var(--text);width:100%;min-height:58px;resize:vertical;font-family:inherit;box-sizing:border-box">${_esc(val)}</textarea></div>`;
     }
 
     // Campo data
@@ -162,13 +167,13 @@ function gbRenderDati(dev, editMode) {
       }
       const tipoUlt = k.match(/^data_ultima_(\w+)$/)?.[1];
       const oiUlt   = tipoUlt ? ` oninput="gbUpdateProssima('${tipoUlt}')"` : '';
-      return `<div class="${cls}"><label>${_esc(label)}</label><input type="date" id="gb-f-${k}" data-k="${k}" value="${dateVal}"${oiUlt} style="${_inputStyle}"></div>`;
+      return `<div class="${cls}"><label>${lbl}</label><input type="date" id="gb-f-${k}" data-k="${k}" value="${dateVal}"${oiUlt} style="${_inputStyle}"></div>`;
     }
 
     // Campo codice con auto-pad
     if (k === 'codice' || k === 'codice_padre') {
       const val = raw != null ? String(raw) : '';
-      return `<div class="${cls}"><label>${_esc(label)}${reqMark}</label><input type="text" id="gb-f-${k}" data-k="${k}" value="${_esc(val)}" onblur="const v=this.value.replace(/\\D/g,'');this.value=v?v.padStart(7,'0').slice(0,7):'';" style="${_inputStyle}"></div>`;
+      return `<div class="${cls}"><label>${lbl}${reqMark}</label><input type="text" id="gb-f-${k}" data-k="${k}" value="${_esc(val)}" onblur="const v=this.value.replace(/\\D/g,'');this.value=v?v.padStart(7,'0').slice(0,7):'';" style="${_inputStyle}"></div>`;
     }
 
     // Campo lookup bloccato
@@ -191,12 +196,12 @@ function gbRenderDati(dev, editMode) {
       const addBtn   = can('lookup_write')
         ? `<button type="button" onclick="gbAddLookupValue('${k}','${_esc(label)}')" title="Aggiungi nuovo valore alla lista" style="flex-shrink:0;padding:0 10px;height:38px;font-size:18px;font-weight:600;border:1.5px solid var(--border2);border-radius:var(--rad);background:var(--bg3);color:var(--info);cursor:pointer;line-height:1">+</button>`
         : '';
-      return `<div class="${cls}"><label>${_esc(label)}${reqMark}</label>${inlineDl}<div style="display:flex;gap:4px"><input type="text" id="gb-f-${k}" data-k="${k}" value="${_esc(val)}"${listAttr}${onInput} style="${_inputStyle};flex:1;min-width:0">${addBtn}</div></div>`;
+      return `<div class="${cls}"><label>${lbl}${reqMark}</label>${inlineDl}<div style="display:flex;gap:4px"><input type="text" id="gb-f-${k}" data-k="${k}" value="${_esc(val)}"${listAttr}${onInput} style="${_inputStyle};flex:1;min-width:0">${addBtn}</div></div>`;
     }
 
     // Testo libero
     const val = raw != null ? String(raw) : '';
-    return `<div class="${cls}"><label>${_esc(label)}${reqMark}</label><input type="text" id="gb-f-${k}" data-k="${k}" value="${_esc(val)}" style="${_inputStyle}"></div>`;
+    return `<div class="${cls}"><label>${lbl}${reqMark}</label><input type="text" id="gb-f-${k}" data-k="${k}" value="${_esc(val)}" style="${_inputStyle}"></div>`;
   };
 
   const _jollyField = jf => {
@@ -222,7 +227,7 @@ function gbRenderDati(dev, editMode) {
   let html = '';
   for (const grp of ANAG_GROUPS) {
     const bodyCls = 'anag-grp-body' + (grp.cols4 ? ' cols4' : '');
-    let inner = grp.fields.map(f => _field(f.k, f.l, { full: f.full, ro: f.ro, req: f.req, ta: f.ta })).join('');
+    let inner = grp.fields.map(f => _field(f.k, _colL(f.k, f.l), { full: f.full, ro: f.ro, req: f.req, ta: f.ta, _canonical: f.l })).join('');
     (jollyBySection[grp.id] || []).forEach(jf => { inner += _jollyField(jf); });
     html += `
       <div class="anag-grp">

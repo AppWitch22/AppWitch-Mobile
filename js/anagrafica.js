@@ -339,6 +339,70 @@ async function loadJollyMetaFromDB() {
 }
 function getJollyLabels() { return getJollyMeta().map(m=>m.label); }
 
+// ── ALIAS COLONNE ─────────────────────────────────────────────
+
+function getColAliases() {
+  const aslKey = (currentUser?.profile?.asl||'ASL Benevento').toLowerCase().replace('asl ','');
+  const s = localStorage.getItem('col_alias_'+aslKey);
+  if (s) { try { return JSON.parse(s); } catch(e) {} }
+  return {};
+}
+function saveColAliases(aliases) {
+  const aslKey = db._aslKey();
+  localStorage.setItem('col_alias_'+aslKey, JSON.stringify(aliases));
+  db.configAsl.saveColAliases(aliases).catch(() => {});
+}
+async function loadColAliasesFromDB() {
+  const aslKey = db._aslKey();
+  try {
+    const aliases = await db.configAsl.getColAliases();
+    if (aliases) localStorage.setItem('col_alias_'+aslKey, JSON.stringify(aliases));
+  } catch(e) {}
+}
+function _colL(key, fallback) {
+  return getColAliases()[key] || fallback;
+}
+function editColLabel(key, canonical) {
+  if (currentUser?.profile?.role !== 'admin') return;
+  const current = getColAliases()[key] || '';
+  document.getElementById('col-alias-modal')?.remove();
+  document.body.insertAdjacentHTML('beforeend', `
+    <div id="col-alias-modal" style="position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:20000;display:flex;align-items:center;justify-content:center;padding:20px">
+      <div style="background:var(--bg);border-radius:var(--rad-lg);width:100%;max-width:320px;padding:20px">
+        <div style="font-size:14px;font-weight:600;margin-bottom:14px;color:var(--text)">Rinomina colonna</div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:10px">Nome canonico: <code>${_esc(canonical)}</code></div>
+        <div style="margin-bottom:16px">
+          <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:4px">Etichetta personalizzata</label>
+          <input id="col-alias-input" type="text" value="${_esc(current)}" placeholder="${_esc(canonical)}"
+            style="width:100%;padding:7px 10px;border:1px solid var(--border2);border-radius:var(--rad);font-size:13px;background:var(--bg2);color:var(--text);box-sizing:border-box">
+        </div>
+        <div style="display:flex;gap:8px;justify-content:flex-end">
+          <button onclick="document.getElementById('col-alias-modal').remove()"
+            style="padding:7px 14px;font-size:13px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg3);color:var(--text);cursor:pointer">Annulla</button>
+          <button onclick="saveColLabelEdit('${_esc(key)}','${_esc(canonical)}')"
+            style="padding:7px 14px;font-size:13px;border:none;border-radius:var(--rad);background:var(--info);color:#fff;cursor:pointer;font-weight:600">Salva</button>
+        </div>
+      </div>
+    </div>`);
+  document.getElementById('col-alias-input').focus();
+  document.getElementById('col-alias-input').select();
+}
+function saveColLabelEdit(key, canonical) {
+  const val = document.getElementById('col-alias-input').value.trim();
+  const aliases = getColAliases();
+  if (val && val !== canonical) aliases[key] = val;
+  else delete aliases[key];
+  saveColAliases(aliases);
+  document.getElementById('col-alias-modal').remove();
+  // Aggiorna tabella se aperta
+  if (typeof renderTableView === 'function') renderTableView();
+  // Aggiorna scheda Gestione Bene se aperta
+  const gbContent = document.getElementById('gb-tab-content');
+  if (gbContent && typeof gbRenderDati === 'function' && typeof gbFullDev !== 'undefined' && gbFullDev && typeof gbCurrentTab !== 'undefined' && gbCurrentTab === 'dati') {
+    gbContent.innerHTML = gbRenderDati(gbFullDev, typeof gbEditMode !== 'undefined' ? gbEditMode : false);
+  }
+}
+
 async function openAnagDetail(codice) {
   openGestioneBene(codice);
 }
@@ -402,10 +466,14 @@ function renderAnagDetail() {
       const cls  = 'anag-field'+(f.full?' full':'');
       const isRo = f.ro && !anagIsNew;
       const req  = f.req ? ' <span style="color:var(--ko)">*</span>' : '';
+      const flbl = _colL(f.k, f.l);
+      const fedit = currentUser?.profile?.role === 'admin'
+        ? `<button class="jolly-lbl-btn" onclick="editColLabel('${f.k}','${_esc(f.l)}')" title="Rinomina colonna" style="font-size:10px;padding:0 3px;margin-left:3px;vertical-align:middle">✎</button>`
+        : '';
       if (isRo) {
-        html += `<div class="${cls}"><label>${f.l}</label><input type="text" id="anag-f-${f.k}" data-k="${f.k}" value="${_esc(String(raw))}" readonly></div>`;
+        html += `<div class="${cls}"><label>${flbl}${fedit}</label><input type="text" id="anag-f-${f.k}" data-k="${f.k}" value="${_esc(String(raw))}" readonly></div>`;
       } else if (f.ta) {
-        html += `<div class="${cls}"><label>${f.l}</label><textarea id="anag-f-${f.k}" data-k="${f.k}">${_esc(String(raw))}</textarea></div>`;
+        html += `<div class="${cls}"><label>${flbl}${fedit}</label><textarea id="anag-f-${f.k}" data-k="${f.k}">${_esc(String(raw))}</textarea></div>`;
       } else if (DATE_KEYS.has(f.k)) {
         let dateVal = raw ? (_toISODate(raw) || '') : '';
         // Calcola data prossima se vuota
@@ -422,7 +490,7 @@ function renderAnagDetail() {
         // Campi data_ultima_* aggiornano la prossima al cambio
         const tipoUlt = f.k.match(/^data_ultima_(\w+)$/)?.[1];
         const oiUlt   = tipoUlt ? ` oninput="anagUpdateProssima('${tipoUlt}')"` : '';
-        html += `<div class="${cls}"><label>${f.l}</label><input type="date" id="anag-f-${f.k}" data-k="${f.k}" value="${dateVal}"${oiUlt}></div>`;
+        html += `<div class="${cls}"><label>${flbl}${fedit}</label><input type="date" id="anag-f-${f.k}" data-k="${f.k}" value="${dateVal}"${oiUlt}></div>`;
       } else if (LOOKUP_KEYS.has(f.k)) {
         const dlId   = FIELD_DL[f.k] || '';
         const listAttr = dlId ? ` list="${dlId}"` : '';
@@ -433,9 +501,9 @@ function renderAnagDetail() {
         const addBtn   = can('lookup_write')
           ? `<button type="button" onclick="anagAddLookupValue('${f.k}','${_esc(f.l)}')" title="Aggiungi nuovo valore" style="flex-shrink:0;padding:0 10px;height:38px;font-size:18px;font-weight:600;border:1.5px solid var(--border2);border-radius:var(--rad);background:var(--bg3);color:var(--info);cursor:pointer;line-height:1">+</button>`
           : '';
-        html += `<div class="${cls}"><label>${f.l}${req}</label><div style="display:flex;gap:4px"><input type="text" id="anag-f-${f.k}" data-k="${f.k}" value="${_esc(String(raw))}"${listAttr}${oiAttr} style="flex:1;min-width:0">${addBtn}</div></div>`;
+        html += `<div class="${cls}"><label>${flbl}${fedit}${req}</label><div style="display:flex;gap:4px"><input type="text" id="anag-f-${f.k}" data-k="${f.k}" value="${_esc(String(raw))}"${listAttr}${oiAttr} style="flex:1;min-width:0">${addBtn}</div></div>`;
       } else {
-        html += `<div class="${cls}"><label>${f.l}${req}</label><input type="text" id="anag-f-${f.k}" data-k="${f.k}" value="${_esc(String(raw))}"></div>`;
+        html += `<div class="${cls}"><label>${flbl}${fedit}${req}</label><input type="text" id="anag-f-${f.k}" data-k="${f.k}" value="${_esc(String(raw))}"></div>`;
       }
     }
     // Jolly assegnati a questa sezione
@@ -928,7 +996,11 @@ function renderTableView() {
     const sorted   = tableSortCol === c.k;
     const si = sorted ? (tableSortDir===1?' ▲':' ▼') : '';
     const fltIcon = filtered ? '▾<span class="tbl-flt-dot">●</span>' : '▾';
-    thead += `<th class="tbl-th${filtered?' tbl-th-filtered':''}" draggable="true" data-colkey="${c.k}" style="min-width:${c.w}px"><div class="tbl-th-inner"><span class="tbl-th-label" onclick="tblSort('${c.k}')">${_esc(c.l)}${si}</span><button class="tbl-th-flt${filtered?' active':''}" onclick="openTblFilter('${c.k}',event)">${fltIcon}</button></div></th>`;
+    const lbl = _colL(c.k, c.l);
+    const editBtn = currentUser?.profile?.role === 'admin'
+      ? `<button class="jolly-lbl-btn" onclick="editColLabel('${c.k}','${_esc(c.l)}')" title="Rinomina colonna" style="font-size:11px;padding:0 3px;margin-left:2px">✎</button>`
+      : '';
+    thead += `<th class="tbl-th${filtered?' tbl-th-filtered':''}" draggable="true" data-colkey="${c.k}" style="min-width:${c.w}px"><div class="tbl-th-inner"><span class="tbl-th-label" onclick="tblSort('${c.k}')">${_esc(lbl)}${si}${editBtn}</span><button class="tbl-th-flt${filtered?' active':''}" onclick="openTblFilter('${c.k}',event)">${fltIcon}</button></div></th>`;
   }
   thead += '</tr>';
 

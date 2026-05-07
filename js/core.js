@@ -101,6 +101,7 @@ async function initDB(){
     bar.innerHTML='<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#1a3a6b;margin-right:8px;vertical-align:middle;flex-shrink:0;"></span><span>Database pronto</span><span style="font-family:\'IBM Plex Mono\',ui-monospace,monospace;font-size:12px;color:#1a3a6b;margin-left:6px;">— '+Object.keys(DB).length.toLocaleString()+' dispositivi</span>';
     bar.className='db-bar ready';
     await loadJollyMetaFromDB();
+    await loadColAliasesFromDB();
     await loadLookupsFromDB();
     await loadPresets();
   }catch(e){

@@ -205,6 +205,19 @@ const _configAsl = {
       headers: { 'Prefer': 'resolution=merge-duplicates' }
     });
   },
+
+  async getColAliases() {
+    const rows = await _req(`config_asl?asl=eq.${encodeURIComponent(_aslKey())}&limit=1`);
+    return rows?.[0]?.col_aliases || null;
+  },
+
+  async saveColAliases(aliases) {
+    return await _req('config_asl', {
+      method: 'POST',
+      body: { asl: _aslKey(), col_aliases: aliases },
+      headers: { 'Prefer': 'resolution=merge-duplicates' }
+    });
+  },
 };
 
 // ── db.sessioni ──────────────────────────────────────────────
