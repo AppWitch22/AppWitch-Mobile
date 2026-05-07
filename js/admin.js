@@ -351,11 +351,12 @@ async function exportDatabaseDispositivi() {
   const jmeta = getJollyMeta();
   const jollyKeyToLabel = {};
   jmeta.forEach((m,i) => { jollyKeyToLabel[`jolly_${i+1}`] = m.label || `Jolly ${i+1}`; });
+  const colAliases = getColAliases();
   const exportRows = all.map(r => {
     const out = {};
     for (const [k, v] of Object.entries(r)) {
       if (SKIP_EXPORT.has(k)) continue;
-      const colName = jollyKeyToLabel[k] ?? k;
+      const colName = jollyKeyToLabel[k] ?? colAliases[k] ?? k;
       // Converti date in formato leggibile "12-mar-2026"
       if (DATE_KEYS.has(k) && v) {
         const iso = _toISODate(String(v));
@@ -465,13 +466,19 @@ async function importDatabaseDispositivi(input) {
     getJollyMeta().forEach((m,i) => {
       if (m.label) jollyLabelToKey[m.label.toLowerCase()] = `jolly_${i+1}`;
     });
-    // 2. pattern default "Jolly N" (case-insensitive)
+    // 2. alias colonne standard configurati per questa ASL
+    const colAliasToKey = {};
+    Object.entries(getColAliases()).forEach(([k, alias]) => {
+      colAliasToKey[alias.toLowerCase()] = k;
+    });
+    // 3. pattern default "Jolly N" (case-insensitive)
     const resolveCol = k => {
-      if (DB_COLS.has(k)) return k;                          // già nome tecnico
-      if (jollyLabelToKey[k.toLowerCase()]) return jollyLabelToKey[k.toLowerCase()]; // label localStorage
-      const m = k.match(/^jolly?\s*_?\s*(\d+)$/i);          // jolly_N / Jolly N / jollyN
+      if (DB_COLS.has(k)) return k;                                          // già nome tecnico
+      if (colAliasToKey[k.toLowerCase()]) return colAliasToKey[k.toLowerCase()]; // alias colonna standard
+      if (jollyLabelToKey[k.toLowerCase()]) return jollyLabelToKey[k.toLowerCase()]; // label jolly localStorage
+      const m = k.match(/^jolly?\s*_?\s*(\d+)$/i);                          // jolly_N / Jolly N / jollyN
       if (m) return `jolly_${m[1]}`;
-      return DB_COLS.has(k.toLowerCase()) ? k.toLowerCase() : null; // lowercase fallback, null = skip
+      return DB_COLS.has(k.toLowerCase()) ? k.toLowerCase() : null;          // lowercase fallback, null = skip
     };
 
     // Converte seriale Excel → YYYY-MM-DD
