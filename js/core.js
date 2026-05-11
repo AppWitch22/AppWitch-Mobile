@@ -1828,7 +1828,7 @@ async function syncProgrammazioneAnagrafica() {
     const base = { asl: aslKey, codice: cod, verificatore, categoria: 'programmazione', motivo: null };
 
     // VSE
-    const vseDate  = nr||ne ? sessDate : (rec.vse_saved ? rec.data : null);
+    const vseDate  = nr||ne ? sessDate : (rec.vse_saved ? (rec.data || sessDate) : null);
     const vseEsito = nr||ne ? esitoFlag : (rec.vse_saved ? (rec.giu==='POSITIVO'?'Positivo':'Negativa') : null);
     if (vseDate) {
       payload.data_ultima_vse=vseDate; payload.esito_ultima_vse=vseEsito; payload.data_prossima_vse=_calcProssima(vseDate,dev.periodicita_vse)||null;
@@ -1836,7 +1836,7 @@ async function syncProgrammazioneAnagrafica() {
     }
 
     // MP
-    const mpDate  = nr||ne ? sessDate : (rec.mp_saved ? rec.mp_data : null);
+    const mpDate  = nr||ne ? sessDate : (rec.mp_saved ? (rec.mp_data || sessDate) : null);
     const mpEsito = nr||ne ? esitoFlag : (rec.mp_saved ? 'Positivo' : null);
     if (mpDate) {
       payload.data_ultima_mo=mpDate; payload.esito_ultima_mo=mpEsito; payload.data_prossima_mo=_calcProssima(mpDate,dev.periodicita_mo)||null;
@@ -1845,7 +1845,7 @@ async function syncProgrammazioneAnagrafica() {
 
     // VSP (solo se previsto per il dispositivo)
     if (vm?.vsp) {
-      const vspDate  = nr||ne ? sessDate : (rec.vsp_saved ? rec.vsp_data : null);
+      const vspDate  = nr||ne ? sessDate : (rec.vsp_saved ? (rec.vsp_data || sessDate) : null);
       const vspEsito = nr||ne ? esitoFlag : (rec.vsp_saved ? 'Positivo' : null);
       if (vspDate) {
         payload.data_ultima_vsp=vspDate; payload.esito_ultima_vsp=vspEsito; payload.data_prossima_vsp=_calcProssima(vspDate,dev.periodicita_vsp)||null;
@@ -1855,7 +1855,7 @@ async function syncProgrammazioneAnagrafica() {
 
     // CQ (solo se previsto per il dispositivo)
     if (vm?.cq) {
-      const cqDate  = nr||ne ? sessDate : (rec.cq_saved ? rec.cq_data : null);
+      const cqDate  = nr||ne ? sessDate : (rec.cq_saved ? (rec.cq_data || sessDate) : null);
       const cqEsito = nr||ne ? esitoFlag : (rec.cq_saved ? 'Positivo' : null);
       if (cqDate) {
         payload.data_ultima_cq=cqDate; payload.esito_ultima_cq=cqEsito; payload.data_prossima_cq=_calcProssima(cqDate,dev.periodicita_cq)||null;
@@ -1866,9 +1866,14 @@ async function syncProgrammazioneAnagrafica() {
     if (!Object.keys(payload).length) { skip++; continue; }
 
     try {
-      await db.dispositivi.update(cod, payload);
-      ok++;
-      if (DB[cod]) Object.assign(DB[cod], payload);
+      const updated = await db.dispositivi.updateRep(cod, payload);
+      if (updated.length === 0) {
+        err++;
+        console.error('syncProg: 0 righe aggiornate per', cod, '— verificare RLS o codice mancante');
+      } else {
+        ok++;
+        if (DB[cod]) Object.assign(DB[cod], updated[0]);
+      }
     } catch (e) {
       err++;
       console.error('syncProg fallita:', cod, e.status || e.message);
@@ -1884,8 +1889,11 @@ async function syncProgrammazioneAnagrafica() {
     }
   }
 
+  // Invalida cache tabella anagrafica
+  if (typeof tableData !== 'undefined') tableData = null;
+
   if (err===0) toast(`Anagrafica aggiornata: ${ok} dispositivi${skip?` (${skip} senza dati)`:''}`, 'ok');
-  else toast(`Completato con ${err} errori (${ok} OK)`, 'warn');
+  else toast(`Completato con ${err} errori (${ok} OK, ${skip} senza dati) — controllare console`, 'warn');
 }
 
 // ── Modal Verifica Straordinaria ──────────────────────────────

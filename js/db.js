@@ -113,6 +113,16 @@ const _dispositivi = {
     });
   },
 
+  // Come update() ma ritorna le righe aggiornate — permette di rilevare 0 righe (RLS silente).
+  async updateRep(codice, patch) {
+    const rows = await _req(`${this._tbl()}?codice=eq.${encodeURIComponent(codice)}`, {
+      method: 'PATCH',
+      body: patch,
+      headers: { 'Prefer': 'return=representation' }
+    });
+    return Array.isArray(rows) ? rows : (rows ? [rows] : []);
+  },
+
   async delete_(codice) {
     return await _req(`${this._tbl()}?codice=eq.${encodeURIComponent(codice)}`, {
       method: 'DELETE'
