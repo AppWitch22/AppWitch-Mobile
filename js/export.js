@@ -881,9 +881,13 @@ function _fillODLSheet(xml, keys, asl) {
     r = patchRowCell(r, 'G' + rn, dev.b || '');
     r = patchRowCell(r, 'K' + rn, dev.m || '');
     r = patchRowCell(r, 'O' + rn, dev.mat || '');
-    if (rec.vse_saved) r = patchRowCell(r, 'R' + rn, 'x');
-    if (rec.cq_saved)  r = patchRowCell(r, 'S' + rn, 'x');
-    if (rec.mp_saved)  r = patchRowCell(r, 'T' + rn, 'x');
+    if (rec.non_reperibile || rec.non_eseguita) {
+      r = patchRowCell(r, 'Q' + rn, 'x');
+    } else {
+      if (rec.vse_saved) r = patchRowCell(r, 'R' + rn, 'x');
+      if (rec.cq_saved)  r = patchRowCell(r, 'S' + rn, 'x');
+      if (rec.mp_saved)  r = patchRowCell(r, 'T' + rn, 'x');
+    }
     return r;
   };
 
@@ -907,8 +911,11 @@ function _fillODLSheet(xml, keys, asl) {
 }
 
 async function compilaODL() {
-  const keys = Object.keys(saved).filter(k => saved[k]?.vse_saved || saved[k]?.mp_saved);
-  if (!keys.length) { toast('Nessun dispositivo verificato nella sessione', 'warn'); return; }
+  const keys = Object.keys(saved).filter(k =>
+    saved[k]?.vse_saved || saved[k]?.mp_saved ||
+    saved[k]?.non_reperibile || saved[k]?.non_eseguita
+  );
+  if (!keys.length) { toast('Nessun dispositivo in sessione', 'warn'); return; }
   const buf = await _getTemplate('tpl_odl', 'Template_ODL.xlsx');
   if (!buf) return;
   try {
