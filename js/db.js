@@ -126,7 +126,6 @@ const _dispositivi = {
       raw: true
     });
     const txt = await res.text().catch(() => '');
-    console.log('[updateRep]', tbl, codice, '→ HTTP', res.status, txt.substring(0, 200));
     if (res.status === 204) return null;
     if (!txt) return null;
     const rows = JSON.parse(txt);

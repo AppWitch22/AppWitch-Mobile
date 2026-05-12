@@ -1885,8 +1885,13 @@ async function syncProgrammazioneAnagrafica() {
   if (storRows.length) {
     try { await db.storico.insertMany(storRows, { ignoreDuplicates: true }); }
     catch (e) {
-      console.error('Errore INSERT storico programmazione:', e);
-      toast(`Errore registrazione storico (${e.status || '?'})`, 'err');
+      if (e.status === 409) {
+        // Record già presenti in storico (run precedente) — ignorato
+        console.warn('Storico: record già presenti, ignorati.');
+      } else {
+        console.error('Errore INSERT storico programmazione:', e);
+        toast(`Errore registrazione storico (${e.status || '?'})`, 'err');
+      }
     }
   }
 
