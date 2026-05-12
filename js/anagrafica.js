@@ -1063,7 +1063,11 @@ function _tblRenderSlice(wrap, force = false) {
     html += `<tr class="${sel?'tbl-row-sel':''}" data-cod="${_esc(row.codice)}" style="height:${TBL_ROW_H}px" onclick="tblRowClick(event,'${_esc(row.codice)}')">`;
     html += `<td class="tbl-td-chk"><input type="checkbox"${sel?' checked':''} onclick="event.stopPropagation();tblToggleRow('${_esc(row.codice)}',this.checked)"></td>`;
     for (const c of cols) {
-      const raw = row[c.k] || '';
+      let raw = row[c.k] || '';
+      if (!raw && c.k.startsWith('data_prossima_')) {
+        const tipo = c.k.slice('data_prossima_'.length); // vse, vsp, mo, cq
+        raw = _calcProssima(row[`data_ultima_${tipo}`], row[`periodicita_${tipo}`]) || '';
+      }
       const disp = (DATE_KEYS.has(c.k) || c.k.startsWith('jolly_'))
         ? (_fmtDateIT(raw) || raw)
         : raw;
