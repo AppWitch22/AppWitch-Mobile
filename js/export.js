@@ -1314,7 +1314,9 @@ objExcel.StatusBar = False
 objExcel.Quit
 Dim msg: msg = count & " file convertiti in PDF (file Excel eliminati)." & Chr(13) & Chr(13) & "Cartella: " & folderPath
 If errLog <> "" Then msg = msg & Chr(13) & Chr(13) & "ERRORI:" & Chr(13) & errLog
-MsgBox msg, IIf(errLog <> "", 48, 64), "Conversione completata"
+Dim iconType: iconType = 64
+If errLog <> "" Then iconType = 48
+MsgBox msg, iconType, "Conversione completata"
 `;
   const blob = new Blob([vbs], {type:'text/plain'});
   const url = URL.createObjectURL(blob);
