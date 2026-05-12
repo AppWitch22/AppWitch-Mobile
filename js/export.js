@@ -1281,29 +1281,19 @@ For Each objFile In objFolder.Files
     pdfPath = objFSO.BuildPath(folderPath, Left(objFile.Name, InStrRev(objFile.Name, ".") - 1) & ".pdf")
     On Error Resume Next
     Err.Clear
-    Set objWB = objExcel.Workbooks.Open(objFile.Path, False, False, , , , , , , , , , , , 2)
+    Set objWB = objExcel.Workbooks.Open(objFile.Path, False, True, , , , , , , , , , , , 2)
     Dim errOpen: errOpen = Err.Number
     If errOpen <> 0 Then
       errLog = errLog & objFile.Name & " — Open fallito (" & errOpen & ": " & Err.Description & ")" & Chr(13)
     Else
-      objWB.Save
-      Dim errSave: errSave = Err.Number
+      objWB.ExportAsFixedFormat 0, pdfPath, 0, True, False
+      Dim errPdf: errPdf = Err.Number
       objWB.Close False
-      Err.Clear
-      If errSave <> 0 Then
-        errLog = errLog & objFile.Name & " — Save fallito (" & errSave & ")" & Chr(13)
+      If errPdf <> 0 Then
+        errLog = errLog & objFile.Name & " — PDF fallito (" & errPdf & ")" & Chr(13)
       Else
-        Set objWB = objExcel.Workbooks.Open(objFile.Path, False, True)
-        Err.Clear
-        objWB.ExportAsFixedFormat 0, pdfPath, 0, True, False
-        Dim errPdf: errPdf = Err.Number
-        objWB.Close False
-        If errPdf <> 0 Then
-          errLog = errLog & objFile.Name & " — PDF fallito (" & errPdf & ")" & Chr(13)
-        Else
-          objFSO.DeleteFile objFile.Path, True
-          count = count + 1
-        End If
+        objFSO.DeleteFile objFile.Path, True
+        count = count + 1
       End If
     End If
     On Error GoTo 0
