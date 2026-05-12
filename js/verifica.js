@@ -261,11 +261,11 @@ function uM(){
   const blkAIInfo = document.getElementById('blk-ai-info');
   if(blkAIInfo) blkAIInfo.style.display = isAI ? 'block' : 'none';
 
-  // TERRA — solo Classe I, non Impianto Fisso, non AI
+  // TERRA — solo Classe I, non AI (impianto fisso incluso)
   const blkTerra = document.getElementById('blk-terra');
   const inpTrm   = document.getElementById('f-trm');
   const limTr    = document.getElementById('lim-tr');
-  const showTerra = isCls1 && !isFisso && !isAI;
+  const showTerra = isCls1 && !isAI;
   if(blkTerra) blkTerra.style.display = showTerra ? 'block' : 'none';
   if(inpTrm){
     inpTrm.disabled = !showTerra;
@@ -300,17 +300,17 @@ function uM(){
   if(inpPnm){ inpPnm.disabled=isFisso||isAI; if(isFisso||isAI){inpPnm.value='';inpPnm.placeholder='N/A';}else inpPnm.placeholder=''; }
   if(inpPim){ inpPim.disabled=isFisso||isAI; if(isFisso||isAI){inpPim.value='';inpPim.placeholder='N/A';}else inpPim.placeholder=''; }
 
-  // DISPERSIONE PA BF — solo se PA=BF e norma≠61010
+  // DISPERSIONE PA BF — solo se PA=BF, norma≠61010, non Impianto Fisso
   const blkPABF = document.getElementById('blk-pa-bf');
-  if(blkPABF) blkPABF.style.display = (isBF && !is61010) ? 'block' : 'none';
+  if(blkPABF) blkPABF.style.display = (isBF && !is61010 && !isFisso) ? 'block' : 'none';
   const limPnBF = document.getElementById('lim-pnbf');
   const limPiBF = document.getElementById('lim-pibf');
   if(limPnBF) limPnBF.textContent = '5000';
   if(limPiBF) limPiBF.textContent = '5000';
 
-  // DISPERSIONE PA CF — solo se PA=CF e norma≠61010
+  // DISPERSIONE PA CF — solo se PA=CF, norma≠61010, non Impianto Fisso
   const blkPACF = document.getElementById('blk-pa-cf');
-  if(blkPACF) blkPACF.style.display = (isCF && !is61010) ? 'block' : 'none';
+  if(blkPACF) blkPACF.style.display = (isCF && !is61010 && !isFisso) ? 'block' : 'none';
   const limPnCF = document.getElementById('lim-pncf');
   const limPiCF = document.getElementById('lim-picf');
   if(limPnCF) limPnCF.textContent = '50';
