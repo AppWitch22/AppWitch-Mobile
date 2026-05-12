@@ -1867,12 +1867,13 @@ async function syncProgrammazioneAnagrafica() {
 
     try {
       const updated = await db.dispositivi.updateRep(cod, payload);
-      if (updated.length === 0) {
+      // null = 204 (update ok, nessun body) | [{…}] = 200 ok | [] = 0 righe (RLS o codice mancante)
+      if (updated === null || (Array.isArray(updated) && updated.length > 0)) {
+        ok++;
+        if (DB[cod]) Object.assign(DB[cod], updated?.[0] || payload);
+      } else {
         err++;
         console.error('syncProg: 0 righe aggiornate per', cod, '— verificare RLS o codice mancante');
-      } else {
-        ok++;
-        if (DB[cod]) Object.assign(DB[cod], updated[0]);
       }
     } catch (e) {
       err++;

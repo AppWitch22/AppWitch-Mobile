@@ -113,13 +113,21 @@ const _dispositivi = {
     });
   },
 
-  // Come update() ma ritorna le righe aggiornate — permette di rilevare 0 righe (RLS silente).
+  // Come update() ma rileva aggiornamenti reali:
+  // - null  → 204 successo senza body (update avvenuto, PostgREST ignora return=representation)
+  // - [{…}] → 200 successo con riga restituita
+  // - []    → 0 righe aggiornate (codice non trovato o RLS silente)
   async updateRep(codice, patch) {
-    const rows = await _req(`${this._tbl()}?codice=eq.${encodeURIComponent(codice)}`, {
+    const res = await _req(`${this._tbl()}?codice=eq.${encodeURIComponent(codice)}`, {
       method: 'PATCH',
       body: patch,
-      headers: { 'Prefer': 'return=representation' }
+      headers: { 'Prefer': 'return=representation' },
+      raw: true
     });
+    if (res.status === 204) return null;
+    const txt = await res.text().catch(() => '');
+    if (!txt) return null;
+    const rows = JSON.parse(txt);
     return Array.isArray(rows) ? rows : (rows ? [rows] : []);
   },
 
