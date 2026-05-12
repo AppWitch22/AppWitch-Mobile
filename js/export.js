@@ -1271,6 +1271,8 @@ objExcel.DisplayAlerts = False
 objExcel.Caption = "AppWitch — Avvio conversione " & total & " file..."
 
 count = 0
+Dim errLog
+errLog = ""
 For Each objFile In objFolder.Files
   ext = LCase(Right(objFile.Name, 5))
   If ext = ".xlsx" Or LCase(Right(objFile.Name, 4)) = ".xls" Then
@@ -1278,14 +1280,31 @@ For Each objFile In objFolder.Files
     objExcel.StatusBar  = "Elaborazione " & (count + 1) & " di " & total & ": " & objFile.Name
     pdfPath = objFSO.BuildPath(folderPath, Left(objFile.Name, InStrRev(objFile.Name, ".") - 1) & ".pdf")
     On Error Resume Next
+    Err.Clear
     Set objWB = objExcel.Workbooks.Open(objFile.Path, False, False)
-    If Err.Number = 0 Then
+    Dim errOpen: errOpen = Err.Number
+    If errOpen <> 0 Then
+      errLog = errLog & objFile.Name & " — Open fallito (" & errOpen & ": " & Err.Description & ")" & Chr(13)
+    Else
       objWB.Save
-      Err.Clear
-      objWB.ExportAsFixedFormat 0, pdfPath, 0, True, False
+      Dim errSave: errSave = Err.Number
       objWB.Close False
-      objFSO.DeleteFile objFile.Path, True
-      count = count + 1
+      Err.Clear
+      If errSave <> 0 Then
+        errLog = errLog & objFile.Name & " — Save fallito (" & errSave & ")" & Chr(13)
+      Else
+        Set objWB = objExcel.Workbooks.Open(objFile.Path, False, True)
+        Err.Clear
+        objWB.ExportAsFixedFormat 0, pdfPath, 0, True, False
+        Dim errPdf: errPdf = Err.Number
+        objWB.Close False
+        If errPdf <> 0 Then
+          errLog = errLog & objFile.Name & " — PDF fallito (" & errPdf & ")" & Chr(13)
+        Else
+          objFSO.DeleteFile objFile.Path, True
+          count = count + 1
+        End If
+      End If
     End If
     On Error GoTo 0
   End If
@@ -1293,7 +1312,9 @@ Next
 
 objExcel.StatusBar = False
 objExcel.Quit
-MsgBox count & " file convertiti in PDF (file Excel eliminati)." & Chr(13) & Chr(13) & "Cartella: " & folderPath, 64, "Conversione completata"
+Dim msg: msg = count & " file convertiti in PDF (file Excel eliminati)." & Chr(13) & Chr(13) & "Cartella: " & folderPath
+If errLog <> "" Then msg = msg & Chr(13) & Chr(13) & "ERRORI:" & Chr(13) & errLog
+MsgBox msg, IIf(errLog <> "", 48, 64), "Conversione completata"
 `;
   const blob = new Blob([vbs], {type:'text/plain'});
   const url = URL.createObjectURL(blob);
