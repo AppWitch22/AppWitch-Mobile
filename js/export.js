@@ -1163,10 +1163,15 @@ async function exportSessioneByID(id, titolo) {
   const savedTmp = {};
   schede.forEach(s => {
     if (s.codice === '__attesi__') return;
+    const isNR = !!s.dati_vse?.non_reperibile;
+    const isNE = !!s.dati_vse?.non_eseguita;
     savedTmp[s.codice] = {
       codice: s.codice,
       ...(s.dati_vse||{}), ...(s.dati_mp||{}), ...(s.dati_vsp||{}), ...(s.dati_cq||{}),
-      vse_saved:!!s.dati_vse, mp_saved:!!s.dati_mp, vsp_saved:!!s.dati_vsp, cq_saved:!!s.dati_cq,
+      non_reperibile: isNR,
+      non_eseguita:   isNE,
+      vse_saved: !!s.dati_vse && !isNR && !isNE,
+      mp_saved:!!s.dati_mp, vsp_saved:!!s.dati_vsp, cq_saved:!!s.dati_cq,
       vsp_type:s.vsp_type||null, cq_type:s.cq_type||null,
     };
   });

@@ -911,13 +911,17 @@ async function activateSession(id, titolo, dataVerifica, utenteId = null) {
         _attesiMut(set => (s.dati_vse?.lista || []).forEach(c => set.add(c)));
         return;
       }
+      const isNR = !!s.dati_vse?.non_reperibile;
+      const isNE = !!s.dati_vse?.non_eseguita;
       const rec = {
         codice: s.codice,
         ...(s.dati_vse || {}),
         ...(s.dati_mp  || {}),
         ...(s.dati_vsp || {}),
         ...(s.dati_cq  || {}),
-        vse_saved: !!s.dati_vse,
+        non_reperibile: isNR,
+        non_eseguita:   isNE,
+        vse_saved: !!s.dati_vse && !isNR && !isNE,
         mp_saved:  !!s.dati_mp,
         vsp_saved: !!s.dati_vsp,
         cq_saved:  !!s.dati_cq,

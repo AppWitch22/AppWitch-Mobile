@@ -47,10 +47,16 @@ async function syncScheda(codice) {
   const rec = saved[codice];
   if (!rec) return;
 
+  const isNR = !!rec.non_reperibile;
+  const isNE = !!rec.non_eseguita;
+  // NR/NE codificati in dati_vse per persistenza senza migration schema
+  const datiVse = isNR ? { non_reperibile: true }
+                : isNE ? { non_eseguita:   true }
+                : rec.vse_saved ? collectVSEFromRec(rec) : null;
   const payload = {
     sessione_id: currentSessionId,
     codice:      codice,
-    dati_vse:    rec.vse_saved ? collectVSEFromRec(rec) : null,
+    dati_vse:    datiVse,
     dati_mp:     rec.mp_saved  ? collectMPFromRec(rec)  : null,
     dati_vsp:    rec.vsp_saved ? collectVSPFromRec(rec) : null,
     dati_cq:     rec.cq_saved  ? collectCQFromRec(rec)  : null,
