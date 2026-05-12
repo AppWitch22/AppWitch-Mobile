@@ -1259,6 +1259,7 @@ For Each objFile In objFolder.Files
     If Err.Number = 0 Then
       objWB.ExportAsFixedFormat 0, pdfPath, 0, True, False
       objWB.Close False
+      objFSO.DeleteFile objFile.Path, True
       count = count + 1
     End If
     On Error GoTo 0
@@ -1266,7 +1267,7 @@ For Each objFile In objFolder.Files
 Next
 
 objExcel.Quit
-MsgBox count & " file convertiti in PDF." & Chr(13) & Chr(13) & "Cartella: " & folderPath, 64, "Conversione completata"
+MsgBox count & " file convertiti in PDF (file Excel eliminati)." & Chr(13) & Chr(13) & "Cartella: " & folderPath, 64, "Conversione completata"
 `;
   const blob = new Blob([vbs], {type:'text/plain'});
   const url = URL.createObjectURL(blob);
