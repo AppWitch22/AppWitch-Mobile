@@ -1189,9 +1189,11 @@ async function _esportaCodici(codici, savedMap, dirHandle) {
   const asl = currentUser?.profile?.asl || 'ASL Benevento';
   toast(`Esportazione ${codici.length} dispositivi in corso...`, 'warn');
   let count = 0, errors = 0;
+  const total = codici.length;
   for (const cod of codici) {
     const rec = savedMap[cod], dev = DB[cod];
     if (!dev) continue;
+    toast(`Esportazione ${count + 1}/${total}: ${cod}…`, 'warn');
     const vm = VERIF_MAP[cod] || {};
     try {
       const date = rec.data || new Date().toISOString().slice(0,10);
