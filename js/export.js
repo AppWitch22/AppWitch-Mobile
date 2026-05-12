@@ -1278,8 +1278,10 @@ For Each objFile In objFolder.Files
     objExcel.StatusBar  = "Elaborazione " & (count + 1) & " di " & total & ": " & objFile.Name
     pdfPath = objFSO.BuildPath(folderPath, Left(objFile.Name, InStrRev(objFile.Name, ".") - 1) & ".pdf")
     On Error Resume Next
-    Set objWB = objExcel.Workbooks.Open(objFile.Path, False, True)
+    Set objWB = objExcel.Workbooks.Open(objFile.Path, False, False)
     If Err.Number = 0 Then
+      objWB.Save
+      Err.Clear
       objWB.ExportAsFixedFormat 0, pdfPath, 0, True, False
       objWB.Close False
       objFSO.DeleteFile objFile.Path, True
