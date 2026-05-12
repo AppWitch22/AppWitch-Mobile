@@ -1236,7 +1236,7 @@ function downloadMacroPDF() {
 ' Doppio clic per eseguire - richiede Microsoft Excel installato
 Option Explicit
 
-Dim folderPath, objFSO, objFolder, objFile, objExcel, objWB, pdfPath, count, ext
+Dim folderPath, objFSO, objFolder, objFile, objExcel, objWB, pdfPath, count, total, ext
 Dim objShell, objBrowse
 
 ' Dialogo sfoglia cartella
@@ -1251,15 +1251,31 @@ If Not objFSO.FolderExists(folderPath) Then
   WScript.Quit
 End If
 
-Set objExcel = CreateObject("Excel.Application")
-objExcel.Visible = False
-objExcel.DisplayAlerts = False
-
-count = 0
+' Conta i file da convertire
+total = 0
 Set objFolder = objFSO.GetFolder(folderPath)
 For Each objFile In objFolder.Files
   ext = LCase(Right(objFile.Name, 5))
+  If ext = ".xlsx" Or LCase(Right(objFile.Name, 4)) = ".xls" Then total = total + 1
+Next
+
+If total = 0 Then
+  MsgBox "Nessun file Excel trovato nella cartella selezionata.", 48, "Nessun file"
+  WScript.Quit
+End If
+
+Set objExcel = CreateObject("Excel.Application")
+objExcel.Visible = True
+objExcel.WindowState = -4140
+objExcel.DisplayAlerts = False
+objExcel.Caption = "AppWitch — Avvio conversione " & total & " file..."
+
+count = 0
+For Each objFile In objFolder.Files
+  ext = LCase(Right(objFile.Name, 5))
   If ext = ".xlsx" Or LCase(Right(objFile.Name, 4)) = ".xls" Then
+    objExcel.Caption = "AppWitch — Conversione " & (count + 1) & "/" & total & ": " & objFile.Name
+    objExcel.StatusBar  = "Elaborazione " & (count + 1) & " di " & total & ": " & objFile.Name
     pdfPath = objFSO.BuildPath(folderPath, Left(objFile.Name, InStrRev(objFile.Name, ".") - 1) & ".pdf")
     On Error Resume Next
     Set objWB = objExcel.Workbooks.Open(objFile.Path, False, True)
@@ -1273,6 +1289,7 @@ For Each objFile In objFolder.Files
   End If
 Next
 
+objExcel.StatusBar = False
 objExcel.Quit
 MsgBox count & " file convertiti in PDF (file Excel eliminati)." & Chr(13) & Chr(13) & "Cartella: " & folderPath, 64, "Conversione completata"
 `;
