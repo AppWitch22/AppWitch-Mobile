@@ -1281,7 +1281,7 @@ For Each objFile In objFolder.Files
     pdfPath = objFSO.BuildPath(folderPath, Left(objFile.Name, InStrRev(objFile.Name, ".") - 1) & ".pdf")
     On Error Resume Next
     Err.Clear
-    Set objWB = objExcel.Workbooks.Open(objFile.Path, False, False)
+    Set objWB = objExcel.Workbooks.Open(objFile.Path, False, False, , , , , , , , , , , , 2)
     Dim errOpen: errOpen = Err.Number
     If errOpen <> 0 Then
       errLog = errLog & objFile.Name & " — Open fallito (" & errOpen & ": " & Err.Description & ")" & Chr(13)
