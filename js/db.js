@@ -118,14 +118,16 @@ const _dispositivi = {
   // - [{…}] → 200 successo con riga restituita
   // - []    → 0 righe aggiornate (codice non trovato o RLS silente)
   async updateRep(codice, patch) {
-    const res = await _req(`${this._tbl()}?codice=eq.${encodeURIComponent(codice)}`, {
+    const tbl = this._tbl();
+    const res = await _req(`${tbl}?codice=eq.${encodeURIComponent(codice)}`, {
       method: 'PATCH',
       body: patch,
       headers: { 'Prefer': 'return=representation' },
       raw: true
     });
-    if (res.status === 204) return null;
     const txt = await res.text().catch(() => '');
+    console.debug('[updateRep]', tbl, codice, '→ HTTP', res.status, txt.substring(0, 200));
+    if (res.status === 204) return null;
     if (!txt) return null;
     const rows = JSON.parse(txt);
     return Array.isArray(rows) ? rows : (rows ? [rows] : []);
