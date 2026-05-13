@@ -386,6 +386,7 @@ body.logged-in h1,body.logged-in .subtitle{display:none}
 .arch-detail-hdr{display:flex;align-items:center;gap:8px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border);flex-wrap:wrap}
 .arch-detail-title{flex:1;font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 .arch-dl-all{background:var(--info)!important;color:#fff!important;border-color:var(--info)!important;font-weight:600!important;flex-shrink:0}
+.arch-del-sess{color:var(--ko)!important;flex-shrink:0}
 /* file row */
 .arch-file{display:flex;align-items:center;gap:10px;padding:8px 10px;border-bottom:1px solid var(--border);background:var(--bg2)}
 .arch-file:last-child{border-bottom:none}
@@ -394,6 +395,9 @@ body.logged-in h1,body.logged-in .subtitle{display:none}
 .arch-file-btns{display:flex;gap:6px;flex-shrink:0}
 .arch-files-wrap{border:1px solid var(--border);border-radius:var(--rad);overflow:hidden}
 .arch-empty{padding:20px;text-align:center;color:var(--text3);font-size:13px}
+.arch-filter-row{margin-bottom:10px}
+.arch-filter-row input{width:100%;box-sizing:border-box;font-size:14px;padding:9px 12px;border:1.5px solid var(--border2);border-radius:var(--rad);background:var(--bg3);color:var(--text);outline:none;-webkit-appearance:none}
+.arch-filter-row input:focus{border-color:var(--info)}
 .arch-user-hdr{font-size:11px;font-weight:600;color:var(--info);text-transform:uppercase;padding:6px 14px;background:var(--info-bg);border-bottom:1px solid var(--border)}
 
 /* ANAGRAFICA */

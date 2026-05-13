@@ -1326,10 +1326,12 @@ function closeArchivioModal() {
 // ── stato navigazione archivio ───────────────────────────────
 let _archGroups = new Map();
 let _archCurKey = null;
+let _archFilter = '';
 
 async function loadArchivio() {
   const el = document.getElementById('archivio-content');
   el.innerHTML = '<div class="arch-empty">Caricamento...</div>';
+  _archFilter = '';
   const isAdmin = currentUser?.profile?.role === 'admin';
   let files;
   try { files = await db.archivio.listFiles({ allUsers: isAdmin }); }
@@ -1344,10 +1346,35 @@ async function loadArchivio() {
   _renderArchivioSessions();
 }
 
+function _setArchFilter(val) {
+  _archFilter = val.toLowerCase();
+  _renderArchivioSessionsList();
+}
+
 function _renderArchivioSessions() {
   _archCurKey = null;
   const el = document.getElementById('archivio-content');
-  el.innerHTML = [..._archGroups.entries()].map(([gkey, gfiles]) => {
+  el.innerHTML = `
+    <div class="arch-filter-row">
+      <input id="arch-filter-input" type="text" placeholder="Filtra sessioni…" value="${_esc(_archFilter)}"
+        oninput="_setArchFilter(this.value)">
+    </div>
+    <div id="arch-sess-list"></div>`;
+  _renderArchivioSessionsList();
+}
+
+function _renderArchivioSessionsList() {
+  const q = _archFilter.trim();
+  const list = document.getElementById('arch-sess-list');
+  if (!list) return;
+  const entries = [..._archGroups.entries()].filter(([gkey]) =>
+    !q || gkey.toLowerCase().includes(q)
+  );
+  if (!entries.length) {
+    list.innerHTML = `<div class="arch-empty">${q ? 'Nessuna sessione trovata' : 'Nessuna sessione'}</div>`;
+    return;
+  }
+  list.innerHTML = entries.map(([gkey, gfiles]) => {
     const lastDate = gfiles.reduce((d,f)=>(f.created_at||'')>d?(f.created_at||''):d,'').slice(0,10);
     return `<div class="arch-sess-row" onclick="_openArchivioSession('${_esc(gkey)}')">
       <span class="arch-sess-icon">📁</span>
@@ -1369,7 +1396,8 @@ function _openArchivioSession(gkey) {
     <div class="arch-detail-hdr">
       <button class="btn-sm" onclick="_renderArchivioSessions()">← Sessioni</button>
       <span class="arch-detail-title">${_esc(gkey)}</span>
-      <button class="btn-sm arch-dl-all" onclick="_scaricaTuttiArchivio()">⬇ Scarica tutti</button>
+      <button class="btn-sm arch-dl-all" onclick="_scaricaTuttiArchivio()">⬇ Tutti</button>
+      <button class="btn-sm arch-del-sess" onclick="deleteArchivioSession('${_esc(gkey)}')">🗑 Sessione</button>
     </div>
     <div class="arch-files-wrap">
       ${files.map(f=>`
@@ -1433,12 +1461,28 @@ async function deleteArchivioFile(id, path) {
   try { await db.archivio.deleteFileMeta(id); }
   catch (e) { toast('Errore eliminazione meta: '+e.message,'warn'); return; }
   toast('File eliminato','ok');
-  // aggiorna la lista locale e ridisegna la sessione corrente
   if (_archCurKey) {
     const arr = _archGroups.get(_archCurKey)?.filter(f => f.id !== id);
     if (arr?.length) { _archGroups.set(_archCurKey, arr); _openArchivioSession(_archCurKey); }
     else { _archGroups.delete(_archCurKey); _renderArchivioSessions(); }
   } else { loadArchivio(); }
+}
+
+async function deleteArchivioSession(gkey) {
+  const files = _archGroups.get(gkey);
+  if (!files?.length) return;
+  if (!confirm(`Eliminare l'intera sessione "${gkey}" e tutti i suoi ${files.length} file?`)) return;
+  toast('Eliminazione in corso…', 'ok');
+  let err = 0;
+  for (const f of files) {
+    try { await db.archivio.remove(f.storage_path); } catch(e) { err++; }
+    try { await db.archivio.deleteFileMeta(f.id); } catch(e) { err++; }
+  }
+  _archGroups.delete(gkey);
+  _archCurKey = null;
+  if (err) toast(`Sessione eliminata (${err} errori)`, 'warn');
+  else toast('Sessione eliminata', 'ok');
+  _renderArchivioSessions();
 }
 
 // ── FINE ARCHIVIO CLOUD ───────────────────────────────────────
