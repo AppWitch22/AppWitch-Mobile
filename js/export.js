@@ -1327,6 +1327,8 @@ function closeArchivioModal() {
 let _archGroups = new Map();
 let _archCurKey = null;
 let _archFilter = '';
+let _archSessionFolders = new Map(); // gkey → folder_label|null
+let _archFolderNames = new Set();    // tutti i folder label distinti
 
 async function loadArchivio() {
   const el = document.getElementById('archivio-content');
@@ -1338,11 +1340,18 @@ async function loadArchivio() {
   catch (e) { el.innerHTML='<div class="arch-empty">Errore caricamento</div>'; return; }
   if (!files.length) { el.innerHTML='<div class="arch-empty">Nessun file caricato</div>'; return; }
   _archGroups = new Map();
+  _archSessionFolders = new Map();
+  _archFolderNames = new Set();
   files.forEach(f => {
     const gkey = (isAdmin ? (f.user_name||f.user_id)+' — ' : '') + f.session_folder;
     if (!_archGroups.has(gkey)) _archGroups.set(gkey, []);
     _archGroups.get(gkey).push(f);
   });
+  for (const [gkey, gfiles] of _archGroups) {
+    const fl = gfiles[0]?.folder_label || null;
+    _archSessionFolders.set(gkey, fl);
+    if (fl) _archFolderNames.add(fl);
+  }
   _renderArchivioSessions();
 }
 
@@ -1374,30 +1383,55 @@ function _renderArchivioSessionsList() {
     list.innerHTML = `<div class="arch-empty">${q ? 'Nessuna sessione trovata' : 'Nessuna sessione'}</div>`;
     return;
   }
-  list.innerHTML = entries.map(([gkey, gfiles]) => {
-    const lastDate = gfiles.reduce((d,f)=>(f.created_at||'')>d?(f.created_at||''):d,'').slice(0,10);
-    return `<div class="arch-sess-row" onclick="_openArchivioSession('${_esc(gkey)}')">
-      <span class="arch-sess-icon">📁</span>
-      <div class="arch-sess-info">
-        <div class="arch-sess-name">${_esc(gkey)}</div>
-        <div class="arch-sess-meta">${gfiles.length} file · ${lastDate}</div>
+  // raggruppa per cartella
+  const byFolder = new Map();
+  const noFolder = [];
+  for (const entry of entries) {
+    const fl = _archSessionFolders.get(entry[0]) || null;
+    if (fl) { if (!byFolder.has(fl)) byFolder.set(fl, []); byFolder.get(fl).push(entry); }
+    else noFolder.push(entry);
+  }
+  let html = '';
+  for (const [fl, flEntries] of byFolder) {
+    html += `<div class="arch-folder-grp">
+      <div class="arch-folder-hdr">
+        <span class="arch-folder-icon">📂</span>
+        <span class="arch-folder-name">${_esc(fl)}</span>
+        <button class="btn-sm arch-folder-act" onclick="event.stopPropagation();renameArchivioFolder('${_esc(fl)}')">✏️</button>
+        <button class="btn-sm arch-folder-act arch-folder-del" onclick="event.stopPropagation();removeArchivioFolder('${_esc(fl)}')">✕</button>
       </div>
-      <span class="arch-sess-chevron">›</span>
+      ${flEntries.map(([gkey,gfiles])=>_archSessRowHtml(gkey,gfiles,true)).join('')}
     </div>`;
-  }).join('');
+  }
+  html += noFolder.map(([gkey,gfiles])=>_archSessRowHtml(gkey,gfiles,false)).join('');
+  list.innerHTML = html;
+}
+
+function _archSessRowHtml(gkey, gfiles, indented) {
+  const lastDate = gfiles.reduce((d,f)=>(f.created_at||'')>d?(f.created_at||''):d,'').slice(0,10);
+  return `<div class="arch-sess-row${indented?' arch-sess-indented':''}" onclick="_openArchivioSession('${_esc(gkey)}')">
+    <span class="arch-sess-icon">📁</span>
+    <div class="arch-sess-info">
+      <div class="arch-sess-name">${_esc(gkey)}</div>
+      <div class="arch-sess-meta">${gfiles.length} file · ${lastDate}</div>
+    </div>
+    <span class="arch-sess-chevron">›</span>
+  </div>`;
 }
 
 function _openArchivioSession(gkey) {
   _archCurKey = gkey;
   const files = _archGroups.get(gkey);
   if (!files) return;
+  const fl = _archSessionFolders.get(gkey) || null;
   const el = document.getElementById('archivio-content');
   el.innerHTML = `
     <div class="arch-detail-hdr">
       <button class="btn-sm" onclick="_renderArchivioSessions()">← Sessioni</button>
       <span class="arch-detail-title">${_esc(gkey)}</span>
       <button class="btn-sm arch-dl-all" onclick="_scaricaTuttiArchivio()">⬇ Tutti</button>
-      <button class="btn-sm arch-del-sess" onclick="deleteArchivioSession('${_esc(gkey)}')">🗑 Sessione</button>
+      <button class="btn-sm arch-del-sess" onclick="deleteArchivioSession('${_esc(gkey)}')">🗑</button>
+      <button class="btn-sm arch-folder-tag${fl?' arch-folder-tag--set':''}" onclick="_showFolderPicker('${_esc(gkey)}')">📂${fl?' '+_esc(fl):''}</button>
     </div>
     <div class="arch-files-wrap">
       ${files.map(f=>`
@@ -1410,6 +1444,83 @@ function _openArchivioSession(gkey) {
           </div>
         </div>`).join('')}
     </div>`;
+}
+
+function _showFolderPicker(gkey) {
+  const currentFl = _archSessionFolders.get(gkey) || null;
+  const folders = [..._archFolderNames].sort();
+  const el = document.getElementById('archivio-content');
+  el.innerHTML = `
+    <div class="arch-detail-hdr">
+      <button class="btn-sm" onclick="_openArchivioSession('${_esc(gkey)}')">← Indietro</button>
+      <span class="arch-detail-title">Sposta in cartella</span>
+    </div>
+    <div class="arch-folder-picker">
+      ${folders.map(fl=>`
+        <div class="arch-folder-pick-row${fl===currentFl?' arch-folder-pick-active':''}"
+          onclick="_assignToFolder('${_esc(gkey)}','${_esc(fl)}')">
+          <span>📂 ${_esc(fl)}</span>
+          ${fl===currentFl?'<span class="arch-pick-check">✓</span>':''}
+        </div>`).join('')}
+      <div class="arch-folder-pick-row arch-folder-pick-new" onclick="_newFolderForSession('${_esc(gkey)}')">
+        <span>➕ Nuova cartella…</span>
+      </div>
+      ${currentFl?`<div class="arch-folder-pick-row arch-folder-pick-remove" onclick="_assignToFolder('${_esc(gkey)}',null)">
+        <span>✕ Rimuovi da cartella</span>
+      </div>`:''}
+    </div>`;
+}
+
+function _newFolderForSession(gkey) {
+  const name = prompt('Nome nuova cartella:');
+  if (!name?.trim()) return;
+  _assignToFolder(gkey, name.trim());
+}
+
+async function _assignToFolder(gkey, folderLabel) {
+  const files = _archGroups.get(gkey);
+  if (!files?.length) return;
+  const { session_folder, user_id } = files[0];
+  try { await db.archivio.setFolderLabel(session_folder, user_id, folderLabel); }
+  catch(e) { toast('Errore: '+e.message, 'warn'); return; }
+  const old = _archSessionFolders.get(gkey);
+  _archSessionFolders.set(gkey, folderLabel || null);
+  if (folderLabel) _archFolderNames.add(folderLabel);
+  if (old && ![..._archSessionFolders.values()].includes(old)) _archFolderNames.delete(old);
+  toast(folderLabel ? `Spostata in "${folderLabel}"` : 'Rimossa dalla cartella', 'ok');
+  _openArchivioSession(gkey);
+}
+
+async function renameArchivioFolder(fl) {
+  const newFl = prompt(`Rinomina cartella "${fl}":`, fl)?.trim();
+  if (!newFl || newFl === fl) return;
+  const affected = [..._archSessionFolders.entries()].filter(([,v])=>v===fl);
+  for (const [gkey] of affected) {
+    const files = _archGroups.get(gkey);
+    if (!files?.length) continue;
+    try { await db.archivio.setFolderLabel(files[0].session_folder, files[0].user_id, newFl); }
+    catch(e) { toast('Errore rinomina: '+e.message,'warn'); return; }
+    _archSessionFolders.set(gkey, newFl);
+  }
+  _archFolderNames.delete(fl);
+  _archFolderNames.add(newFl);
+  toast(`Cartella rinominata in "${newFl}"`, 'ok');
+  _renderArchivioSessionsList();
+}
+
+async function removeArchivioFolder(fl) {
+  const affected = [..._archSessionFolders.entries()].filter(([,v])=>v===fl);
+  if (!confirm(`Rimuovere la cartella "${fl}"? Le ${affected.length} sessioni verranno de-raggruppate.`)) return;
+  for (const [gkey] of affected) {
+    const files = _archGroups.get(gkey);
+    if (!files?.length) continue;
+    try { await db.archivio.setFolderLabel(files[0].session_folder, files[0].user_id, null); }
+    catch(e) { toast('Errore: '+e.message,'warn'); return; }
+    _archSessionFolders.set(gkey, null);
+  }
+  _archFolderNames.delete(fl);
+  toast(`Cartella "${fl}" rimossa`, 'ok');
+  _renderArchivioSessionsList();
 }
 
 async function _scaricaTuttiArchivio() {
@@ -1478,7 +1589,10 @@ async function deleteArchivioSession(gkey) {
     try { await db.archivio.remove(f.storage_path); } catch(e) { err++; }
     try { await db.archivio.deleteFileMeta(f.id); } catch(e) { err++; }
   }
+  const old = _archSessionFolders.get(gkey);
   _archGroups.delete(gkey);
+  _archSessionFolders.delete(gkey);
+  if (old && ![..._archSessionFolders.values()].includes(old)) _archFolderNames.delete(old);
   _archCurKey = null;
   if (err) toast(`Sessione eliminata (${err} errori)`, 'warn');
   else toast('Sessione eliminata', 'ok');

@@ -398,6 +398,24 @@ body.logged-in h1,body.logged-in .subtitle{display:none}
 .arch-filter-row{margin-bottom:10px}
 .arch-filter-row input{width:100%;box-sizing:border-box;font-size:14px;padding:9px 12px;border:1.5px solid var(--border2);border-radius:var(--rad);background:var(--bg3);color:var(--text);outline:none;-webkit-appearance:none}
 .arch-filter-row input:focus{border-color:var(--info)}
+/* cartelle */
+.arch-folder-grp{margin-bottom:8px}
+.arch-folder-hdr{display:flex;align-items:center;gap:6px;padding:6px 10px;background:var(--info-bg);border:1px solid var(--border);border-radius:var(--rad);margin-bottom:4px}
+.arch-folder-icon{font-size:15px;flex-shrink:0}
+.arch-folder-name{flex:1;font-size:12px;font-weight:600;color:var(--info);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.arch-folder-act{opacity:.7;flex-shrink:0;padding:2px 6px!important}
+.arch-folder-del{color:var(--ko)!important}
+.arch-sess-indented{margin-left:14px;border-left:3px solid var(--info)!important}
+.arch-folder-tag{flex-shrink:0;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.arch-folder-tag--set{background:var(--info-bg)!important;color:var(--info)!important;border-color:var(--info)!important}
+.arch-folder-picker{border:1px solid var(--border);border-radius:var(--rad);overflow:hidden;margin-top:4px}
+.arch-folder-pick-row{display:flex;align-items:center;justify-content:space-between;padding:13px 14px;border-bottom:1px solid var(--border);cursor:pointer;font-size:13px;color:var(--text);background:var(--bg2);transition:background .1s;-webkit-tap-highlight-color:transparent}
+.arch-folder-pick-row:last-child{border-bottom:none}
+.arch-folder-pick-row:hover{background:var(--bg3)}
+.arch-folder-pick-active{background:var(--info-bg)!important;color:var(--info)!important;font-weight:600}
+.arch-pick-check{color:var(--ok);font-weight:700;font-size:15px}
+.arch-folder-pick-new{color:var(--info)}
+.arch-folder-pick-remove{color:var(--ko)}
 .arch-user-hdr{font-size:11px;font-weight:600;color:var(--info);text-transform:uppercase;padding:6px 14px;background:var(--info-bg);border-bottom:1px solid var(--border)}
 
 /* ANAGRAFICA */

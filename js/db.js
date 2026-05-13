@@ -499,6 +499,13 @@ const _archivio = {
     return await _req(`archivio_files?id=eq.${encodeURIComponent(id)}`, { method: 'DELETE' });
   },
 
+  async setFolderLabel(sessionFolder, userId, folderLabel) {
+    return await _req(
+      `archivio_files?session_folder=eq.${encodeURIComponent(sessionFolder)}&user_id=eq.${encodeURIComponent(userId)}`,
+      { method: 'PATCH', body: { folder_label: folderLabel || null }, headers: { 'Prefer': 'return=minimal' } }
+    );
+  },
+
   // Storage bucket "archivio"
   /** @param {string} path
    * @param {Blob} blob
