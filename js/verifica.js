@@ -955,11 +955,11 @@ const CQ_PROVA={
   ],
   'CQ_ECG':[
     {sec:'Prova funzionale ECG — Impostato / Indicato / Limite',fields:[
-      {id:'cq_ecg_v1i',l:'M1 Impostato'},{id:'cq_ecg_v1ind',l:'M1 Indicato'},{id:'cq_ecg_v1lim',l:'M1 Limite'},
-      {id:'cq_ecg_v2i',l:'M2 Impostato'},{id:'cq_ecg_v2ind',l:'M2 Indicato'},{id:'cq_ecg_v2lim',l:'M2 Limite'},
-      {id:'cq_ecg_v3i',l:'M3 Impostato'},{id:'cq_ecg_v3ind',l:'M3 Indicato'},{id:'cq_ecg_v3lim',l:'M3 Limite'},
-      {id:'cq_ecg_v4i',l:'M4 Impostato'},{id:'cq_ecg_v4ind',l:'M4 Indicato'},{id:'cq_ecg_v4lim',l:'M4 Limite'},
-      {id:'cq_ecg_v5i',l:'M5 Impostato'},{id:'cq_ecg_v5ind',l:'M5 Indicato'},{id:'cq_ecg_v5lim',l:'M5 Limite'},
+      {id:'cq_ecg_v1i',l:'M1 Impostato'},{id:'cq_ecg_v1ind',l:'M1 Indicato'},{id:'cq_ecg_v1lim',l:'M1 Limite'},{id:'cq_ecg_v1esito',l:'M1 Esito',type:'rb',opts:['OK','KO']},
+      {id:'cq_ecg_v2i',l:'M2 Impostato'},{id:'cq_ecg_v2ind',l:'M2 Indicato'},{id:'cq_ecg_v2lim',l:'M2 Limite'},{id:'cq_ecg_v2esito',l:'M2 Esito',type:'rb',opts:['OK','KO']},
+      {id:'cq_ecg_v3i',l:'M3 Impostato'},{id:'cq_ecg_v3ind',l:'M3 Indicato'},{id:'cq_ecg_v3lim',l:'M3 Limite'},{id:'cq_ecg_v3esito',l:'M3 Esito',type:'rb',opts:['OK','KO']},
+      {id:'cq_ecg_v4i',l:'M4 Impostato'},{id:'cq_ecg_v4ind',l:'M4 Indicato'},{id:'cq_ecg_v4lim',l:'M4 Limite'},{id:'cq_ecg_v4esito',l:'M4 Esito',type:'rb',opts:['OK','KO']},
+      {id:'cq_ecg_v5i',l:'M5 Impostato'},{id:'cq_ecg_v5ind',l:'M5 Indicato'},{id:'cq_ecg_v5lim',l:'M5 Limite'},{id:'cq_ecg_v5esito',l:'M5 Esito',type:'rb',opts:['OK','KO']},
     ]},
   ],
   'CQ_CEN':[
@@ -1238,17 +1238,22 @@ function buildCQPoints(type){
           </table>
         </div></div>`;
       } else if(sec.sec.includes('/ Indicato /') || sec.sec.includes('/ Indicato /')){
-        // Tabella generica 3 colonne: Impostato / Indicato / Limite
+        const hasEsito=sec.fields.some(f=>f.type==='rb');
+        const stride=hasEsito?4:3;
         const inp=(id)=>`<input type="text" id="${id}" inputmode="decimal" style="width:100%;box-sizing:border-box;text-align:center;font-size:13px;border-radius:5px;padding:4px 2px;border:1.5px solid var(--border2)">`;
+        const esito=(f)=>`<input type="hidden" id="${f.id}"><div class="rg" id="rg-${f.id}" style="flex-wrap:nowrap;gap:3px;justify-content:center"><div class="rb ok" data-v="OK" style="font-size:11px;padding:3px 6px" onclick="pick(this);document.getElementById('${f.id}').value='OK'">OK</div><div class="rb ko" data-v="KO" style="font-size:11px;padding:3px 6px" onclick="pick(this);document.getElementById('${f.id}').value='KO'">KO</div></div>`;
         const thH=`text-align:center;font-size:12px;font-weight:700;color:#1a3a6b;padding:4px 8px 8px`;
         const tdL=`padding:4px 4px 4px 0;font-size:13px;white-space:nowrap;text-align:right;width:20%`;
         const tdC=`padding:4px 6px`;
-        const rows=[];for(let i=0;i<sec.fields.length;i+=3)rows.push(sec.fields.slice(i,i+3));
+        const rows=[];for(let i=0;i<sec.fields.length;i+=stride)rows.push(sec.fields.slice(i,i+stride));
+        const colgroup=hasEsito?`<colgroup><col style="width:15%"><col><col><col><col style="width:18%"></colgroup>`:`<colgroup><col style="width:18%"><col><col><col></colgroup>`;
+        const thead=hasEsito?`<tr><th style="padding:0"></th><th style="${thH}">Impostato</th><th style="${thH}">Indicato</th><th style="${thH}">Limite</th><th style="${thH}">Esito</th></tr>`:`<tr><th style="padding:0"></th><th style="${thH}">Impostato</th><th style="${thH}">Indicato</th><th style="${thH}">Limite</th></tr>`;
+        const tbody=hasEsito?rows.map(([fi,find,flim,fe])=>`<tr><td style="${tdL}">${fi.l.split(' ')[0]}</td><td style="${tdC}">${inp(fi.id)}</td><td style="${tdC}">${inp(find.id)}</td><td style="${tdC}">${inp(flim.id)}</td><td style="${tdC}">${esito(fe)}</td></tr>`).join(''):rows.map(([fi,find,flim])=>`<tr><td style="${tdL}">${fi.l.split(' ')[0]}</td><td style="${tdC}">${inp(fi.id)}</td><td style="${tdC}">${inp(find.id)}</td><td style="${tdC}">${inp(flim.id)}</td></tr>`).join('');
         html+=`<div class="sec" style="margin-bottom:10px"><div class="sec-hdr">${sec.sec}</div><div style="padding:0 14px 12px">
           <table style="border-collapse:collapse;width:100%">
-            <colgroup><col style="width:18%"><col><col><col></colgroup>
-            <thead><tr><th style="padding:0"></th><th style="${thH}">Impostato</th><th style="${thH}">Indicato</th><th style="${thH}">Limite</th></tr></thead>
-            <tbody>${rows.map(([fi,find,flim])=>`<tr><td style="${tdL}">${fi.l.split(' ')[0]}</td><td style="${tdC}">${inp(fi.id)}</td><td style="${tdC}">${inp(find.id)}</td><td style="${tdC}">${inp(flim.id)}</td></tr>`).join('')}</tbody>
+            ${colgroup}
+            <thead>${thead}</thead>
+            <tbody>${tbody}</tbody>
           </table>
         </div></div>`;
       } else if(sec.sec.includes('Impostato / Misurato')||sec.sec.includes('Impostata / Misurata')){
