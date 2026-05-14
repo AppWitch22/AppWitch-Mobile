@@ -887,6 +887,7 @@ let tableSelected   = new Set();
 let tableViews      = [];     // [{name, hidden:[...], order:[...]}]
 let tableColOrder   = [];     // [] = ordine default; altrimenti array di colKey
 let tableSearchQ    = '';
+let _tblSessionSet  = null;   // Se non null, filtra la tabella ai soli codici della sessione attiva
 let _tblDragKey     = null;   // chiave colonna in drag
 // virtual scroll
 const TBL_ROW_H   = 28;      // px per riga — deve corrispondere al CSS
@@ -955,6 +956,7 @@ function _tblFilteredRows() {
   const q = tableSearchQ.toLowerCase();
   const cols = _getTblCols();
   return tableData.filter(row => {
+    if (_tblSessionSet && !_tblSessionSet.has(row.codice)) return false;
     if (!showArchiviati && (row.presenze_effettive||'').toLowerCase() === 'archiviato') return false;
     if (q && !cols.some(c => (row[c.k]||'').toLowerCase().includes(q))) return false;
     for (const [k, vals] of Object.entries(tableColFilters)) {
@@ -979,10 +981,13 @@ function renderTableView() {
   document.getElementById('btn-crea-sess-tbl').disabled = selCount === 0;
   document.getElementById('tbl-row-count').textContent = `${rows.length} dispositivi`;
 
-  // bottone clear filtri
-  const anyFilter = Object.values(tableColFilters).some(v => v?.size > 0);
+  // bottone clear filtri (include il filtro sessione)
+  const anyFilter = Object.values(tableColFilters).some(v => v?.size > 0) || _tblSessionSet !== null;
   const clearBtn = document.getElementById('tbl-clear-filters');
-  if (clearBtn) clearBtn.style.display = anyFilter ? 'inline-block' : 'none';
+  if (clearBtn) {
+    clearBtn.style.display = anyFilter ? 'inline-block' : 'none';
+    clearBtn.textContent = _tblSessionSet !== null ? '✕ Mostra tutti' : '✕ Rimuovi filtri';
+  }
   // bottone aggiornamento massivo
   const amBtn = document.getElementById('btn-agg-massivo');
   if (amBtn && amBtn.style.display !== 'none') {
@@ -1261,12 +1266,14 @@ function tblFpClear(k) {
 
 function tblClearAllFilters() {
   tableColFilters = {};
+  _tblSessionSet  = null;
   renderTableView();
 }
 
 function resetTableState() {
   tableData       = null;
   tableColFilters = {};
+  _tblSessionSet  = null;
   tableSortCol    = 'codice';
   tableSortDir    = 1;
   tableHiddenCols = new Set();
@@ -1435,10 +1442,11 @@ async function caricaSessioneInTabella() {
   const codici = new Set([...attesiSet(), ...Object.keys(saved)]);
   if (!codici.size) { toast('La sessione non contiene dispositivi', 'warn'); return; }
   await openTabella();
-  tableSelected = new Set([...codici].filter(c => DB[c]));
+  tableSelected   = new Set([...codici].filter(c => DB[c]));
+  _tblSessionSet  = new Set(tableSelected);
   tableColFilters = {};
   tableSearchQ    = '';
-  const _tblSrch = document.getElementById('tbl-search');
+  const _tblSrch  = document.getElementById('tbl-search');
   if (_tblSrch) _tblSrch.value = '';
   renderTableView();
   sbNav('tabella');
