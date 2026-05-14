@@ -1436,6 +1436,10 @@ async function caricaSessioneInTabella() {
   if (!codici.size) { toast('La sessione non contiene dispositivi', 'warn'); return; }
   await openTabella();
   tableSelected = new Set([...codici].filter(c => DB[c]));
+  tableColFilters = {};
+  tableSearchQ    = '';
+  const _tblSrch = document.getElementById('tbl-search');
+  if (_tblSrch) _tblSrch.value = '';
   renderTableView();
   sbNav('tabella');
   toast(`${tableSelected.size} dispositivi caricati in tabella`, 'ok');
