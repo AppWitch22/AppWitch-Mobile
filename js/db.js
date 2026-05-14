@@ -496,12 +496,13 @@ const _archivio = {
   },
 
   async deleteFileMeta(id) {
+    // return=representation → PostgREST restituisce 200+[riga] se cancellato, 204 (null) se 0 righe
     const deleted = await _req(
       `archivio_files?id=eq.${encodeURIComponent(id)}`,
       { method: 'DELETE', headers: { 'Prefer': 'return=representation' } }
     );
-    // PostgREST ritorna 200+[] se RLS blocca silenziosamente — lo trattiamo come errore
-    if (Array.isArray(deleted) && deleted.length === 0)
+    // null = 204 = nessuna riga eliminata (RLS silente o id non trovato)
+    if (!deleted || (Array.isArray(deleted) && deleted.length === 0))
       throw new DbError('Record non eliminato (RLS o id non trovato)', { status: 0 });
     return deleted;
   },
