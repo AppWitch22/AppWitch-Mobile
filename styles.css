@@ -330,7 +330,7 @@ body.logged-in h1,body.logged-in .subtitle{display:none}
   padding:13px 20px;
   font-size:15px;font-weight:600;
   max-width:90vw;white-space:normal;word-break:break-word;text-align:center;
-  display:none;z-index:9999;
+  display:none;z-index:20000;
   box-shadow:0 6px 24px rgba(0,0,0,.28);
   cursor:pointer;
   line-height:1.4;
