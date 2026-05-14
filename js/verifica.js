@@ -425,9 +425,11 @@ function updateTabIndicators(){
   const tVse=document.getElementById('tab-vse');
   const tMp=document.getElementById('tab-mp');
   const tVsp=document.getElementById('tab-vsp');
+  const tCq=document.getElementById('tab-cq');
   if(tVse)tVse.classList.toggle('saved-tab',!!(s&&s.vse_saved));
   if(tMp)tMp.classList.toggle('saved-tab',!!(s&&s.mp_saved));
   if(tVsp)tVsp.classList.toggle('saved-tab',!!(s&&s.vsp_saved));
+  if(tCq)tCq.classList.toggle('saved-tab',!!(s&&s.cq_saved));
 }
 
 
