@@ -1584,17 +1584,25 @@ async function deleteArchivioSession(gkey) {
   if (!files?.length) return;
   if (!confirm(`Eliminare l'intera sessione "${gkey}" e tutti i suoi ${files.length} file?`)) return;
   toast('Eliminazione in corso…', 'ok');
-  let err = 0;
+  let storageErr = 0, metaErr = 0;
   for (const f of files) {
-    try { await db.archivio.remove(f.storage_path); } catch(e) { err++; }
-    try { await db.archivio.deleteFileMeta(f.id); } catch(e) { err++; }
+    try { await db.archivio.remove(f.storage_path); }
+    catch(e) { storageErr++; console.error('[archivio] storage remove failed', f.storage_path, e); }
+    try { await db.archivio.deleteFileMeta(f.id); }
+    catch(e) { metaErr++; console.error('[archivio] deleteFileMeta failed', f.id, e); }
+  }
+  if (metaErr > 0) {
+    // la cancellazione DB non è riuscita (probabile RLS) — ricarica da Supabase
+    toast(`Errore: ${metaErr} record non eliminati dal DB. Verifica le policy RLS.`, 'warn');
+    await loadArchivio();
+    return;
   }
   const old = _archSessionFolders.get(gkey);
   _archGroups.delete(gkey);
   _archSessionFolders.delete(gkey);
   if (old && ![..._archSessionFolders.values()].includes(old)) _archFolderNames.delete(old);
   _archCurKey = null;
-  if (err) toast(`Sessione eliminata (${err} errori)`, 'warn');
+  if (storageErr) toast(`Sessione eliminata (${storageErr} file storage non rimossi)`, 'warn');
   else toast('Sessione eliminata', 'ok');
   _renderArchivioSessions();
 }

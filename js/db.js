@@ -54,7 +54,7 @@ async function _req(path, { method = 'GET', body, headers, raw = false } = {}) {
     throw new DbError(`HTTP ${res.status}`, { status: res.status, code, body: txt });
   }
   if (raw) return res;
-  if (method === 'DELETE' || res.status === 204) return null;
+  if (res.status === 204) return null;
   const txt = await res.text();
   return txt ? JSON.parse(txt) : null;
 }
@@ -496,7 +496,14 @@ const _archivio = {
   },
 
   async deleteFileMeta(id) {
-    return await _req(`archivio_files?id=eq.${encodeURIComponent(id)}`, { method: 'DELETE' });
+    const deleted = await _req(
+      `archivio_files?id=eq.${encodeURIComponent(id)}`,
+      { method: 'DELETE', headers: { 'Prefer': 'return=representation' } }
+    );
+    // PostgREST ritorna 200+[] se RLS blocca silenziosamente — lo trattiamo come errore
+    if (Array.isArray(deleted) && deleted.length === 0)
+      throw new DbError('Record non eliminato (RLS o id non trovato)', { status: 0 });
+    return deleted;
   },
 
   async setFolderLabel(sessionFolder, userId, folderLabel) {
