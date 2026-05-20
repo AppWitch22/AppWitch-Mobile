@@ -627,13 +627,31 @@ function _fillCQSheet(xml,rec,dev,asl){
     xml=_si(xml,'T39',rec.cq_ans_esito==='KO'?'X':'');
   }
   else if(tipo==='CQ_MON'){
-    for(let i=1;i<=5;i++){s('A'+(29+i),rec['cq_mon_e'+i+'i']||'');s('G'+(29+i),rec['cq_mon_e'+i+'ind']||'');s('M'+(29+i),rec['cq_mon_e'+i+'lim']||'');}
-    // SPO2: s1-s3 = % (A/D/G), s4-s6 = bpm (K/N/Q) su righe 41-43
+    // ECG: righe 30-34, esito OK→S, KO→T
+    for(let i=1;i<=5;i++){
+      s('A'+(29+i),rec['cq_mon_e'+i+'i']||'');s('G'+(29+i),rec['cq_mon_e'+i+'ind']||'');s('M'+(29+i),rec['cq_mon_e'+i+'lim']||'');
+      const ev=rec['cq_mon_e'+i+'esito']||'';
+      xml=_patchCell(xml,'S'+(29+i),ev==='OK'?'X':'');
+      xml=_patchCell(xml,'T'+(29+i),ev==='KO'?'X':'');
+    }
+    // SPO2: s1-s3=% (A/D/G + esito I/J), s4-s6=bpm (K/N/Q + esito S/T), righe 41-43
     for(let i=0;i<3;i++){
       xml=_patchCell(xml,'A'+(41+i),rec['cq_mon_s'+(i+1)+'i']||''); xml=_patchCell(xml,'D'+(41+i),rec['cq_mon_s'+(i+1)+'ind']||''); xml=_patchCell(xml,'G'+(41+i),rec['cq_mon_s'+(i+1)+'lim']||'');
+      const se1=rec['cq_mon_s'+(i+1)+'esito']||'';
+      xml=_patchCell(xml,'I'+(41+i),se1==='OK'?'X':'');
+      xml=_patchCell(xml,'J'+(41+i),se1==='KO'?'X':'');
       xml=_patchCell(xml,'K'+(41+i),rec['cq_mon_s'+(i+4)+'i']||''); xml=_patchCell(xml,'N'+(41+i),rec['cq_mon_s'+(i+4)+'ind']||''); xml=_patchCell(xml,'Q'+(41+i),rec['cq_mon_s'+(i+4)+'lim']||'');
+      const se4=rec['cq_mon_s'+(i+4)+'esito']||'';
+      xml=_patchCell(xml,'S'+(41+i),se4==='OK'?'X':'');
+      xml=_patchCell(xml,'T'+(41+i),se4==='KO'?'X':'');
     }
-    for(let i=1;i<=3;i++){s('A'+(69+i),rec['cq_mon_n'+i+'i']||'');s('G'+(69+i),rec['cq_mon_n'+i+'ind']||'');s('M'+(69+i),rec['cq_mon_n'+i+'lim']||'');}
+    // NIBP: righe 70-72, esito OK→S, KO→T
+    for(let i=1;i<=3;i++){
+      s('A'+(69+i),rec['cq_mon_n'+i+'i']||'');s('G'+(69+i),rec['cq_mon_n'+i+'ind']||'');s('M'+(69+i),rec['cq_mon_n'+i+'lim']||'');
+      const nv=rec['cq_mon_n'+i+'esito']||'';
+      xml=_patchCell(xml,'S'+(69+i),nv==='OK'?'X':'');
+      xml=_patchCell(xml,'T'+(69+i),nv==='KO'?'X':'');
+    }
   }
   else if(tipo==='CQ_FBI'){
     for(let i=1;i<=4;i++){s('A'+(23+i),rec['cq_fbi_r'+i+'label']||'');s('D'+(23+i),rec['cq_fbi_r'+i+'i']||'');s('G'+(23+i),rec['cq_fbi_r'+i+'ind']||'');s('J'+(23+i),rec['cq_fbi_r'+i+'it']||'');s('M'+(23+i),rec['cq_fbi_r'+i+'m']||'');s('Q'+(23+i),rec['cq_fbi_r'+i+'l']||'');}
