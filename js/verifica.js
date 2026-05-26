@@ -1411,7 +1411,9 @@ function fillVSEPreset(cod, skipNonEmpty=false){
     const e=document.getElementById(id); if(!e||!v) return;
     if(e.tagName!=='SELECT'){e.value=v!=null?v:'';return;}
     const vl=String(v).toLowerCase().trim();
-    for(const o of e.options){if(o.value===v||o.value.toLowerCase()===vl||o.text.toLowerCase()===vl){e.value=o.value;return;}}
+    let matched=false;
+    for(let i=0;i<e.options.length;i++){const o=e.options[i];if(o.value===v||o.value.toLowerCase()===vl||o.text.toLowerCase()===vl){e.value=o.value;matched=true;break;}}
+    console.log('[svSel] '+id+': v='+JSON.stringify(v)+' matched='+matched+' result='+gv(id));
   };
   // Input fields
   const inputs=['ten','frq','pot','mar','fud','fur','spi','msp','pdc','nag','tms','cor','trm','pnm','pim','pbm','ibm','pcm','icm','mot','str','nrs','ver','vrc','sct'];
