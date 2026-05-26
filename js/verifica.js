@@ -1405,13 +1405,20 @@ function fillVSEPreset(cod, skipNonEmpty=false){
   if(!PRESETS||!PRESETS['PRESET_VSE']) return;
   const p=PRESETS['PRESET_VSE'][cod];
   if(!p) return;
+  // Per SELECT: prova match esatto sul value, poi case-insensitive sul testo dell'opzione
+  const svSel=(id,v)=>{
+    const e=document.getElementById(id); if(!e||!v) return;
+    if(e.tagName!=='SELECT'){e.value=v!=null?v:'';return;}
+    const vl=String(v).toLowerCase().trim();
+    for(const o of e.options){if(o.value===v||o.value.toLowerCase()===vl||o.text.toLowerCase()===vl){e.value=o.value;return;}}
+  };
   // Input fields
   const inputs=['ten','frq','pot','mar','fud','fur','spi','msp','pdc','nag','tms','cor','trm','pnm','pim','pbm','ibm','pcm','icm','mot','str','nrs','ver','vrc','sct'];
   inputs.forEach(f=>{
     if(!p[f]) return;
     if(skipNonEmpty && gv('f-'+f)) return;
     const v = f==='sct' ? p[f].toString().split(' ')[0] : p[f];
-    sv('f-'+f, v);
+    svSel('f-'+f, v);
   });
   // Radio button fields
   const radios=['tdp','fdp','pdp','cls','cdp','fnz','def','smo','cav','icv','isp','int','icn','prc','icd','mus','mse','clm','vt','vd'];
