@@ -1404,6 +1404,7 @@ function fillMPPreset(cod){
 function fillVSEPreset(cod, skipNonEmpty=false){
   if(!PRESETS||!PRESETS['PRESET_VSE']) return;
   const p=PRESETS['PRESET_VSE'][cod];
+  console.log('[fillVSEPreset] cod='+cod+' found='+(!!p)+' skipNonEmpty='+skipNonEmpty, p ? {fud:p.fud, fur:p.fur, spi:p.spi} : null);
   if(!p) return;
   // Per SELECT: prova match esatto sul value, poi case-insensitive sul testo dell'opzione
   const svSel=(id,v)=>{
