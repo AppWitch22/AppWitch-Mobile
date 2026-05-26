@@ -162,7 +162,18 @@ function fillMPHeader(d){
   document.getElementById('mp-tecnico').value=d.ver||'';
 }
 
-const sv=(id,v)=>{const e=document.getElementById(id);if(e)e.value=v!=null?v:'';};
+const sv=(id,v)=>{
+  const e=document.getElementById(id); if(!e) return;
+  const val=v!=null?String(v):'';
+  if(e.tagName==='SELECT'&&val){
+    // 1) exact value match
+    for(let i=0;i<e.options.length;i++){if(e.options[i].value===val){e.value=val;return;}}
+    // 2) case-insensitive value or text match (handles "Fusibili interni"→"Interni", "Schuko"↔"Shuko", ecc.)
+    const vl=val.toLowerCase();
+    for(let i=0;i<e.options.length;i++){const o=e.options[i];if(o.value.toLowerCase()===vl||o.text.toLowerCase()===vl){e.value=o.value;return;}}
+  }
+  e.value=val;
+};
 const sr=(g,v)=>{document.querySelectorAll('#'+g+' .rb').forEach(b=>b.classList.toggle('sel',b.dataset.v===v));};
 const gr=(g)=>{const s=document.querySelector('#'+g+' .rb.sel');return s?s.dataset.v:'';};
 const gv=(id)=>{const e=document.getElementById(id);return e?e.value:'';};
@@ -1404,24 +1415,14 @@ function fillMPPreset(cod){
 function fillVSEPreset(cod, skipNonEmpty=false){
   if(!PRESETS||!PRESETS['PRESET_VSE']) return;
   const p=PRESETS['PRESET_VSE'][cod];
-  console.log('[fillVSEPreset] cod='+cod+' found='+(!!p)+' skipNonEmpty='+skipNonEmpty, p ? {fud:p.fud, fur:p.fur, spi:p.spi} : null);
   if(!p) return;
-  // Per SELECT: prova match esatto sul value, poi case-insensitive sul testo dell'opzione
-  const svSel=(id,v)=>{
-    const e=document.getElementById(id); if(!e||!v) return;
-    if(e.tagName!=='SELECT'){e.value=v!=null?v:'';return;}
-    const vl=String(v).toLowerCase().trim();
-    let matched=false;
-    for(let i=0;i<e.options.length;i++){const o=e.options[i];if(o.value===v||o.value.toLowerCase()===vl||o.text.toLowerCase()===vl){e.value=o.value;matched=true;break;}}
-    console.log('[svSel] '+id+': v='+JSON.stringify(v)+' matched='+matched+' result='+gv(id));
-  };
-  // Input fields
+  // Input fields (sv() gestisce i SELECT con fuzzy matching)
   const inputs=['ten','frq','pot','mar','fud','fur','spi','msp','pdc','nag','tms','cor','trm','pnm','pim','pbm','ibm','pcm','icm','mot','str','nrs','ver','vrc','sct'];
   inputs.forEach(f=>{
     if(!p[f]) return;
     if(skipNonEmpty && gv('f-'+f)) return;
     const v = f==='sct' ? p[f].toString().split(' ')[0] : p[f];
-    svSel('f-'+f, v);
+    sv('f-'+f, v);
   });
   // Radio button fields
   const radios=['tdp','fdp','pdp','cls','cdp','fnz','def','smo','cav','icv','isp','int','icn','prc','icd','mus','mse','clm','vt','vd'];
