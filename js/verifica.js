@@ -1401,7 +1401,7 @@ function fillMPPreset(cod){
   if(preset['mp_tecnico']) sv('mp-tecnico',preset['mp_tecnico']);
 }
 
-function fillVSEPreset(cod){
+function fillVSEPreset(cod, skipNonEmpty=false){
   if(!PRESETS||!PRESETS['PRESET_VSE']) return;
   const p=PRESETS['PRESET_VSE'][cod];
   if(!p) return;
@@ -1409,18 +1409,19 @@ function fillVSEPreset(cod){
   const inputs=['ten','frq','pot','mar','fud','fur','spi','msp','pdc','nag','tms','cor','trm','pnm','pim','pbm','ibm','pcm','icm','mot','str','nrs','ver','vrc','sct'];
   inputs.forEach(f=>{
     if(!p[f]) return;
+    if(skipNonEmpty && gv('f-'+f)) return;
     const v = f==='sct' ? p[f].toString().split(' ')[0] : p[f];
     sv('f-'+f, v);
   });
   // Radio button fields
   const radios=['tdp','fdp','pdp','cls','cdp','fnz','def','smo','cav','icv','isp','int','icn','prc','icd','mus','mse','clm','vt','vd'];
-  radios.forEach(f=>{if(p[f]) sr('rg-'+f,p[f]);});
-  if(p['pat']) sr('rg-pa',p['pat']);
-  if(p['pad']) sr('rg-padp',p['pad']);
+  radios.forEach(f=>{if(p[f]&&(!skipNonEmpty||!gr('rg-'+f))) sr('rg-'+f,p[f]);});
+  if(p['pat']&&(!skipNonEmpty||!gr('rg-pa'))) sr('rg-pa',p['pat']);
+  if(p['pad']&&(!skipNonEmpty||!gr('rg-padp'))) sr('rg-padp',p['pad']);
   // Special: classe e PA aggiornano le misurazioni
   if(p['cls']||p['pat']) uM();
-  // Special: giudizio
-  if(p['giu']) sG(p['giu']);
+  // Special: giudizio — non sovrascrivere se il record salvato era già impostato
+  if(p['giu']&&!skipNonEmpty) sG(p['giu']);
 }
 // ── SUPABASE AUTH ──────────────────────────────────────────
 

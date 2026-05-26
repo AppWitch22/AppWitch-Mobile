@@ -465,6 +465,8 @@ function sel(cod){
     if(hasSaved.vsp_saved)loadVSPSaved(hasSaved);
     if(hasSaved.cq_saved)loadCQSaved(hasSaved);
     updateTabIndicators();
+    // Completa i campi VSE ancora vuoti con i valori del preset
+    setTimeout(()=>fillVSEPreset(d.c, true),50);
   } else {
     // Nessun dato salvato: applica preset come valori di default
     setTimeout(()=>fillVSEPreset(d.c),50);
